@@ -50,18 +50,26 @@ jobs:
           mkdir -p release-assets
           cp android/app/build/outputs/apk/debug/app-debug.apk release-assets/pizza-portal.apk
 
+      - name: Extract App Version
+        id: get_version
+        run: |
+          VERSION=$(node -e "const fs = require('fs'); const content = fs.readFileSync('src/utils/updater.ts', 'utf8'); const match = content.match(/CURRENT_VERSION\s*=\s*'([^']+)'/); console.log(match ? 'v' + match[1] : 'latest');")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+        shell: bash
+
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/pizza-portal.apk
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
-          name: ${{ github.ref_type == 'tag' && format('Release {0}', github.ref_name) || '自動ビルド (最新版)' }}
+          tag_name: ${{ env.VERSION }}
+          name: ${{ format('ぴっざぁ市民総合ポータル {0}', env.VERSION) }}
           draft: false
-          prerelease: ${{ github.ref_type != 'tag' }}
+          prerelease: false
           body: |
             ### 🤖 自動リリース情報
             GitHub Actionsによって最新のAPKファイルが自動的にビルドされました。
             
+            - **バージョン:** `${{ env.VERSION }}`
             - **ビルドトリガー:** `${{ github.ref_name }}` (${{ github.ref_type }})
             - **コミットハッシュ:** `${{ github.sha }}`
             - **コミットメッセージ:** 
