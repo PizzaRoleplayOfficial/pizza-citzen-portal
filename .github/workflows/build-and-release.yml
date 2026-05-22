@@ -42,6 +42,7 @@ jobs:
       - name: Build Android Debug APK
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Rename and Prepare APK Asset
