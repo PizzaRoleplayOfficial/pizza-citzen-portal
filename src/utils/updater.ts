@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.3.4'; // 1.3.4 (アプリアイコン背景透過化)
+export const CURRENT_VERSION = '1.3.5'; // 1.3.5 (バージョン表記の統一 & 上書き更新不具合解消)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
