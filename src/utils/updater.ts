@@ -51,11 +51,18 @@ export function isNewerVersion(current: string, latest: string): boolean {
  */
 export async function checkLatestRelease(): Promise<GitHubRelease | null> {
   try {
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/latest`);
+    // プレリリース(Pre-release)も含めて最新リリースを取得するため、全リリース一覧の先頭を取得します
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases`);
     if (!res.ok) {
       throw new Error(`GitHub API returned status ${res.status}`);
     }
-    const data = await res.json();
+    const releases = await res.json();
+    if (!Array.isArray(releases) || releases.length === 0) {
+      console.warn('No releases found.');
+      return null;
+    }
+
+    const data = releases[0];
 
     // APKファイルのアセット（.apkで終わるもの）を探す
     const apkAsset = data.assets?.find((asset: any) => asset.name.endsWith('.apk'));
