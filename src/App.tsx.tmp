@@ -1,0 +1,996 @@
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import Tesseract from 'tesseract.js';
+import { 
+  Car, 
+  Plus, 
+  Search as SearchIcon, 
+  LogOut, 
+  ShieldCheck, 
+  Trash2, 
+  Edit3,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  LayoutDashboard,
+  User as UserIcon,
+  ChevronRight,
+  ChevronDown,
+  ArrowLeft,
+  Image as ImageIcon,
+  ClipboardList,
+  Lock,
+  X,
+  Palette,
+  Home,
+  BookOpen,
+  RefreshCw,
+  Menu,
+  Zap,
+  Check
+} from 'lucide-react';
+import carModelsRaw from './data/car_models.json';
+const carModels = carModelsRaw as Record<string, string[]>;
+
+type VehicleStatus = 'approved' | 'pending' | 'rejected';
+
+interface Vehicle {
+  id: string;
+  owner_id: string;
+  maker: string;
+  model: string;
+  year: number;
+  trim: string;
+  color: string;
+  plate: string;
+  plate_region: string;
+  status: VehicleStatus;
+  reject_reason?: string;
+  created_at?: string;
+  roblox_username: string;
+  discord_username?: string;
+  discord_avatar?: string;
+  image_data?: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  avatar: string;
+  role: 'user' | 'admin';
+  roblox_username?: string;
+}
+
+const INITIAL_USER: User = {
+  id: '12345',
+  username: 'Keabu_Roblox',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Keabu',
+  role: 'user'
+};
+
+const StatusBadge = ({ status, reason }: { status: VehicleStatus, reason?: string }) => {
+  const configs = {
+    approved: { icon: CheckCircle2, color: 'var(--success)', text: '承認済み' },
+    pending: { icon: Clock, color: 'var(--text-muted)', text: '審査中' },
+    rejected: { icon: XCircle, color: 'var(--error)', text: '却下' }
+  };
+  const config = configs[status] || configs.pending;
+  const { icon: Icon, color, text } = config;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <span style={{ 
+        display: 'inline-flex', 
+        alignItems: 'center', 
+        gap: '6px', 
+        color, 
+        fontSize: '0.85rem', 
+        fontWeight: '600'
+      }}>
+        <Icon size={16} />
+        {text}
+      </span>
+      {status === 'rejected' && reason && (
+        <span style={{ fontSize: '0.75rem', color: 'var(--error)', paddingLeft: '22px' }}>理由: {reason}</span>
+      )}
+    </div>
+  );
+};
+
+const parseImages = (data?: string | null): string[] => {
+  if (!data) return [];
+  if (data.startsWith('[')) {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+  return [data];
+};
+
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        } else {
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        }
+        canvas.width = Math.floor(width);
+        canvas.height = Math.floor(height);
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7)); // High compression
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const update = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
+    update(mql);
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, [breakpoint]);
+  return isMobile;
+};
+
+const ImageLightbox = ({ images, startIndex, onClose }: { images: string[], startIndex: number, onClose: () => void }) => {
+  const [idx, setIdx] = useState(startIndex);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setIdx(i => (i + 1) % images.length);
+      if (e.key === 'ArrowLeft') setIdx(i => (i - 1 + images.length) % images.length);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [images, onClose]);
+
+  return ReactDOM.createPortal(
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.93)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)', cursor: 'zoom-out' }}
+    >
+      <img
+        src={images[idx]}
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '10px', boxShadow: '0 8px 60px rgba(0,0,0,0.7)', cursor: 'default' }}
+      />
+      <button onClick={onClose} style={{ position: 'fixed', top: '20px', right: '20px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '50%', width: '48px', height: '48px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000 }}>
+        <X size={24} />
+      </button>
+      {images.length > 1 && (
+        <>
+          <button onClick={e => { e.stopPropagation(); setIdx(i => (i - 1 + images.length) % images.length); }} style={{ position: 'fixed', left: '20px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '50%', width: '56px', height: '56px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000 }}>
+            <ArrowLeft size={28} />
+          </button>
+          <button onClick={e => { e.stopPropagation(); setIdx(i => (i + 1) % images.length); }} style={{ position: 'fixed', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '50%', width: '56px', height: '56px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000 }}>
+            <ChevronRight size={28} />
+          </button>
+          <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.9rem', padding: '6px 20px', borderRadius: '20px', fontWeight: 'bold', pointerEvents: 'none', zIndex: 100000 }}>
+            {idx + 1} / {images.length}
+          </div>
+        </>
+      )}
+    </div>,
+    document.body
+  );
+};
+
+const VehicleImageGallery = ({ imageData, fallbackQuery }: { imageData: string | undefined; fallbackQuery?: string }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [wikiUrl, setWikiUrl] = useState<string | null>(null);
+  const [wikiLoading, setWikiLoading] = useState(false);
+  const images = parseImages(imageData);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (images.length > 0 || !fallbackQuery) return;
+    let cancelled = false;
+    setWikiLoading(true);
+    fetch(`/api/wiki-image?v=4&q=${encodeURIComponent(fallbackQuery)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: any) => { if (!cancelled && data?.imageUrl) setWikiUrl(data.imageUrl); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setWikiLoading(false); });
+    return () => { cancelled = true; };
+  }, [fallbackQuery, images.length]);
+
+  if (images.length === 0) {
+    if (wikiLoading) {
+      return (
+        <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.8rem', gap: '8px' }}>
+          <RefreshCw size={14} className="animate-spin" /> 参考画像を読み込み中...
+        </div>
+      );
+    }
+    if (wikiUrl) {
+      return (
+        <div style={{ position: 'relative', borderBottom: '1px solid var(--glass-border)' }}>
+          <div style={{ height: '160px', backgroundImage: `url(${wikiUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+          <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.65)', color: '#aaa', fontSize: '0.68rem', padding: '3px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', pointerEvents: 'none' }}>
+            <ImageIcon size={10} /> Greenville Wiki より参考画像
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  const openAt = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setCurrentIndex(index);
+    setIsFullscreen(true);
+  };
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex(prev => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
+  };
+
+  if (images.length === 1) {
+    return (
+      <>
+        <div onClick={e => openAt(e, 0)} style={{ height: '200px', backgroundImage: `url(${images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center', borderBottom: '1px solid var(--glass-border)', cursor: 'zoom-in' }} />
+        {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+      </>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <>
+        <div className="image-gallery" style={{ height: '200px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', borderBottom: '1px solid var(--glass-border)', position: 'relative' }}>
+          {images.map((img, i) => (
+            <div key={i} onClick={e => openAt(e, i)} style={{ minWidth: '100%', height: '100%', backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center', scrollSnapAlign: 'start', cursor: 'zoom-in' }} />
+          ))}
+          <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'var(--text-main)', fontSize: '0.7rem', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold', pointerEvents: 'none', zIndex: 2 }}>画像 {images.length}枚 <ChevronRight size={10} style={{display:'inline', verticalAlign:'middle'}}/></div>
+        </div>
+        {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ height: '200px', position: 'relative', borderBottom: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+        <div onClick={e => openAt(e, currentIndex)} style={{ width: '100%', height: '100%', backgroundImage: `url(${images[currentIndex]})`, backgroundSize: 'cover', backgroundPosition: 'center', transition: 'background-image 0.2s ease-in-out', cursor: 'zoom-in' }} />
+        <button onClick={prevImage} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'var(--text-main)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}><ArrowLeft size={16} /></button>
+        <button onClick={nextImage} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'var(--text-main)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}><ChevronRight size={16} /></button>
+        <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'var(--text-main)', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold', pointerEvents: 'none', zIndex: 2 }}>{currentIndex + 1} / {images.length}</div>
+      </div>
+      {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+    </>
+  );
+};
+
+const formatDate = (dateString?: string) => {
+  if (!dateString) return '---';
+  try {
+    const normalized = dateString.includes('T') ? dateString : dateString.replace(' ', 'T');
+    const date = new Date(normalized);
+    if (isNaN(date.getTime())) {
+      const rawDate = new Date(dateString);
+      if (isNaN(rawDate.getTime())) return dateString;
+      return rawDate.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return dateString;
+  }
+};
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USER);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [theme, setTheme] = useState<'dark'|'light'>((localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark');
+  const initialView = (window.location.hash.replace('#', '') as any) || 'home';
+  const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply'>(['home', 'intro', 'garage', 'admin', 'profile', 'apply'].includes(initialView) ? initialView : 'home');
+
+  useEffect(() => { window.location.hash = view; }, [view]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (['home', 'intro', 'garage', 'admin', 'profile', 'apply'].includes(hash)) setView(hash as any);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions'>((sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard');
+  const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const setAdminTabPersist = (tab: 'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions') => {
+    setSelectedUserId(null);
+    sessionStorage.setItem('gvvr_adminTab', tab);
+    setAdminTab(tab);
+  };
+
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [allSearchVehicles, setAllSearchVehicles] = useState<Vehicle[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showTrailerModal, setShowTrailerModal] = useState(false);
+  const [showBetaAutoFillModal, setShowBetaAutoFillModal] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [garageTab, setGarageTab] = useState<'car' | 'trailer'>('car');
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+  const [selectedUserForVehicles, setSelectedUserForVehicles] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const isMobile = useIsMobile();
+
+  const [myApplication, setMyApplication] = useState<any>(null);
+  const [allApplications, setAllApplications] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [allQuestionsAdmin, setAllQuestionsAdmin] = useState<any[]>([]);
+  const [applyAnswers, setApplyAnswers] = useState<Record<string, any>>({});
+  const [applySubmitting, setApplySubmitting] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<any>(null);
+
+  const [wikiPreviewUrl, setWikiPreviewUrl] = useState<string | null>(null);
+  const [wikiTrims, setWikiTrims] = useState<string[]>([]);
+  const [wikiColors, setWikiColors] = useState<string[]>([]);
+  const [formData, setFormData] = useState({
+    maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: '', image_data: ''
+  });
+
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const [trailerSubmitting, setTrailerSubmitting] = useState(false);
+  const [trailerFormData, setTrailerFormData] = useState({
+    model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: '', image_data: ''
+  });
+
+  const fetchVehicles = async () => {
+    setIsLoading(true);
+    const isAdminView = view === 'admin';
+    const endpoint = isAdminView ? "/api/vehicles?admin=true" : `/api/vehicles?userId=${currentUser.id}`;
+    try {
+      const res = await fetch(endpoint);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        if (isAdminView) {
+          setAllSearchVehicles(list);
+          setVehicles(list.filter((v: Vehicle) => v.status === 'pending'));
+        } else {
+          setVehicles(list);
+        }
+      }
+    } catch (e) { console.error("Fetch vehicles failed:", e); }
+    finally { setIsLoading(false); }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) setAllUsers(await res.json() as User[]);
+    } catch (e) { console.error("Fetch users failed:", e); }
+  };
+
+  const fetchApplication = async () => {
+    try {
+      const res = await fetch('/api/applications');
+      if (res.ok) setMyApplication(await res.json() as any);
+    } catch (e) { console.error('Fetch application failed:', e); }
+  };
+
+  const fetchAllApplications = async () => {
+    try {
+      const res = await fetch('/api/applications?admin=true');
+      if (res.ok) setAllApplications(await res.json() as any[]);
+    } catch (e) { console.error('Fetch all applications failed:', e); }
+  };
+
+  const fetchQuestions = async (adminMode = false) => {
+    try {
+      const res = await fetch(adminMode ? '/api/questions?admin=true' : '/api/questions');
+      if (res.ok) {
+        const data = await res.json() as any[];
+        if (adminMode) setAllQuestionsAdmin(data);
+        else setQuestions(data);
+      }
+    } catch (e) { console.error('Fetch questions failed:', e); }
+  };
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const user = await res.json() as User;
+          setCurrentUser(user);
+          setIsLoggedIn(true);
+        }
+      } catch (e) { console.error("Auth check failed", e); }
+      finally { setIsLoading(false); }
+    };
+    checkLogin();
+  }, []);
+
+  const handleManualRefresh = () => {
+    if (!isLoggedIn) return;
+    fetchVehicles();
+    fetchApplication();
+    fetchQuestions();
+    if (view === 'admin') {
+      fetchUsers();
+      fetchAllApplications();
+      fetchQuestions(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    handleManualRefresh();
+    const intervalId = setInterval(handleManualRefresh, 45000);
+    return () => clearInterval(intervalId);
+  }, [isLoggedIn, view]);
+
+  const handleUpdateStatus = async (id: string, status: VehicleStatus, reason?: string) => {
+    let rejectReason = reason || '';
+    if (status === 'rejected' && !reason) {
+      const resp = prompt("却下する理由を入力してください:");
+      if (resp === null) return;
+      rejectReason = resp;
+    }
+    try {
+      const res = await fetch('/api/vehicles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, reject_reason: rejectReason })
+      });
+      if (res.ok) handleManualRefresh();
+    } catch (e) { console.error("Update status failed:", e); }
+  };
+
+  const handleUpdateRole = async (userId: string, newRole: 'user' | 'admin') => {
+    try {
+      const res = await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: userId, role: newRole }) });
+      if (res.ok) fetchUsers();
+    } catch (e) { console.error("Update role failed:", e); }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentUser.id, roblox_username: currentUser.roblox_username }) });
+      if (res.ok) alert("プロフィールを更新しました。");
+    } catch (e) { console.error("Update profile failed:", e); }
+  };
+
+  const handleDeleteVehicle = async (id: string) => {
+    if (!confirm("車両を削除しますか？")) return;
+    try {
+      const res = await fetch(`/api/vehicles?id=${id}`, { method: 'DELETE' });
+      if (res.ok) handleManualRefresh();
+    } catch (e) { console.error("Delete vehicle failed:", e); }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const existing = parseImages(formData.image_data);
+    if (existing.length + files.length > 4) { alert("最大4枚までです。"); return; }
+    try {
+      const base64Images = await Promise.all(files.map(compressImage));
+      setFormData({ ...formData, image_data: JSON.stringify([...existing, ...base64Images]) });
+    } catch (err) { alert("画像の処理に失敗しました。"); }
+  };
+
+  const handleRemoveImage = (idx: number) => {
+    const existing = parseImages(formData.image_data);
+    const updated = existing.filter((_, i) => i !== idx);
+    setFormData({ ...formData, image_data: updated.length > 0 ? JSON.stringify(updated) : '' });
+  };
+
+  const handleStartEdit = (v: Vehicle) => {
+    setEditingVehicleId(v.id);
+    if ((v as any).vehicle_type === 'trailer') {
+      setTrailerFormData({ model: v.model, maker: v.maker, trailer_type: (v as any).trailer_type || '', color: v.color || '', plate: v.plate, plate_region: v.plate_region, roblox_username: v.roblox_username, image_data: v.image_data || '' });
+      setShowTrailerModal(true);
+    } else {
+      setFormData({ maker: v.maker, model: v.model, year: v.year, trim: v.trim || '', color: v.color || '', plate: v.plate, plate_region: v.plate_region, roblox_username: v.roblox_username, image_data: v.image_data || '' });
+      setShowAddModal(true);
+    }
+  };
+
+  const handleOpenAddModal = (type: 'car' | 'trailer') => {
+    setEditingVehicleId(null);
+    if (type === 'car') {
+      setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+      setShowAddModal(true);
+    } else {
+      setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+      setShowTrailerModal(true);
+    }
+  };
+
+  const handleSubmitVehicle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingVehicleId ? 'PUT' : 'POST';
+    const payload = { ...formData, owner_id: currentUser.id };
+    const res = await fetch('/api/vehicles', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editingVehicleId ? { ...payload, id: editingVehicleId } : payload) });
+    if (res.ok) { 
+      setEditingVehicleId(null); 
+      setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+      setShowAddModal(false); 
+      handleManualRefresh(); 
+    }
+    else alert('エラーが発生しました。');
+  };
+
+  const handleSubmitTrailer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingVehicleId ? 'PUT' : 'POST';
+    const payload = { ...trailerFormData, vehicle_type: 'trailer', owner_id: currentUser.id };
+    const res = await fetch('/api/vehicles', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editingVehicleId ? { ...payload, id: editingVehicleId } : payload) });
+    if (res.ok) { 
+      setEditingVehicleId(null); 
+      setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+      setShowTrailerModal(false); 
+      handleManualRefresh(); 
+    }
+    else alert('エラーが発生しました。');
+  };
+
+  const handleSubmitApplication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApplySubmitting(true);
+    const res = await fetch('/api/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roblox_username: currentUser.roblox_username, discord_username: currentUser.username, answers: applyAnswers }) });
+    if (res.ok) fetchApplication();
+    else alert('申請に失敗しました。');
+    setApplySubmitting(false);
+  };
+
+  const handleReviewApplication = async (userId: string, status: 'approved' | 'rejected', reason?: string) => {
+    const res = await fetch('/api/applications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, status, reject_reason: reason }) });
+    if (res.ok) fetchAllApplications();
+  };
+
+  const handleSaveQuestion = async (q: any) => {
+    const method = q.id ? 'PATCH' : 'POST';
+    const res = await fetch('/api/questions', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(q) });
+    if (res.ok) { setEditingQuestion(null); fetchQuestions(true); }
+  };
+
+  const handleToggleQuestion = async (id: string, active: number) => {
+    await fetch('/api/questions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, is_active: active ? 0 : 1 }) });
+    fetchQuestions(true);
+  };
+
+  const getAnswersObj = (s: string) => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
+  const getEditingAnswerArray = (q: any) => { try { const a = JSON.parse(q.answer || 'null'); return Array.isArray(a) ? a : [a].filter(Boolean); } catch { return []; } };
+
+  if (isLoading && !isLoggedIn) return <div className="loading">Loading...</div>;
+
+  if (!isLoggedIn) {
+    return (
+      <div className="login-screen">
+        <div className="animate-fade" style={{ textAlign: 'center', maxWidth: '800px' }}>
+          <Car size={80} color="var(--primary)" style={{ marginBottom: '24px' }} />
+          <h1>ぴっざぁ市民総合ポータル</h1>
+          <p>市民のための次世代ポータル。ガレージを整理し、スマートに管理。</p>
+          <a href="/api/auth/login" className="btn btn-primary" style={{ marginTop: '40px', padding: '16px 40px', textDecoration: 'none', color: '#000', fontWeight: 'bold' }}>Discordでログイン</a>
+        </div>
+      </div>
+    );
+  }
+
+  const isAdminView = view === 'admin';
+
+  return (
+    <div className={`app-layout ${theme}`}>
+      {!isAdminView && (
+        <>
+          {!isMobile ? (
+            <nav className="main-nav">
+              <div className="nav-logo" onClick={() => setView('home')}>🍕 ぴっざぁポータル</div>
+              <div className="nav-tabs">
+                <button className={`nav-btn ${view==='home'?'active':''}`} onClick={()=>setView('home')}><Home size={18}/> ホーム</button>
+                <button className={`nav-btn ${view==='garage'?'active':''}`} onClick={()=>setView('garage')}><LayoutDashboard size={18}/> ガレージ</button>
+                <button className={`nav-btn ${view==='apply'?'active':''}`} onClick={()=>setView('apply')}><ClipboardList size={18}/> 申請</button>
+                <button className={`nav-btn ${view==='profile'?'active':''}`} onClick={()=>setView('profile')}><UserIcon size={18}/> 設定</button>
+                {currentUser.role==='admin' && <button className="nav-btn" onClick={()=>setView('admin')}><ShieldCheck size={18}/> 管理</button>}
+              </div>
+              <div className="nav-right">
+                <img src={currentUser.avatar} style={{ width: 40, height: 40, borderRadius: 12 }} />
+                <a href="/api/auth/logout"><LogOut size={18} /></a>
+              </div>
+            </nav>
+          ) : (
+            <div className="mobile-header">
+              <span onClick={() => setView('home')}>🍕 ぴっざぁポータル</span>
+              <a href="/api/auth/logout"><LogOut size={20} /></a>
+            </div>
+          )}
+        </>
+      )}
+
+      {view === 'admin' ? (
+        <div className="admin-layout animate-fade">
+          {isMobile && isAdminSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsAdminSidebarOpen(false)} />}
+          {isMobile && (
+            <div className="admin-mobile-header">
+              <button onClick={() => setIsAdminSidebarOpen(true)}><Menu size={24} /></button>
+              <h2>Admin Panel</h2>
+            </div>
+          )}
+          <aside className={`admin-sidebar ${isAdminSidebarOpen ? 'open' : ''}`}>
+            <div className="admin-sidebar-header">
+              <ShieldCheck size={28} color="var(--primary)" />
+              <h2>Admin</h2>
+            </div>
+            <nav className="admin-sidebar-nav">
+              {[
+                { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+                { id: 'vehicles', label: '車両承認', icon: <Car size={20} />, count: vehicles.filter(v=>v.status==='pending').length },
+                { id: 'applications', label: '市民申請', icon: <ClipboardList size={20} />, count: allApplications.filter(a=>a.status==='pending').length },
+                { id: 'lookup', label: '車両検索', icon: <SearchIcon size={20} /> },
+                { id: 'users', label: 'ユーザー', icon: <UserIcon size={20} /> },
+                { id: 'questions', label: '問題管理', icon: <BookOpen size={20} /> },
+              ].map(item => (
+                <div key={item.id} className={`admin-nav-item ${adminTab === item.id ? 'active' : ''}`} onClick={() => { setAdminTabPersist(item.id as any); if(isMobile) setIsAdminSidebarOpen(false); }}>
+                  {item.icon} <span>{item.label}</span>
+                  {item.count ? <span className="badge-count">{item.count}</span> : null}
+                </div>
+              ))}
+              <div style={{ marginTop: 'auto', padding: '16px' }}>
+                <button className="nav-btn" style={{ width: '100%' }} onClick={() => setView('home')}><Home size={18}/> 戻る</button>
+              </div>
+            </nav>
+          </aside>
+          <main className="admin-main">
+            {selectedUserId ? (
+              <div className="animate-fade">
+                <button onClick={() => setSelectedUserId(null)} className="btn btn-secondary" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ArrowLeft size={18} /> ユーザー一覧へ戻る
+                </button>
+                <div className="glass card" style={{ padding: '32px', borderRadius: '24px', marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '24px', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', right: '-20px', top: '-20px', opacity: 0.05 }}><UserIcon size={160} /></div>
+                  <img src={allUsers.find(u => u.id === selectedUserId)?.avatar} style={{ width: 80, height: 80, borderRadius: '20px', border: '2px solid var(--primary)' }} />
+                  <div>
+                    <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '4px' }}>{allUsers.find(u => u.id === selectedUserId)?.username}</h2>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ShieldCheck size={16} color="var(--primary)" /> {allUsers.find(u => u.id === selectedUserId)?.role === 'admin' ? '管理者' : '一般市民'}
+                      <span style={{ opacity: 0.3 }}>|</span>
+                      Roblox: {allUsers.find(u => u.id === selectedUserId)?.roblox_username || '未設定'}
+                    </div>
+                  </div>
+                </div>
+
+                <h3 style={{ marginBottom: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '12px' }}><Car size={20} color="var(--primary)" /> 所有車両一覧</h3>
+                <div className="card-grid">
+                  {allSearchVehicles.filter(v => v.owner_id === selectedUserId).map(v => (
+                    <div key={v.id} className="glass card" style={{ padding: 0, borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column' }}>
+                       <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                       <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                           <StatusBadge status={v.status} reason={v.reject_reason} />
+                         </div>
+                         <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '16px' }}>{v.year} {v.maker} {v.model}</h3>
+                         <div style={{ marginBottom: '20px' }}>
+                           <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                             <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#fff', padding: '6px 10px', fontSize: '0.7rem', fontWeight: 700 }}>{v.plate_region}</div>
+                             <div style={{ background: '#fff', color: '#000', padding: '6px 12px', fontSize: '1rem', fontWeight: 800, fontFamily: 'monospace' }}>{v.plate}</div>
+                           </div>
+                         </div>
+                         <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                           {v.status !== 'approved' && (
+                             <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ flex: 1, padding: '8px', fontSize: '0.85rem', justifyContent: 'center' }}>承認</button>
+                           )}
+                           <button className="btn btn-secondary" onClick={() => { const r = prompt("却下理由:"); if(r!==null) handleUpdateStatus(v.id, 'rejected', r); }} style={{ flex: 1, color: 'var(--error)', padding: '8px', fontSize: '0.85rem', justifyContent: 'center' }}>却下</button>
+                           <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ padding: '8px', color: 'var(--error)', border: 'none', background: 'transparent' }}><Trash2 size={18}/></button>
+                         </div>
+                       </div>
+                    </div>
+                  ))}
+                  {allSearchVehicles.filter(v => v.owner_id === selectedUserId).length === 0 && (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>車両は登録されていません。</div>
+                  )}
+                </div>
+              </div>
+            ) : adminTab === 'dashboard' ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+                <div className="glass card animate-fade" onClick={() => setAdminTabPersist('vehicles')} style={{ padding: '32px', borderRadius: '24px', cursor: 'pointer', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '20px', background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.05), transparent)' }}>
+                  <div style={{ padding: '16px', background: 'var(--primary-glow)', borderRadius: '16px', color: 'var(--primary)' }}><Car size={32} /></div>
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>保留中の車両</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800 }}>{allSearchVehicles.filter(v => v.status === 'pending').length} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>件</span></div>
+                  </div>
+                </div>
+                <div className="glass card animate-fade" onClick={() => setAdminTabPersist('applications')} style={{ padding: '32px', borderRadius: '24px', cursor: 'pointer', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '20px', background: 'linear-gradient(135deg, rgba(0, 184, 255, 0.05), transparent)' }}>
+                  <div style={{ padding: '16px', background: 'rgba(0, 184, 255, 0.1)', borderRadius: '16px', color: '#00b8ff' }}><ClipboardList size={32} /></div>
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>保留中の市民申請</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800 }}>{allApplications.filter(a => a.status === 'pending').length} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>件</span></div>
+                  </div>
+                </div>
+                <div className="glass card animate-fade" onClick={() => setAdminTabPersist('users')} style={{ padding: '32px', borderRadius: '24px', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <div style={{ padding: '16px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '16px', color: 'var(--text-main)' }}><UserIcon size={32} /></div>
+                  <div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>登録ユーザー数</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800 }}>{allUsers.length} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>名</span></div>
+                  </div>
+                </div>
+              </div>
+            ) : adminTab === 'vehicles' ? (
+              <div className="card-grid animate-fade">
+                {allSearchVehicles.filter(v => v.status === 'pending').map(v => (
+                  <div key={v.id} className="glass card" style={{ padding: 0, borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column' }}>
+                    <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                    <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <div onClick={() => setSelectedUserId(v.owner_id)} style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'inline-block' }}>{v.roblox_username} <ArrowLeft size={12} style={{ transform: 'rotate(180deg)' }} /></div>
+                        {v.status === 'pending' && v.created_at && (
+                          <span style={{ fontSize: '0.65rem', background: 'var(--primary-glow)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>再承認待ち</span>
+                        )}
+                      </div>
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '4px' }}>{v.year} {v.maker} {v.model}</h3>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '16px' }}>{v.color || '---'} / {v.trim || '---'}</div>
+                      <div style={{ marginTop: 'auto' }}>
+                        <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--glass-border)', marginBottom: '16px' }}>
+                          <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#fff', padding: '6px 10px', fontSize: '0.7rem', fontWeight: 700 }}>{v.plate_region}</div>
+                          <div style={{ background: '#fff', color: '#000', padding: '6px 12px', fontSize: '1rem', fontWeight: 800, fontFamily: 'monospace' }}>{v.plate}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ flex: 1, justifyContent: 'center' }}>承認</button>
+                          <button className="btn btn-secondary" onClick={() => { const r = prompt("却下理由:"); if(r!==null) handleUpdateStatus(v.id, 'rejected', r); }} style={{ flex: 1, justifyContent: 'center', color: 'var(--error)' }}>却下</button>
+                        </div>
+                        <div style={{ marginTop: '12px', fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>申請日: {formatDate(v.created_at)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {allSearchVehicles.filter(v => v.status === 'pending').length === 0 && (
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '80px 24px', color: 'var(--text-muted)' }}>待機中の車両申請はありません。</div>
+                )}
+              </div>
+            ) : adminTab === 'applications' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} className="animate-fade">
+                {allApplications.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)' }}>申請はまだありません。</div>
+                ) : (
+                  allApplications.map((app: any) => (
+                    <div key={app.user_id} className="glass card" style={{ padding: '24px', borderRadius: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                        <div onClick={() => setSelectedUserId(app.user_id)} style={{ cursor: 'pointer' }}>
+                          <div style={{ fontWeight: 700, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>{app.discord_username} <ArrowLeft size={14} style={{ transform: 'rotate(180deg)', color: 'var(--primary)' }} /></div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Roblox: {app.roblox_username}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <StatusBadge status={app.status} reason={app.reject_reason} />
+                          {app.status === 'pending' && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button className="btn btn-primary" onClick={() => handleReviewApplication(app.user_id, 'approved')} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>承認</button>
+                              <button className="btn btn-secondary" onClick={() => { const r = prompt("却下理由:"); if(r!==null) handleReviewApplication(app.user_id, 'rejected', r); }} style={{ padding: '8px 16px', fontSize: '0.85rem', color: 'var(--error)' }}>却下</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>申請日: {formatDate(app.submitted_at)}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : adminTab === 'lookup' ? (
+              <div className="animate-fade">
+                <div style={{ position: 'relative', marginBottom: '32px', display: 'flex', gap: '12px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <SearchIcon size={20} style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input type="text" placeholder="ナンバープレート、ユーザー名で検索..." value={searchTerm} onChange={e => setSearchTerm(e.target.value.toUpperCase())} className="glass" style={{ width: '100%', padding: '18px 20px 18px 56px', borderRadius: '16px', fontSize: '1rem', border: '1px solid var(--glass-border)' }} />
+                  </div>
+                  {searchTerm && (
+                    <button onClick={() => setSearchTerm('')} className="btn btn-secondary" style={{ borderRadius: '16px', padding: '0 24px' }}>クリア</button>
+                  )}
+                </div>
+                <div className="card-grid">
+                  {allSearchVehicles.filter(v => (v.plate && v.plate.includes(searchTerm)) || (v.roblox_username && v.roblox_username.toUpperCase().includes(searchTerm))).map(v => (
+                    <div key={v.id} className="glass card" style={{ padding: 0, borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column' }}>
+                       <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                       <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                           <span onClick={() => setSelectedUserId(v.owner_id)} style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>{v.roblox_username}</span>
+                           <StatusBadge status={v.status} />
+                         </div>
+                         <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '16px' }}>{v.year} {v.maker} {v.model}</h3>
+                         
+                         <div style={{ marginBottom: '20px' }}>
+                           <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                             <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#fff', padding: '6px 10px', fontSize: '0.7rem', fontWeight: 700 }}>{v.plate_region}</div>
+                             <div style={{ background: '#fff', color: '#000', padding: '6px 12px', fontSize: '1rem', fontWeight: 800, fontFamily: 'monospace' }}>{v.plate}</div>
+                           </div>
+                         </div>
+
+                         <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                           {v.status !== 'approved' && (
+                             <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ flex: 1, padding: '8px', fontSize: '0.85rem', justifyContent: 'center' }}>承認</button>
+                           )}
+                           <button className="btn btn-secondary" onClick={() => { const r = prompt("却下理由:"); if(r!==null) handleUpdateStatus(v.id, 'rejected', r); }} style={{ flex: 1, color: 'var(--error)', padding: '8px', fontSize: '0.85rem', justifyContent: 'center' }}>却下</button>
+                           <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ padding: '8px', color: 'var(--error)', border: 'none', background: 'transparent' }}><Trash2 size={18}/></button>
+                         </div>
+                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : adminTab === 'users' ? (
+              <div className="glass animate-fade" style={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}><th style={{ padding: '24px' }}>ユーザー</th><th style={{ padding: '24px' }}>Role</th><th style={{ padding: '24px' }}>操作</th></tr></thead>
+                  <tbody>
+                    {allUsers.map(u => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', cursor: 'pointer' }} onClick={() => setSelectedUserId(u.id)}>
+                        <td style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <img src={u.avatar} style={{ width: 44, height: 44, borderRadius: 12 }} />
+                          <div>
+                            <div style={{ fontWeight: 700 }}>{u.username}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Roblox: {u.roblox_username || '---'}</div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px 24px' }}>
+                          {u.role === 'admin' ? <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.8rem', background: 'var(--primary-glow)', padding: '4px 10px', borderRadius: '6px' }}>運営</span> : <span style={{ color: 'var(--text-muted)' }}>一般</span>}
+                        </td>
+                        <td style={{ padding: '16px 24px' }} onClick={e => e.stopPropagation()}>
+                          <button className="btn btn-secondary" onClick={() => handleUpdateRole(u.id, u.role === 'admin' ? 'user' : 'admin')} style={{ fontSize: '0.85rem' }}>{u.role === 'admin' ? '権限剥奪' : '運営にする'}</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : adminTab === 'questions' ? (
+              <div className="admin-questions">
+                <button className="btn btn-primary" onClick={() => setEditingQuestion({ question: '', type: 'radio', choices: [], answer: null, sort_order: allQuestionsAdmin.length + 1 })}>追加</button>
+                {allQuestionsAdmin.map(q => (
+                  <div key={q.id} className="glass card admin-row">
+                    <span>{q.question}</span>
+                    <button className="btn btn-secondary" onClick={()=>handleToggleQuestion(q.id, q.is_active)}>切替</button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </main>
+        </div>
+      ) : (
+        <main className="container main-content">
+          {view === 'home' ? (
+            <div className="home-view">
+              <h1>Welcome, {currentUser.username}</h1>
+              <div className="quick-actions">
+                <button className="glass card" onClick={()=>setView('intro')}><BookOpen/> <span>ガイド</span></button>
+                <button className="glass card" onClick={()=>setShowAddModal(true)}><Plus/> <span>車両追加</span></button>
+                <button className="glass card" onClick={()=>setShowTrailerModal(true)}><Zap/> <span>トレーラー</span></button>
+              </div>
+              <div className="status-overview glass card">
+                <h3>市民権ステータス</h3>
+                <p>{myApplication ? myApplication.status : '未申請'}</p>
+              </div>
+            </div>
+          ) : view === 'intro' ? (
+            <div className="intro-view glass card">
+              <button onClick={()=>setView('home')}><ArrowLeft/> 戻る</button>
+              <h2>サーバーのルール</h2>
+              <p>1. 現実的な車両を使用してください。</p>
+              <p>2. 過度なカスタムは控えてください。</p>
+            </div>
+          ) : view === 'garage' ? (
+            <div className="garage-view">
+              <div className="view-header">
+                <h2>My Garage</h2>
+                <div className="tabs">
+                  <button onClick={()=>setGarageTab('car')} className={garageTab==='car'?'active':''}>Car</button>
+                  <button onClick={()=>setGarageTab('trailer')} className={garageTab==='trailer'?'active':''}>Trailer</button>
+                </div>
+              </div>
+              <div className="card-grid">
+                {vehicles.filter(v=>(v as any).vehicle_type===(garageTab==='car'?null:'trailer')).map(v => (
+                  <div key={v.id} className="glass card garage-item">
+                    <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                    <div className="info">
+                      <h3>{v.year} {v.maker} {v.model}</h3>
+                      <p>{v.plate}</p>
+                      <StatusBadge status={v.status} />
+                    </div>
+                    <div className="actions">
+                      <button onClick={()=>handleStartEdit(v)}><Edit3 size={16}/></button>
+                      <button onClick={()=>handleDeleteVehicle(v.id)}><Trash2 size={16}/></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : view === 'apply' ? (
+            <div className="apply-view glass card">
+              <h2>市民権申請</h2>
+              {myApplication ? (
+                <div style={{ textAlign: 'center' }}>
+                  <h3>ステータス: {myApplication.status}</h3>
+                  <button onClick={()=>setView('home')}>ホームへ</button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmitApplication}>
+                  <p>試験に答えてください。</p>
+                  {questions.map(q => (
+                    <div key={q.id}>
+                      <p>{q.question}</p>
+                      <input type="text" onChange={e=>setApplyAnswers({...applyAnswers, [q.id]: e.target.value})} />
+                    </div>
+                  ))}
+                  <button type="submit">送信</button>
+                </form>
+              )}
+            </div>
+          ) : view === 'profile' ? (
+            <div className="profile-view glass card">
+              <h2>設定</h2>
+              <form onSubmit={handleUpdateProfile}>
+                <label>Robloxユーザー名</label>
+                <input value={currentUser.roblox_username || ''} onChange={e=>setCurrentUser({...currentUser, roblox_username: e.target.value})} />
+                <button type="submit">保存</button>
+              </form>
+              <div className="theme-toggle">
+                <button onClick={()=>setTheme('dark')}>Dark</button>
+                <button onClick={()=>setTheme('light')}>Light</button>
+              </div>
+            </div>
+          ) : null}
+        </main>
+      )}
+
+      {!isAdminView && isMobile && (
+        <nav className="mobile-nav">
+          <button onClick={()=>setView('home')}><Home size={24}/><span>Home</span></button>
+          <button onClick={()=>setView('garage')}><LayoutDashboard size={24}/><span>Garage</span></button>
+          <button onClick={()=>setView('apply')}><ClipboardList size={24}/><span>Apply</span></button>
+          <button onClick={()=>setView('profile')}><UserIcon size={24}/><span>Menu</span></button>
+        </nav>
+      )}
+
+      {showAddModal && (
+        <div className="modal-overlay">
+          <div className="glass modal animate-fade">
+            <h2>車両登録</h2>
+            <form onSubmit={handleSubmitVehicle}>
+              <input placeholder="Maker" value={formData.maker} onChange={e=>setFormData({...formData, maker: e.target.value})} />
+              <input placeholder="Model" value={formData.model} onChange={e=>setFormData({...formData, model: e.target.value})} />
+              <input type="number" value={formData.year} onChange={e=>setFormData({...formData, year: parseInt(e.target.value)})} />
+              <input placeholder="Plate" value={formData.plate} onChange={e=>setFormData({...formData, plate: e.target.value.toUpperCase()})} />
+              <div className="actions">
+                <button type="button" onClick={()=>setShowAddModal(false)}>キャンセル</button>
+                <button type="submit">申請</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

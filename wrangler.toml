@@ -1,0 +1,12 @@
+name = "pizza-citzen-portal"
+compatibility_date = "2024-04-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "D1_DB"
+database_name = "gv-cars-prod"
+database_id = "062f1644-7d69-44b0-8909-ee7ef64c8f34"
+
+[vars]
+DISCORD_CLIENT_ID = "1489468404120424550"
+DISCORD_REDIRECT_URI = "https://pizza-citzen-portal.pages.dev/api/auth/callback"

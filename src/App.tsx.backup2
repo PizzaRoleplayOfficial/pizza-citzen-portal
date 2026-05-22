@@ -1,0 +1,2700 @@
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+// import Tesseract from 'tesseract.js';
+import { 
+  Car, 
+  Plus, 
+  Search as SearchIcon, 
+  LogOut, 
+  ShieldCheck, 
+  Trash2, 
+  Edit3,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  LayoutDashboard,
+  User as UserIcon,
+  ChevronRight,
+  ChevronDown,
+  ArrowLeft,
+  Image as ImageIcon,
+  ClipboardList,
+  Lock,
+  X,
+  Palette,
+  Home,
+  BookOpen,
+  RefreshCw,
+  Menu
+} from 'lucide-react';
+// carModels is now loaded dynamically via useEffect
+
+type VehicleStatus = 'approved' | 'pending' | 'rejected';
+
+interface Vehicle {
+  id: string;
+  owner_id: string;
+  maker: string;
+  model: string;
+  year: number;
+  trim: string;
+  color: string;
+  plate: string;
+  plate_region: string;
+  status: VehicleStatus;
+  reject_reason?: string;
+  created_at?: string;
+  roblox_username: string;
+  discord_username?: string;
+  discord_avatar?: string;
+  image_data?: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  avatar: string;
+  role: 'user' | 'admin';
+  roblox_username?: string;
+}
+
+const INITIAL_USER: User = {
+  id: '12345',
+  username: 'Keabu_Roblox',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Keabu',
+  role: 'user'
+};
+
+const StatusBadge = ({ status, reason }: { status: VehicleStatus, reason?: string }) => {
+  const configs = {
+    approved: { icon: CheckCircle2, color: 'var(--success)', text: '承認済み' },
+    pending: { icon: Clock, color: 'var(--text-muted)', text: '審査中' },
+    rejected: { icon: XCircle, color: 'var(--error)', text: '却下' }
+  };
+  const config = configs[status] || configs.pending;
+  const { icon: Icon, color, text } = config;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <span style={{ 
+        display: 'inline-flex', 
+        alignItems: 'center', 
+        gap: '6px', 
+        color, 
+        fontSize: '0.85rem', 
+        fontWeight: '600'
+      }}>
+        <Icon size={16} />
+        {text}
+      </span>
+      {status === 'rejected' && reason && (
+        <span style={{ fontSize: '0.75rem', color: 'var(--error)', paddingLeft: '22px' }}>理由: {reason}</span>
+      )}
+    </div>
+  );
+};
+
+const parseImages = (data?: string | null): string[] => {
+  if (!data) return [];
+  if (data.startsWith('[')) {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+  return [data];
+};
+
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        } else {
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        }
+        canvas.width = Math.floor(width);
+        canvas.height = Math.floor(height);
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7)); // High compression
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const update = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
+    update(mql);
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, [breakpoint]);
+  return isMobile;
+};
+
+// Portal-based fullscreen lightbox — renders into document.body to escape any parent overflow/transform
+const ImageLightbox = ({ images, startIndex, onClose }: { images: string[], startIndex: number, onClose: () => void }) => {
+  const [idx, setIdx] = useState(startIndex);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setIdx(i => (i + 1) % images.length);
+      if (e.key === 'ArrowLeft') setIdx(i => (i - 1 + images.length) % images.length);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [images, onClose]);
+
+  return ReactDOM.createPortal(
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.93)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)', cursor: 'zoom-out' }}
+    >
+      <img
+        src={images[idx]}
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '10px', boxShadow: '0 8px 60px rgba(0,0,0,0.7)', cursor: 'default' }}
+      />
+      {/* Close */}
+      <button onClick={onClose} style={{ position: 'fixed', top: '20px', right: '20px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '50%', width: '48px', height: '48px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000 }}>
+        <X size={24} />
+      </button>
+      {/* Prev / Next */}
+      {images.length > 1 && (
+        <>
+          <button onClick={e => { e.stopPropagation(); setIdx(i => (i - 1 + images.length) % images.length); }} style={{ position: 'fixed', left: '20px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '50%', width: '56px', height: '56px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000 }}>
+            <ArrowLeft size={28} />
+          </button>
+          <button onClick={e => { e.stopPropagation(); setIdx(i => (i + 1) % images.length); }} style={{ position: 'fixed', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '50%', width: '56px', height: '56px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000 }}>
+            <ChevronRight size={28} />
+          </button>
+          <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.9rem', padding: '6px 20px', borderRadius: '20px', fontWeight: 'bold', pointerEvents: 'none', zIndex: 100000 }}>
+            {idx + 1} / {images.length}
+          </div>
+        </>
+      )}
+    </div>,
+    document.body
+  );
+};
+
+const VehicleImageGallery = ({ imageData, fallbackQuery }: { imageData: string | undefined; fallbackQuery?: string }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [wikiUrl, setWikiUrl] = useState<string | null>(null);
+  const [wikiLoading, setWikiLoading] = useState(false);
+  const images = parseImages(imageData);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (images.length > 0 || !fallbackQuery) return;
+    let cancelled = false;
+    setWikiLoading(true);
+    fetch(`/api/wiki-image?v=4&q=${encodeURIComponent(fallbackQuery)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: any) => { if (!cancelled && data?.imageUrl) setWikiUrl(data.imageUrl); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setWikiLoading(false); });
+    return () => { cancelled = true; };
+  }, [fallbackQuery, images.length]);
+
+  // Show wiki fallback when no user-uploaded images
+  if (images.length === 0) {
+    if (wikiLoading) {
+      return (
+        <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.8rem', gap: '8px' }}>
+          <RefreshCw size={14} className="animate-spin" /> 参考画像を読み込み中...
+        </div>
+      );
+    }
+    if (wikiUrl) {
+      return (
+        <div style={{ position: 'relative', borderBottom: '1px solid var(--glass-border)' }}>
+          <div style={{ height: '160px', backgroundImage: `url(${wikiUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+          <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.65)', color: '#aaa', fontSize: '0.68rem', padding: '3px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', pointerEvents: 'none' }}>
+            <ImageIcon size={10} /> Greenville Wiki より参考画像
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  const openAt = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setCurrentIndex(index);
+    setIsFullscreen(true);
+  };
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex(prev => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
+  };
+
+  if (images.length === 1) {
+    return (
+      <>
+        <div onClick={e => openAt(e, 0)} style={{ height: '200px', backgroundImage: `url(${images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center', borderBottom: '1px solid var(--glass-border)', cursor: 'zoom-in' }} />
+        {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+      </>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <>
+        <div className="image-gallery" style={{ height: '200px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', borderBottom: '1px solid var(--glass-border)', position: 'relative' }}>
+          {images.map((img, i) => (
+            <div key={i} onClick={e => openAt(e, i)} style={{ minWidth: '100%', height: '100%', backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center', scrollSnapAlign: 'start', cursor: 'zoom-in' }} />
+          ))}
+          <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'var(--text-main)', fontSize: '0.7rem', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold', pointerEvents: 'none', zIndex: 2 }}>画像 {images.length}枚 <ChevronRight size={10} style={{display:'inline', verticalAlign:'middle'}}/></div>
+        </div>
+        {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ height: '200px', position: 'relative', borderBottom: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+        <div onClick={e => openAt(e, currentIndex)} style={{ width: '100%', height: '100%', backgroundImage: `url(${images[currentIndex]})`, backgroundSize: 'cover', backgroundPosition: 'center', transition: 'background-image 0.2s ease-in-out', cursor: 'zoom-in' }} />
+        <button onClick={prevImage} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'var(--text-main)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}><ArrowLeft size={16} /></button>
+        <button onClick={nextImage} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'var(--text-main)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}><ChevronRight size={16} /></button>
+        <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'var(--text-main)', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold', pointerEvents: 'none', zIndex: 2 }}>{currentIndex + 1} / {images.length}</div>
+      </div>
+      {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+    </>
+  );
+};
+
+const formatDate = (dateString?: string) => {
+  if (!dateString) return '---';
+  try {
+    const isoString = dateString.replace(' ', 'T') + 'Z';
+    return new Date(isoString).toLocaleString('ja-JP', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+  } catch (e) {
+    return dateString;
+  }
+};
+
+export default function App() {
+  const [carModels, setCarModels] = useState<Record<string, string[]>>({});
+  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USER);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [theme, setTheme] = useState<'dark'|'light'>(
+    (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
+  );
+  const initialView = (window.location.hash.replace('#', '') as any) || 'home';
+  const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply'>(
+    ['home', 'intro', 'garage', 'admin', 'profile', 'apply'].includes(initialView) ? initialView : 'home'
+  );
+
+  useEffect(() => {
+    window.location.hash = view;
+  }, [view]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (['home', 'intro', 'garage', 'admin', 'profile', 'apply'].includes(hash)) {
+        setView(hash as any);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog'>(
+    (sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard'
+  );
+  const setAdminTabPersist = (tab: 'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog') => {
+    sessionStorage.setItem('gvvr_adminTab', tab);
+    setAdminTab(tab);
+  };
+  const [wikiPreviewUrl, setWikiPreviewUrl] = useState<string | null>(null);
+  const [wikiTrims, setWikiTrims] = useState<string[]>([]);
+  const [wikiColors, setWikiColors] = useState<string[]>([]);
+  const [wikiLoading, setWikiLoading] = useState(false);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [allSearchVehicles, setAllSearchVehicles] = useState<Vehicle[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showTrailerModal, setShowTrailerModal] = useState(false);
+  const [showBetaAutoFillModal, setShowBetaAutoFillModal] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [garageTab, setGarageTab] = useState<'car' | 'trailer'>('car');
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+  const [selectedUserForVehicles, setSelectedUserForVehicles] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Application state
+  const [myApplication, setMyApplication] = useState<any>(null);
+  const [allApplications, setAllApplications] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [applyAnswers, setApplyAnswers] = useState<Record<string, any>>({});
+  const [applySubmitting, setApplySubmitting] = useState(false);
+  const [allQuestionsAdmin, setAllQuestionsAdmin] = useState<any[]>([]);
+  const [editingQuestion, setEditingQuestion] = useState<any>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [adminSearchTerm, setAdminSearchTerm] = useState('');
+  const [adminSortOrder, setAdminSortOrder] = useState<'newest' | 'oldest' | 'maker'>('newest');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userSortOrder, setUserSortOrder] = useState<'newest' | 'oldest' | 'maker'>('newest');
+
+  const [formData, setFormData] = useState({
+    maker: '',
+    model: '',
+    year: 2024,
+    trim: '',
+    color: '',
+    plate: '',
+    plate_region: 'WISCONSIN',
+    roblox_username: '',
+    image_data: ''
+  });
+
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const [trailerSubmitting, setTrailerSubmitting] = useState(false);
+  const [trailerFormData, setTrailerFormData] = useState({
+    model: '',
+    maker: '',
+    trailer_type: '',
+    color: '',
+    plate: '',
+    plate_region: 'WISCONSIN',
+    roblox_username: '',
+    image_data: ''
+  });
+
+  const handleSubmitTrailer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (trailerSubmitting) return;
+    if (!trailerFormData.model || !trailerFormData.plate) {
+      alert('モデル名とナンバープレートは必須です。');
+      return;
+    }
+    setTrailerSubmitting(true);
+    const method = editingVehicleId ? 'PUT' : 'POST';
+    try {
+      const payload = {
+        ...trailerFormData,
+        year: 2024,
+        trim: '',
+        owner_id: currentUser.id,
+        roblox_username: currentUser.roblox_username,
+        vehicle_type: 'trailer'
+      };
+      const res = await fetch('/api/vehicles', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingVehicleId ? { ...payload, id: editingVehicleId } : payload)
+      });
+      if (!res.ok) {
+        const err = await res.json() as any;
+        alert(err.error || '登録に失敗しました。');
+        return;
+      }
+      setShowTrailerModal(false);
+      setEditingVehicleId(null);
+      setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+      await fetchVehicles();
+      alert(editingVehicleId ? 'トレーラー情報の更新申請を送信しました。再審査待ちになります。' : 'トレーラー登録申請を送信しました！審査待ちになります。');
+
+    } catch {
+      alert('ネットワークエラーが発生しました。');
+    } finally {
+      setTrailerSubmitting(false);
+    }
+  };
+
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('gvvr_theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    if (!showAddModal || !formData.maker || !formData.model) {
+      setWikiPreviewUrl(null);
+      setWikiTrims([]);
+      setWikiColors([]);
+      return;
+    }
+    const query = `${formData.year} ${formData.maker} ${formData.model}`;
+    let cancelled = false;
+    setWikiLoading(true);
+    setWikiPreviewUrl(null);
+    setWikiTrims([]);
+    setWikiColors([]);
+    fetch(`/api/wiki-image?v=4&q=${encodeURIComponent(query)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: any) => {
+        if (cancelled) return;
+        if (data?.imageUrl) setWikiPreviewUrl(data.imageUrl);
+        if (data?.trims && data.trims.length > 0) setWikiTrims(data.trims);
+        if (data?.colors && data.colors.length > 0) setWikiColors(data.colors);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setWikiLoading(false); });
+    return () => { cancelled = true; };
+  }, [formData.maker, formData.model, formData.year, showAddModal]);
+
+  const fetchVehicles = async () => {
+    setIsLoading(true);
+    const isAdminView = view === 'admin';
+    const endpoint = isAdminView ? "/api/vehicles?admin=true" : `/api/vehicles?userId=${currentUser.id}`;
+    try {
+      const res = await fetch(endpoint);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        if (isAdminView) {
+          setAllSearchVehicles(list);
+          setVehicles(list.filter((v: Vehicle) => v.status === 'pending'));
+        } else {
+          setVehicles(list);
+        }
+      }
+    } catch (e) {
+      console.error("Fetch vehicles failed:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    if (view !== 'admin') return;
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const data = await res.json();
+        setAllUsers(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error("Fetch users failed:", e);
+    }
+  };
+
+  const fetchApplication = async () => {
+    try {
+      const res = await fetch('/api/applications');
+      if (res.ok) setMyApplication(await res.json());
+    } catch (e) { console.error('Fetch application failed:', e); }
+  };
+
+  const fetchAllApplications = async () => {
+    try {
+      const res = await fetch('/api/applications?admin=true');
+      if (res.ok) {
+        const data = await res.json();
+        setAllApplications(Array.isArray(data) ? data : []);
+      }
+    } catch (e) { console.error('Fetch all applications failed:', e); }
+  };
+
+  const fetchQuestions = async (adminMode = false) => {
+    try {
+      const res = await fetch(adminMode ? '/api/questions?admin=true' : '/api/questions');
+      if (res.ok) {
+        const data = await res.json() as any[];
+        if (adminMode) setAllQuestionsAdmin(Array.isArray(data) ? data : []);
+        else setQuestions(Array.isArray(data) ? data : []);
+      }
+    } catch (e) { console.error('Fetch questions failed:', e); }
+  };
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const user = await res.json();
+          setCurrentUser(user as User);
+          setIsLoggedIn(true);
+        }
+      } catch (e) {
+        console.error("Auth check failed", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkLogin();
+    
+    // Load external vehicle catalog
+    fetch('/data/car_models.json')
+      .then(r => r.json())
+      .then(data => setCarModels(data as Record<string, string[]>))
+      .catch(e => console.error("Failed to load car models catalog:", e));
+  }, []);
+
+  const handleManualRefresh = () => {
+    if (!isLoggedIn) return;
+    setIsLoading(true);
+    fetchVehicles();
+    fetchApplication();
+    fetchQuestions();
+    if (view === 'admin') {
+      fetchUsers();
+      fetchAllApplications();
+      fetchQuestions(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const refreshData = () => {
+      fetchVehicles();
+      fetchApplication();
+      fetchQuestions();
+      if (view === 'admin') {
+        fetchUsers();
+        fetchAllApplications();
+        fetchQuestions(true);
+      }
+    };
+
+    refreshData();
+
+    // 30 Seconds background polling
+    const intervalId = setInterval(() => {
+      refreshData();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [isLoggedIn, view]);
+
+  useEffect(() => {
+    if (!showAddModal) return;
+
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageItems = Array.from(items).filter(item => item.type.indexOf('image') !== -1);
+      if (imageItems.length === 0) return;
+
+      const files = imageItems.map(item => item.getAsFile()).filter(f => f !== null) as File[];
+
+      const existing = parseImages(formData.image_data);
+      const newCount = existing.length + files.length;
+      if (newCount > 4) {
+        alert("画像は最大4枚までです。");
+        return;
+      }
+
+      try {
+        const base64Images = await Promise.all(files.map(compressImage));
+        const combined = [...existing, ...base64Images];
+        setFormData(prev => ({ ...prev, image_data: JSON.stringify(combined) }));
+      } catch (err) {
+        console.error("Paste image processing failed:", err);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [showAddModal, formData.image_data]);
+
+  const handleUpdateStatus = async (id: string, status: VehicleStatus) => {
+    let rejectReason = '';
+    if (status === 'rejected') {
+      const reason = prompt("却下する理由を入力してください（空欄でも可）:");
+      if (reason === null) return; // User cancelled
+      rejectReason = reason;
+    }
+
+    const targetVehicle = vehicles.find(v => v.id === id) || allSearchVehicles.find(v => v.id === id);
+    const expectedStatus = targetVehicle?.status || 'pending';
+
+    // Optimistic UI Update: 画面上から即座に消す (保留中の承認など)
+    if (expectedStatus === 'pending') {
+      setVehicles(prev => prev.filter(v => v.id !== id));
+    }
+    
+    try {
+      const res = await fetch('/api/vehicles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, reject_reason: rejectReason, expected_status: expectedStatus })
+      });
+      if (res.ok) {
+        fetchVehicles();
+        if (view === 'admin') fetchAllApplications(); // Refresh related data
+      } else if (res.status === 409) {
+        alert("エラー: この車両申請はすでに他の管理者によってステータスが変更されています。最新情報に更新します。");
+        fetchVehicles();
+        if (view === 'admin') handleManualRefresh();
+      } else {
+        const errorData = await res.json() as any;
+        alert(errorData.error || "ステータス更新に失敗しました。");
+      }
+    } catch (e) {
+      console.error("Update status failed:", e);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, newRole: 'user' | 'admin') => {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, role: newRole })
+      });
+      if (res.ok) fetchUsers();
+    } catch (e) {
+      console.error("Update role failed:", e);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentUser.id, roblox_username: currentUser.roblox_username })
+      });
+      if (res.ok) alert("プロフィールを更新しました。");
+    } catch (e) {
+      console.error("Update profile failed:", e);
+    }
+  };
+
+  const handleDeleteVehicle = async (id: string) => {
+    if (!confirm("車両を削除しますか？")) return;
+    try {
+      const res = await fetch(`/api/vehicles?id=${id}`, { method: 'DELETE' });
+      if (res.ok) fetchVehicles();
+    } catch (e) {
+      console.error("Delete vehicle failed:", e);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    
+    const existing = parseImages(formData.image_data);
+    const newCount = existing.length + files.length;
+    if (newCount > 4) {
+      alert(`アップロードできる画像は4枚までです。(現在${existing.length}枚、選択${files.length}枚)`);
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const base64Images = await Promise.all(files.map(compressImage));
+      const combined = [...existing, ...base64Images];
+      setFormData({ ...formData, image_data: JSON.stringify(combined) });
+    } catch (err) {
+      console.error("Image processing failed:", err);
+      alert("画像の処理に失敗しました。");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    const existing = parseImages(formData.image_data);
+    const updated = existing.filter((_, i) => i !== indexToRemove);
+    setFormData({ ...formData, image_data: updated.length > 0 ? JSON.stringify(updated) : '' });
+  };
+
+  const handleStartEdit = (v: Vehicle) => {
+    const isTrailer = (v as any).vehicle_type === 'trailer';
+    if (isTrailer) {
+      setTrailerFormData({
+        model: v.model, maker: v.maker, trailer_type: (v as any).trailer_type || '', color: v.color || '',
+        plate: v.plate, plate_region: v.plate_region || 'WISCONSIN',
+        roblox_username: v.roblox_username || '', image_data: v.image_data || ''
+      });
+      setEditingVehicleId(v.id);
+      setShowTrailerModal(true);
+    } else {
+      setFormData({
+        maker: v.maker, model: v.model, year: v.year, trim: v.trim || '', color: v.color || '',
+        plate: v.plate, plate_region: v.plate_region || 'WISCONSIN',
+        roblox_username: v.roblox_username || '', image_data: v.image_data || ''
+      });
+      setEditingVehicleId(v.id);
+      setShowAddModal(true);
+    }
+  };
+
+
+  const handleAutoFillFromImage = async (file: File) => {
+    setOcrLoading(true);
+    try {
+      // const result = await Tesseract.recognize(file, 'eng');
+      const result = { data: { text: '' } }; // stub
+      const text = result.data.text;
+      const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+
+      let parsedYear = 2024;
+      let parsedMaker = '';
+      let parsedModel = '';
+      let parsedTrim = '';
+      let parsedColor = '';
+      let parsedPlate = '';
+      let parsedRegion = 'WISCONSIN';
+
+      // Pattern-based extraction - each field found independently
+      const uiPattern = /Lock|Unlock|Alarm|Start|Stop|Hold/i;
+
+      // 1. Year / Maker / Model
+      for (const line of lines) {
+        const carMatch = line.match(/^(\d{4})\s+([a-zA-Z][a-zA-Z0-9-]*)\s+(.+)$/);
+        if (carMatch) {
+          parsedYear = parseInt(carMatch[1]);
+          parsedMaker = carMatch[2];
+          parsedModel = carMatch[3].trim();
+          break;
+        }
+      }
+
+      // 2. Trim: line immediately after year/maker line, if not a UI button
+      for (let i = 0; i < lines.length - 1; i++) {
+        if (lines[i].match(/^\d{4}\s+[a-zA-Z]/)) {
+          const next = lines[i + 1];
+          if (next && !uiPattern.test(next)) {
+            parsedTrim = next.replace(/^[^a-zA-Z0-9]+/, '').trim();
+          }
+          break;
+        }
+      }
+
+      // 3. Plate: look for "XXX-000" pattern anywhere in the text
+      for (const line of lines) {
+        const plateMatch = line.match(/([A-Z]{2,4}-\d{3,4})/);
+        if (plateMatch) {
+          parsedPlate = plateMatch[1];
+          const afterPlate = line.slice(line.indexOf(plateMatch[1]) + plateMatch[1].length);
+          const regionMatch = afterPlate.match(/[,\s]+([A-Za-z][A-Za-z\s]+)$/);
+          if (regionMatch) parsedRegion = regionMatch[1].trim().toUpperCase();
+          break;
+        }
+      }
+
+      // 4. Color: line after "Start / Stop" stripped of leading icon chars
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].match(/Start\s*\/\s*Stop/i)) {
+          for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+            const stripped = lines[j].replace(/^[^a-zA-Z]+/, '').trim();
+            if (stripped && !uiPattern.test(stripped) && !stripped.match(/\d{2,}/) && !stripped.match(/[A-Z]{2,4}-\d+/)) {
+              parsedColor = stripped;
+              break;
+            }
+          }
+          break;
+        }
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        roblox_username: currentUser.roblox_username || prev.roblox_username,
+        year: parsedYear,
+        maker: parsedMaker,
+        model: parsedModel,
+        trim: parsedTrim,
+        color: parsedColor,
+        plate: parsedPlate,
+        plate_region: parsedRegion
+      }));
+      
+      alert('自動抽出が完了しました！内容を確認・編集して登録してください。');
+      
+    } catch (err) {
+      console.error(err);
+      alert('画像の解析に失敗しました。');
+    } finally {
+      setOcrLoading(false);
+      setShowBetaAutoFillModal(false);
+      setEditingVehicleId(null);
+      setShowAddModal(true);
+    }
+  };
+
+  const handleOCRFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleAutoFillFromImage(file);
+  };
+
+  useEffect(() => {
+    if (!showBetaAutoFillModal) return;
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            handleAutoFillFromImage(file);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [showBetaAutoFillModal]);
+
+  const handleSubmitVehicle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingVehicleId ? 'PUT' : 'POST';
+    try {
+      const payload = { ...formData, owner_id: currentUser.id };
+      const res = await fetch('/api/vehicles', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingVehicleId ? { ...payload, id: editingVehicleId } : payload)
+      });
+      if (res.ok) {
+        setShowAddModal(false);
+        setEditingVehicleId(null);
+        setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+        fetchVehicles();
+      } else {
+
+        const err = await res.json() as any;
+        alert(err.error || '車両登録に失敗しました。');
+      }
+    } catch (e) {
+      console.error("Submit vehicle failed:", e);
+    }
+  };
+
+  const handleSubmitApplication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApplySubmitting(true);
+    try {
+      const res = await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roblox_username: currentUser.roblox_username || '',
+          discord_username: currentUser.username,
+          answers: applyAnswers
+        })
+      });
+      if (res.ok) {
+        await fetchApplication();
+      } else {
+        const err = await res.json() as any;
+        alert(err.error || '申請に失敗しました。');
+      }
+    } catch (err) {
+      console.error('Submit application failed:', err);
+    } finally {
+      setApplySubmitting(false);
+    }
+  };
+
+  const handleReviewApplication = async (userId: string, status: 'approved' | 'rejected', reason?: string) => {
+    const targetApp = allApplications.find(a => a.user_id === userId);
+    const expectedStatus = targetApp?.status || 'pending';
+
+    try {
+      const res = await fetch('/api/applications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, status, reject_reason: reason || null, expected_status: expectedStatus })
+      });
+      if (res.ok) {
+        fetchAllApplications();
+      } else if (res.status === 409) {
+        alert("エラー: この市民申請はすでに他の管理者によってステータスが変更されています。最新情報に更新します。");
+        fetchAllApplications();
+      } else {
+        const errorData = await res.json() as any;
+        alert(errorData.error || "審査処理に失敗しました。");
+      }
+    } catch (e) {
+      console.error('Review application failed:', e);
+    }
+  };
+
+  const handleWikiSync = async () => {
+    if (!confirm('Wikiから最新の車両データを取得し、カタログを更新しますか？')) return;
+    try {
+      const res = await fetch('/api/catalog', { method: 'POST' });
+      if (res.ok) {
+        alert('カタログの同期が完了しました。');
+      } else {
+        const err = await res.json() as any;
+        alert(err.error || 'カタログの同期に失敗しました。');
+      }
+    } catch (e) {
+      console.error('Catalog sync failed:', e);
+      alert('カタログの同期に失敗しました。');
+    }
+  };
+
+  const handleSaveQuestion = async (q: any) => {
+    const isNew = !q.id;
+    const url = '/api/questions';
+    const method = isNew ? 'POST' : 'PATCH';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(q)
+    });
+    if (res.ok) { setEditingQuestion(null); fetchQuestions(true); }
+    else alert('保存に失敗しました。');
+  };
+
+  const handleToggleQuestion = async (id: string, is_active: number) => {
+    await fetch('/api/questions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, is_active: is_active === 1 ? 0 : 1 })
+    });
+    fetchQuestions(true);
+  };
+
+  const getAnswersObj = (answersStr: string) => {
+    try {
+      return JSON.parse(answersStr || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  const getEditingAnswerString = (q: any) => {
+    try {
+      const a = JSON.parse(q.answer || 'null');
+      return Array.isArray(a) ? a.join('\n') : (a || '');
+    } catch {
+      return q.answer || '';
+    }
+  };
+
+  const getEditingAnswerArray = (q: any) => {
+    try {
+      const a = JSON.parse(q.answer || 'null');
+      return Array.isArray(a) ? a : [a].filter(Boolean);
+    } catch {
+      return [q.answer].filter(Boolean);
+    }
+  };
+
+  if (isLoading && !isLoggedIn) return <div className="loading-screen" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+
+  if (!isLoggedIn) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-dark)' }}>
+        <div className="animate-fade" style={{ textAlign: 'center', maxWidth: '800px', width: '100%' }}>
+          <div style={{ display: 'inline-block', marginBottom: '24px' }}>
+            <Car size={80} style={{ color: 'var(--primary)', filter: 'drop-shadow(0 0 30px rgba(0, 255, 136, 0.4))' }} />
+          </div>
+          <h1 style={{ fontSize: '3rem', marginBottom: '16px', lineHeight: 1.2, fontWeight: 800 }}>ぴっざぁ市民総合<br/>ポータル</h1>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '40px', lineHeight: 1.8, fontSize: '1.1rem' }}>
+            市民のための次世代ポータル。ガレージを整理し、<br/>市民申請から管理までをよりスマートに。
+          </p>
+          
+          <a href="/api/auth/login" className="btn btn-primary" style={{ display: 'inline-flex', justifyContent: 'center', width: '100%', maxWidth: '300px', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', marginBottom: '80px', textDecoration: 'none', color: '#000', fontWeight: 'bold' }}>
+            Discordでログイン
+          </a>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', textAlign: 'left' }}>
+            <div className="glass card" style={{ padding: '32px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <LayoutDashboard size={28} color="var(--primary)" style={{ marginBottom: '20px' }} />
+              <h3 style={{ marginBottom: '12px', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>スマート管理</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>自分の車両を一目で確認。追加も削除も自由自在。</p>
+            </div>
+            <div className="glass card" style={{ padding: '32px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <ShieldCheck size={28} color="var(--primary)" style={{ marginBottom: '20px' }} />
+              <h3 style={{ marginBottom: '12px', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>公式認可</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>公式プレートを登録して、警察の捜査や検問もスムーズに。</p>
+            </div>
+            <div className="glass card" style={{ padding: '32px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <SearchIcon size={28} color="var(--primary)" style={{ marginBottom: '20px' }} />
+              <h3 style={{ marginBottom: '12px', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>高速検索</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>ナンバープレートから所有者を瞬時に検索可能（運営用）。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-layout" style={{ background: 'var(--bg-dark)', minHeight: '100vh', paddingBottom: isMobile ? '70px' : '0' }}>
+      {!isMobile && (
+        <nav className="main-nav">
+          <div className="nav-logo" onClick={() => setView('home')}>
+            <span style={{ fontSize: '30px', marginRight: '8px', lineHeight: 1 }}>🍕</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>ぴっざぁポータル</span>
+          </div>
+          
+          <div className="nav-tabs-wrapper">
+            <div className="nav-tabs">
+              <button className={`btn nav-btn ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')}>
+                <Home size={18} /> ホーム
+              </button>
+              <button className={`btn nav-btn ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
+                <LayoutDashboard size={18} /> さがす(ガレージ)
+              </button>
+              <button className={`btn nav-btn ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative' }}>
+                <ClipboardList size={18} /> やること(市民申請)
+                {(!myApplication || myApplication.status === 'rejected') && (
+                  <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />
+                )}
+              </button>
+              <button className={`btn nav-btn ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
+                <UserIcon size={18} /> メニュー(設定)
+              </button>
+              {currentUser.role === 'admin' && (
+                <button className={`btn nav-btn ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>
+                  <ShieldCheck size={18} /> 管理パネル
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="nav-right">
+            <div className="nav-user-info">
+              <div className="nav-username">{currentUser.username}</div>
+              <div className="nav-userrole">{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
+            </div>
+            <img src={currentUser.avatar} alt="u" style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff', objectFit: 'cover' }} />
+            <a href="/api/auth/logout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--glass-border)', transition: '0.2s' }}>
+              <LogOut size={18} />
+            </a>
+          </div>
+        </nav>
+      )}
+
+      {isMobile && (
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--nav-bg)', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            {view === 'admin' && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowMobileMenu(true); }} 
+                className="btn glass"
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', display: 'flex', padding: '4px', marginRight: '4px' }}
+              >
+                <Menu size={24} />
+              </button>
+            )}
+            <div onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '24px', lineHeight: 1 }}>🍕</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src={currentUser.avatar} alt="u" style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
+            <a href="/api/auth/logout" style={{ color: 'var(--text-muted)' }}><LogOut size={20} /></a>
+          </div>
+        </div>
+      )}
+
+      <main className="container" style={{ padding: isMobile ? '30px 16px' : '60px 40px', maxWidth: '1400px' }}>
+        {view === 'home' ? (
+          <div className="animate-fade" style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '40px' }}>
+              <img src={currentUser.avatar} alt="Avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', border: '4px solid var(--primary)', objectFit: 'cover' }} />
+              <div>
+                <h1 style={{ fontSize: '2rem', marginBottom: '4px', letterSpacing: '0.05em', color: 'var(--text-main)' }}>{currentUser.roblox_username || currentUser.username} さん</h1>
+                <p style={{ color: 'var(--text-muted)' }}>ぴっざぁポータルへようこそ</p>
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', fontWeight: 600, color: 'var(--text-main)', borderBottom: '2px solid var(--glass-border)', paddingBottom: '8px' }}>証明書・メニュー</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+              
+              <button className="glass card" onClick={() => setView('intro')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>🔰 ぴっざぁ紹介・ルール</div>
+                  <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+                </div>
+                <div style={{ width: '60px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BookOpen size={24} style={{ color: 'var(--primary)' }} />
+                </div>
+              </button>
+
+              <button className="glass card" onClick={() => setView('apply')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>🪪 市民証（申請状況）</div>
+                  <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+                </div>
+                <div style={{ width: '60px', height: '40px', background: myApplication?.status === 'approved' ? 'rgba(0,193,102,0.15)' : 'rgba(150,150,150,0.15)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {myApplication?.status === 'approved' ? <CheckCircle2 size={24} style={{ color: 'var(--primary)' }} /> : <Clock size={24} style={{ color: 'var(--text-muted)' }} />}
+                </div>
+              </button>
+
+              <button className="glass card" onClick={() => setView('garage')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>🚗 車検証（マイガレージ）</div>
+                  <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+                </div>
+                <div style={{ width: '60px', height: '40px', background: 'rgba(0,160,204,0.15)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Car size={24} style={{ color: 'var(--secondary)' }} />
+                </div>
+              </button>
+
+              <button className="glass card" onClick={() => setView('profile')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>⚙️ アカウント・設定</div>
+                  <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+                </div>
+                <div style={{ width: '60px', height: '40px', background: 'rgba(150,150,150,0.15)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UserIcon size={24} style={{ color: 'var(--text-main)' }} />
+                </div>
+              </button>
+
+            </div>
+          </div>
+        ) : view === 'intro' ? (
+          <div className="animate-fade" style={{ maxWidth: '800px', margin: '0 auto', color: 'var(--text-main)' }}>
+            <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '24px' }}>
+              <ArrowLeft size={20} /> ホームへ戻る
+            </button>
+            <h2 style={{ fontSize: '2rem', marginBottom: '8px', fontWeight: 800 }}>🚗 ロールプレイサーバー 公式ルールブック</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>ぴっざぁ運営による公式ガイドラインです。市民申請の前に必ず熟読してください。</p>
+
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: '#10b981', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>🚗 車両登録および使用ルール</h3>
+              <p style={{ marginBottom: '16px', color: 'var(--text-muted)' }}>当サーバーは「アメリカの田舎町」を舞台としたRP環境です。世界観の維持および適正なゲームバランスを保つため、通常セッション内で登録・使用できる車両に以下の制限を設けます。</p>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>1. 禁止車両（通常時の登録・常用不可）</h4>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px' }}>アメリカの田舎という舞台にそぐわない、またはRPにおいて過剰な性能を有する以下の車両は、通常時の登録および使用を禁止します。</p>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>ハイパーカー・スーパーカー:</strong> 極端な最高速度や加速性能を持ち、チェイス等のバランスを著しく崩す車両。</li>
+                  <li><strong>限定車・希少モデル:</strong> 現実世界において生産台数が限られているような超高級車やコンセプトカー。</li>
+                  <li><strong>過剰な装飾が施された特殊モデル:</strong> 純正の状態で、巨大なウィングや過剰なパーツが装着されている競技車両仕様のモデルなど。</li>
+                </ul>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>2. 世界観に基づく推奨車両</h4>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px' }}>当サーバーの景観に馴染む、以下のカテゴリーの車両登録を推奨します。</p>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li>ピックアップトラック、SUV、オフロードカー</li>
+                  <li>一般的なセダン、ワゴン、ハッチバック</li>
+                  <li>古き良きマッスルカーやクラシックカー</li>
+                </ul>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>3. 公共車両・業務用車両（バス、配送バン、緊急車両等）の個人利用制限</h4>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px' }}>バス、配送バン、警察車両などの特殊な車両については、以下の通り制限を設けます。</p>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>個人利用の制限:</strong> これらの車両は個人での購入・所有が可能ですが、原則として「特定の職業RP（バス運転手、配送業者、警察官等）」としての使用に限定します。</li>
+                  <li><strong>常用・マイカー利用の禁止:</strong> 一般市民としての日常生活や、単なる移動手段としての常用は、RPの観点からご遠慮ください。</li>
+                  <li><strong>専用塗装の扱い:</strong> 特定ジョブ専用の塗装（ポリスデカールや企業ロゴ等）が施された状態での個人利用は厳禁とします。</li>
+                </ul>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>4. その他のルール（外観・イベント）</h4>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>外観・カスタムの制限:</strong> 田舎町の景観を著しく損なう過度なカスタム（極端なローダウン等）はご遠慮ください。</li>
+                  <li><strong>イベント時の特例について:</strong> レース、カーミート（オフ会）、ドラッグレースなどの公式・非公式イベント開催時については、本ルールの限りではありません。イベントの趣旨に合わせた車両の持ち込みやカスタムについては、各イベントのアナウンスやレギュレーションに従ってください。</li>
+                </ul>
+              </div>
+              
+              <div style={{ padding: '16px', background: 'rgba(255,177,66,0.1)', borderRadius: '12px', borderLeft: '4px solid #ffb142' }}>
+                <strong style={{ display: 'block', marginBottom: '4px', color: '#ffb142' }}>【判断に迷った際の基準】</strong>
+                「この車は、アメリカの田舎町のスーパーの駐車場に停まっていて違和感がないか？」を基準に車両を選定してください。基準に適合しないと運営が判断した車両は、登録取り消しをお願いする場合があります。
+              </div>
+            </div>
+
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--error)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>🚨 緊急時のルールと制約</h3>
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>ピースタイム（平和な時間）</h4>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>定義:</strong> 緊急車両の担当者が不足している場合に告知される時間帯。</li>
+                  <li><strong>制限:</strong> ピースタイム中は、いかなる犯罪行為、法律違反行為も許可されない。</li>
+                  <li><strong>ペナルティ:</strong> これを破った場合、即座にキックされる可能性があるため、十分に注意すること。</li>
+                </ul>
+              </div>
+              <div>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>犯罪行為</h4>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>実行頻度:</strong> 緊急車両の出動体制を考慮し、犯罪行為の実行頻度は10分に1回までとする。これ以上の頻度はFRP（不適切なロールプレイ）と見なされる。</li>
+                  <li><strong>逃走時の退出:</strong> 警察に手配された状態でセッションを退出（ログアウト）した場合、手配状態は次のRPセッションに引き継がれ、再参加時にジョブ（役職）を変更することはできない。</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: '#ffb142', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>🚦 交通規則（アメリカ交通法準拠）</h3>
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>速度と違反</h4>
+                 <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>制限速度の超過:</strong> 制限速度から6mph(10km/h)までの速度超過は許容される場合があるが、状況によっては（学校区域など）違反となることもある。</li>
+                  <li><strong>重度の速度違反:</strong> これ以上の速度超過は、違反点数が通常の倍となり、免許停止処分を受ける可能性がある。</li>
+                  <li><strong>危険運転の禁止:</strong> Tailgating（前の車に執拗に付いていく行為）や煽り運転は明確な交通違反と見なされる。</li>
+                </ul>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>アメリカ特有の規則（重要）</h4>
+                 <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>赤信号での右折:</strong> 通常、赤信号でも左右の安全を確認した上で右折（Right Turn on Red）が可能だ。ただし、赤信号では必ず一時停止（Stop）をしないと違反となる。例外として、標識で右折が禁止されている交差点もある。</li>
+                  <li><strong>信号のない交差点:</strong> 優先権は、自分から見て右側にいる車にある。</li>
+                  <li><strong>環状交差点:</strong> 手前の「YIELD」（譲れ）標識に従い、交差点内にいる車の走行を妨げない限り、一時停止をせずに進入・通過して良い。</li>
+                  <li><strong>踏切:</strong> 一時停止の必要はない。</li>
+                </ul>
+              </div>
+              <div>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>交通違反とペナルティ</h4>
+                 <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>警察からの逃走:</strong> 警察の停止命令から逃走を続けることは可能だが、その場合、違反回数が自動的に倍としてカウントされる。</li>
+                  <li><strong>違反回数の上限:</strong> 交通違反の回数は月間で8回まで。これを超えると1週間ロールプレイサーバーに参加できなくなる。</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: '#ff5252', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>💥 事故処理とモラル</h3>
+               <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8, marginBottom: '20px' }}>
+                 <li><strong>事故発生時の対応:</strong> 人身事故（高速）などで負傷者が確認された場合は、保険請求のためにも必ず現場の写真を記録し、警察に通報すること。現場からの立ち去りは当て逃げとして指名手配犯となる。</li>
+                 <li><strong>モラルと騒音:</strong> セッションホストや運営の指示には必ず従うこと。クラクションの乱用、レブアップ、無駄なドアベルなどの過度な騒音や迷惑行為は禁止。</li>
+               </ul>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: '#ff5252', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>⛔ 禁止行為と非RP行為（FRP）</h3>
+               <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                 <li>深刻な倫理的問題を伴う以下のような行為は全て禁止（性的なRP、子供の無視、学校での銃撃、麻薬関連、グラフィックな残虐RP、大量殺人など）。</li>
+                 <li><strong>コンバットログの禁止:</strong> ゲーム内の戦闘や緊迫したシーンの最中では、いかなる理由があっても無言での退出（ログアウト）は許可されない。緊急時は必ず運営に連絡すること。</li>
+               </ul>
+            </div>
+
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--primary)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>🅿️ 車両とジョブ</h3>
+               <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                 <li><strong>車両のスポーン場所:</strong> 駐車場に限定される。路上、空き地など、現実的でない場所や危険な場所でのスポーンは禁止。</li>
+                 <li><strong>ジョブと資格:</strong> 警察官（LEO）、GVFD、DOTとして参加するには、適切なトレーニングとDiscordでの役職が必須。</li>
+                 <li><strong>車両登録の義務:</strong> RPに参加する車両は全て事前にこのシステムで登録が必要。売却やカスタム後の変更も速やかに再申請すること。</li>
+               </ul>
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '40px' }}>
+               <button className="btn btn-primary" onClick={() => setView('apply')} style={{ padding: '16px 32px', fontSize: '1.1rem', fontWeight: 600 }}>
+                 ✍️ ルールを理解した上で市民申請へ進む
+               </button>
+            </div>
+          </div>
+        ) : view === 'apply' ? (
+          <div className="animate-fade">
+            <div className="view-header" style={{ marginBottom: '32px' }}>
+              <div>
+                <h2 style={{ fontSize: '2.4rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>市民申請</h2>
+                <p style={{ color: 'var(--text-muted)' }}>申請が承認されると車両登録が可能になります。</p>
+              </div>
+              <button className="btn btn-secondary" onClick={handleManualRefresh} style={{ padding: '10px 16px' }} disabled={isLoading}>
+                <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+
+            {myApplication?.status === 'approved' && (
+              <div className="glass" style={{ padding: '40px', borderRadius: '20px', textAlign: 'center', border: '1px solid var(--success)', background: 'rgba(0, 255, 0, 0.05)' }}>
+                <CheckCircle2 size={64} style={{ color: 'var(--success)', marginBottom: '16px' }} />
+                <h3 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px', color: 'var(--success)' }}>申請が承認されました！</h3>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>マイガレージから車両を登録できます。</p>
+                <button className="btn btn-primary" onClick={() => setView('garage')} style={{ padding: '14px 32px' }}>マイガレージへ →</button>
+              </div>
+            )}
+
+            {myApplication?.status === 'pending' && (
+              <div className="glass" style={{ padding: '40px', borderRadius: '20px', textAlign: 'center' }}>
+                <Clock size={64} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
+                <h3 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>審査中です</h3>
+                <p style={{ color: 'var(--text-muted)' }}>運営が確認中です。しばらくお待ちください。</p>
+              </div>
+            )}
+
+            {myApplication?.status === 'rejected' && (
+              <div className="glass" style={{ padding: '40px', borderRadius: '20px', marginBottom: '32px', border: '1px solid var(--error)', background: 'rgba(255,50,50,0.05)' }}>
+                <XCircle size={48} style={{ color: 'var(--error)', marginBottom: '16px' }} />
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px', color: 'var(--error)' }}>申請が却下されました</h3>
+                {myApplication.reject_reason && <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>理由: {myApplication.reject_reason}</p>}
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>下記のフォームで再申請できます。</p>
+              </div>
+            )}
+
+            {(!myApplication || myApplication.status === 'rejected') && (
+              questions.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>問題が設定されていません。管理者にお問い合わせください。</div>
+              ) : (
+                <form onSubmit={handleSubmitApplication}>
+                  <div className="glass" style={{ padding: '32px', borderRadius: '20px', marginBottom: '24px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '8px' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Roblox ユーザー名</label>
+                        <input className="glass" value={currentUser.roblox_username || ''} readOnly style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Discord ユーザー名</label>
+                        <input className="glass" value={currentUser.username} readOnly style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                      </div>
+                    </div>
+                    {!currentUser.roblox_username && <p style={{ color: 'var(--error)', fontSize: '0.85rem', marginTop: '8px' }}>⚠️ <a onClick={() => setView('profile')} style={{ cursor: 'pointer', textDecoration: 'underline' }}>プロフィールでRobloxユーザー名を先に設定してください。</a></p>}
+                  </div>
+
+                  {questions.map((q: any) => (
+                    <div key={q.id} className="glass" style={{ padding: '28px', borderRadius: '16px', marginBottom: '16px' }}>
+                      <p style={{ fontWeight: 600, marginBottom: '16px', lineHeight: 1.6 }}><span style={{ color: 'var(--primary)' }}>【問{q.sort_order}】</span> {q.question}</p>
+                      {q.type === 'radio' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {(JSON.parse(q.choices || '[]') as string[]).map((c: string) => (
+                            <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', background: applyAnswers[q.id] === c ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${applyAnswers[q.id] === c ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}`, transition: '0.2s' }}>
+                              <input type="radio" name={q.id} value={c} checked={applyAnswers[q.id] === c} onChange={() => setApplyAnswers(p => ({ ...p, [q.id]: c }))} style={{ accentColor: 'var(--primary)' }} />
+                              <span style={{ fontSize: '0.9rem' }}>{c}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {q.type === 'checkbox' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {(JSON.parse(q.choices || '[]') as string[]).map((c: string) => {
+                            const checked = Array.isArray(applyAnswers[q.id]) && applyAnswers[q.id].includes(c);
+                            return (
+                              <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', background: checked ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${checked ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}`, transition: '0.2s' }}>
+                                <input type="checkbox" checked={checked} onChange={() => {
+                                  const prev: string[] = Array.isArray(applyAnswers[q.id]) ? applyAnswers[q.id] : [];
+                                  setApplyAnswers(p => ({ ...p, [q.id]: checked ? prev.filter(x => x !== c) : [...prev, c] }));
+                                }} style={{ accentColor: 'var(--primary)' }} />
+                                <span style={{ fontSize: '0.9rem' }}>{c}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {q.type === 'text' && (
+                        <textarea value={applyAnswers[q.id] || ''} onChange={e => setApplyAnswers(p => ({ ...p, [q.id]: e.target.value }))} rows={3} placeholder="回答を入力してください" className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '0.95rem', background: 'var(--input-bg)', resize: 'vertical' }} />
+                      )}
+                    </div>
+                  ))}
+                  <button type="submit" disabled={applySubmitting || !currentUser.roblox_username} className="btn btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1rem', borderRadius: '12px', marginTop: '8px', opacity: !currentUser.roblox_username ? 0.5 : 1 }}>
+                    {applySubmitting ? '送信中...' : (myApplication?.status === 'rejected' ? '再申請する' : '申請を送信する')}
+                  </button>
+                </form>
+              )
+            )}
+          </div>
+        ) : view === 'garage' ? (
+          <div className="animate-fade">
+            {myApplication?.status !== 'approved' ? (
+              <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+                <Lock size={64} style={{ color: 'var(--text-muted)', marginBottom: '24px', opacity: 0.5 }} />
+                <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-main)' }}>マイガレージはロック中</h2>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '32px', lineHeight: 1.8 }}>車両を登録するには、まず<strong>市民申請</strong>に合格する必要があります。</p>
+                <button className="btn btn-primary" onClick={() => setView('apply')} style={{ padding: '14px 32px', fontSize: '1rem' }}>
+                  <ClipboardList size={18} /> 市民申請へ →
+                </button>
+              </div>
+            ) : (
+              <>
+            <div className="view-header">
+              <div>
+                <h2 style={{ fontSize: '2.4rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>My Garage</h2>
+                <p style={{ color: 'var(--text-muted)' }}>管理中の車両一覧です。</p>
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button className="btn btn-secondary" onClick={handleManualRefresh} style={{ padding: '10px 16px' }} disabled={isLoading}>
+                  <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                </button>
+                {garageTab === 'car' && (
+                  <button className="btn btn-secondary" onClick={() => {
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    setShowBetaAutoFillModal(true);
+                  }} style={{ padding: '10px 16px', borderRadius: '12px', border: '1px dashed var(--primary)', color: 'var(--primary)', background: 'rgba(0,193,102,0.1)' }}>
+                    ✨ 画像から自動登録 (Beta)
+                  </button>
+                )}
+                {garageTab === 'car' ? (
+                  <button className="btn btn-primary" onClick={() => {
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setEditingVehicleId(null);
+                    setShowAddModal(true);
+                  }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }}>
+                    <Plus size={20} /> 車両を追加
+                  </button>
+                ) : (
+                  <button className="btn btn-primary" onClick={() => {
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setShowTrailerModal(true);
+                  }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', background: 'var(--primary)', color: '#000' }}>
+                    <Plus size={20} /> トレーラーを追加
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Tab switcher */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--panel-bg)', padding: '6px', borderRadius: '14px', width: 'fit-content', border: '1px solid var(--glass-border)' }}>
+              {([['car', '🚗 マイカー'], ['trailer', '🚛 トレーラー']] as const).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  onClick={() => setGarageTab(tab)}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: '0.2s',
+                    background: garageTab === tab ? 'var(--primary)' : 'transparent',
+                    color: garageTab === tab ? '#000' : 'var(--text-muted)',
+                    fontSize: '0.95rem'
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+            
+
+            <div className="card-grid">
+              {vehicles.filter(v => (v as any).vehicle_type === garageTab || (!(v as any).vehicle_type && garageTab === 'car')).map(v => (
+                <div key={v.id} className="glass card" style={{ padding: '0', borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                  <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+                      <div>
+                        <div style={{ color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>{(v as any).vehicle_type === 'trailer' ? '🚛 ' : ''}{v.year ? `${v.year} ` : ''}{v.maker}</div>
+                        <h3 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)' }}>{v.model}</h3>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '12px' }}>申請: {formatDate(v.created_at)}</div>
+                      </div>
+                      <StatusBadge status={v.status} />
+                    </div>
+                    {v.status === 'rejected' && v.reject_reason && (
+                      <div style={{ padding: '16px', background: 'rgba(239,68,68,0.1)', borderLeft: '4px solid var(--error)', borderRadius: '4px', marginBottom: '24px', color: 'var(--error)' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '4px' }}>却下理由</div>
+                        <div style={{ fontSize: '0.95rem' }}>{v.reject_reason}</div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>{(v as any).vehicle_type === 'trailer' ? 'TRAILER TYPE' : 'GRADE / TRIM'}</div>
+                        <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-main)' }}>{(v as any).vehicle_type === 'trailer' ? ((v as any).trailer_type || '---') : (v.trim || '---')}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>COLOR</div>
+                        <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-main)' }}>{v.color || '---'}</div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '32px', flex: 1 }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '10px', letterSpacing: '0.05em' }}>LICENSE PLATE</div>
+                      <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                        <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#ffffff', padding: '10px 16px', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                          {v.plate_region || 'WISCONSIN'}
+                        </div>
+                        <div style={{ background: '#fff', color: '#000', padding: '10px 20px', fontSize: '1.3rem', fontWeight: 700, fontFamily: 'monospace, sans-serif' }}>
+                          {v.plate || 'ABC-1234'}
+                        </div>
+                      </div>
+                     </div>
+
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <button className="btn btn-secondary" onClick={() => handleStartEdit(v)} style={{ flex: 1, justifyContent: 'center', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
+                        <Edit3 size={16} /> 編集
+                      </button>
+                      <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ flex: 1, justifyContent: 'center', background: 'rgba(255,255,255,0.05)', color: 'var(--error)', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
+                        <Trash2 size={16} /> 削除
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {vehicles.filter(v => (v as any).vehicle_type === garageTab || (!(v as any).vehicle_type && garageTab === 'car')).length === 0 && (
+              <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', background: 'var(--panel-bg)', borderRadius: '16px', border: '1px dashed var(--glass-border)' }}>
+                {garageTab === 'car' ? 'ガレージに車両がありません。「車両を追加」ボタンから登録してください。' : '登録済みのトレーラーがありません。「トレーラーを追加」ボタンから登録してください。'}
+              </div>
+            )}
+              </>
+            )}
+          </div>
+        ) : view === 'profile' ? (
+          <div className="animate-fade" style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '2rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>Profile Settings</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>アカウント設定を管理します。</p>
+            <form onSubmit={handleUpdateProfile} className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '32px', background: 'var(--panel-bg)' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Roblox ユーザー名</label>
+                <div style={{ position: 'relative' }}>
+                  <UserIcon size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input type="text" value={currentUser.roblox_username || ''} onChange={e => setCurrentUser({...currentUser, roblox_username: e.target.value})} style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--input-text)', fontSize: '1rem' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>テーマ設定（見た目）</label>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '16px', background: theme === 'dark' ? 'rgba(0,193,102,0.1)' : 'var(--input-bg)', border: `1px solid ${theme === 'dark' ? 'var(--primary)' : 'var(--glass-border)'}`, borderRadius: '12px', flex: 1, color: 'var(--text-main)' }}>
+                    <input type="radio" value="dark" checked={theme === 'dark'} onChange={() => setTheme('dark')} style={{ accentColor: 'var(--primary)' }} />
+                    <Palette size={18} /> ダークモード
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '16px', background: theme === 'light' ? 'rgba(0,193,102,0.1)' : 'var(--input-bg)', border: `1px solid ${theme === 'light' ? 'var(--primary)' : 'var(--glass-border)'}`, borderRadius: '12px', flex: 1, color: 'var(--text-main)' }}>
+                    <input type="radio" value="light" checked={theme === 'light'} onChange={() => setTheme('light')} style={{ accentColor: 'var(--primary)' }} />
+                    <Palette size={18} /> ライトモード
+                  </label>
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ padding: '16px', borderRadius: '12px', fontSize: '1rem', justifyContent: 'center' }}>設定を保存</button>
+            </form>
+          </div>
+        ) : (
+          <div className="animate-fade" style={{ display: 'flex', minHeight: 'calc(100vh - 120px)', gap: '2px', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--glass-border)', position: 'relative' }}>
+            
+            {/* Mobile Overlay Darken */}
+            {isMobile && showMobileMenu && (
+              <div 
+                onClick={() => setShowMobileMenu(false)} 
+                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1999, backdropFilter: 'blur(2px)' }} 
+              />
+            )}
+
+            {/* Admin Sidebar */}
+            {(!isMobile || showMobileMenu) && (
+              <div style={{ 
+                width: '260px', 
+                background: 'var(--panel-bg)', 
+                borderRight: '1px solid var(--glass-border)', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                padding: '24px 12px',
+                flexShrink: 0,
+                ...(isMobile ? {
+                  position: 'fixed',
+                  top: 0, bottom: 0, left: 0,
+                  zIndex: 2000,
+                  boxShadow: '4px 0 24px rgba(0,0,0,0.5)',
+                  transform: showMobileMenu ? 'translateX(0)' : 'translateX(-100%)',
+                  transition: 'transform 0.3s ease-in-out'
+                } : {})
+              }}>
+                <div style={{ padding: '0 12px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '32px', height: '32px', background: 'var(--primary)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                      <ShieldCheck size={20} />
+                    </div>
+                    <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-main)' }}>Admin Panel</span>
+                  </div>
+                  {isMobile && (
+                    <button onClick={() => setShowMobileMenu(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)' }}>
+                      <X size={24} />
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                  {[
+                    { id: 'dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
+                    { id: 'vehicles', label: '車両承認', icon: Car, count: vehicles.length },
+                    { id: 'applications', label: '市民申請', icon: ClipboardList, count: allApplications.filter((a:any) => a.status === 'pending').length, action: fetchAllApplications },
+                    { id: 'lookup', label: '車両検索', icon: SearchIcon },
+                    { id: 'users', label: 'ユーザー管理', icon: UserIcon, action: () => setSelectedUserForVehicles(null) },
+                    { id: 'catalog', label: 'カタログ管理', icon: BookOpen },
+                    { id: 'questions', label: '問題管理', icon: ClipboardList, action: () => fetchQuestions(true) }
+                  ].map(item => {
+                    const isActive = adminTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => { 
+                          setAdminTabPersist(item.id as any); 
+                          if(item.action) item.action(); 
+                          if(isMobile) setShowMobileMenu(false);
+                        }}
+                        className={`btn admin-nav-item ${isActive ? 'active' : ''}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '14px 16px',
+                          borderRadius: '12px',
+                          whiteSpace: 'nowrap',
+                          position: 'relative',
+                          background: isActive ? 'var(--primary)' : 'transparent',
+                          color: isActive ? '#000' : 'var(--text-main)',
+                          border: 'none',
+                          justifyContent: 'flex-start',
+                          transition: 'all 0.2s ease',
+                          fontWeight: isActive ? 700 : 500,
+                          boxShadow: isActive ? '0 4px 12px rgba(0, 193, 102, 0.3)' : 'none'
+                        }}
+                      >
+                        <item.icon size={20} style={{ color: isActive ? '#000' : 'var(--text-muted)' }} />
+                        <span style={{ fontSize: '0.95rem' }}>{item.label}</span>
+                        {item.count !== undefined && item.count > 0 && (
+                          <span style={{
+                            position: 'static',
+                            marginLeft: 'auto',
+                            background: isActive ? 'rgba(0,0,0,0.8)' : 'var(--error)',
+                            color: 'white',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '10px'
+                          }}>
+                            {item.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ marginTop: 'auto', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <button
+                    onClick={() => { setView('home'); if(isMobile) setShowMobileMenu(false); }}
+                    className="btn"
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '12px', color: 'var(--text-muted)', border: 'none', background: 'transparent', justifyContent: 'flex-start' }}
+                  >
+                    <Home size={20} />
+                    <span style={{ fontWeight: 600 }}>ポータルへ戻る</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Admin Content Area */}
+            <div style={{ flex: 1, padding: isMobile ? '20px' : '40px', overflowY: 'auto', background: 'rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div>
+                   <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '4px' }}>
+                     {adminTab === 'dashboard' ? 'Dashboard' : 
+                      adminTab === 'vehicles' ? 'Vehicle Approval' : 
+                      adminTab === 'applications' ? 'Citizenship Applications' : 
+                      adminTab === 'lookup' ? 'Vehicle Registry Search' : 
+                      adminTab === 'users' ? 'User Management' : 
+                      adminTab === 'catalog' ? 'Catalog Management' : 'Question Bank'}
+                   </h2>
+                   <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Greenville Vehicle Registry Administration</p>
+                </div>
+                <button className="btn btn-secondary" onClick={handleManualRefresh} style={{ width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} disabled={isLoading}>
+                  <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
+                </button>
+              </div>
+
+            {adminTab === 'dashboard' && (
+              <div className="animate-fade">
+                {(() => {
+                  const pVehiclesCount = vehicles.length;
+                  const pAppsCount = allApplications.filter((a:any) => a.status === 'pending').length;
+                  
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+                      <div className="glass card" onClick={() => setAdminTabPersist('vehicles')} style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', background: 'var(--panel-bg)', position: 'relative', overflow: 'hidden', border: `1px solid ${pVehiclesCount > 0 ? 'rgba(255, 82, 82, 0.4)' : 'var(--glass-border)'}` }}>
+                        <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: pVehiclesCount > 0 ? 0.1 : 0.03, color: pVehiclesCount > 0 ? 'var(--error)' : 'var(--text-main)', transition: '0.3s' }}><Car size={160} /></div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}><Car size={24} /> <h2 style={{ fontSize: '1.2rem', margin: 0 }}>保留中の車両承認</h2></div>
+                        <div style={{ fontSize: '3.5rem', fontWeight: 800, color: pVehiclesCount > 0 ? 'var(--error)' : 'var(--text-main)', marginTop: '8px' }}>{pVehiclesCount} <span style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-muted)' }}>件</span></div>
+                        <div style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: 'auto', zIndex: 2 }}>{pVehiclesCount > 0 ? '今すぐ審査する' : '車両リストを見る'} <ChevronRight size={16} /></div>
+                      </div>
+
+                      <div className="glass card" onClick={() => { setAdminTabPersist('applications'); fetchAllApplications(); }} style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', background: 'var(--panel-bg)', position: 'relative', overflow: 'hidden', border: `1px solid ${pAppsCount > 0 ? 'rgba(255, 82, 82, 0.4)' : 'var(--glass-border)'}` }}>
+                        <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: pAppsCount > 0 ? 0.1 : 0.03, color: pAppsCount > 0 ? 'var(--error)' : 'var(--text-main)', transition: '0.3s' }}><ClipboardList size={160} /></div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}><ClipboardList size={24} /> <h2 style={{ fontSize: '1.2rem', margin: 0 }}>未審査の市民申請</h2></div>
+                        <div style={{ fontSize: '3.5rem', fontWeight: 800, color: pAppsCount > 0 ? 'var(--error)' : 'var(--text-main)', marginTop: '8px' }}>{pAppsCount} <span style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-muted)' }}>件</span></div>
+                        <div style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: 'auto', zIndex: 2 }}>{pAppsCount > 0 ? '今すぐ審査する' : '申請リストを見る'} <ChevronRight size={16} /></div>
+                      </div>
+
+                      <div className="glass card" onClick={() => { setAdminTabPersist('users'); setSelectedUserForVehicles(null); }} style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', background: 'var(--panel-bg)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.03, transition: '0.3s' }}><UserIcon size={160} /></div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}><UserIcon size={24} /> <h2 style={{ fontSize: '1.2rem', margin: 0 }}>登録ユーザー数</h2></div>
+                        <div style={{ fontSize: '3.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '8px' }}>{allUsers.length || '---'} <span style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-muted)' }}>人</span></div>
+                        <div style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: 'auto', zIndex: 2 }}>ユーザー管理へ <ChevronRight size={16} /></div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            
+            {adminTab === 'vehicles' && (
+              <div style={{ paddingBottom: isMobile ? '40px' : '0' }}>
+                {isMobile ? (
+                  /* Mobile-specific Approval Cards */
+                  <div className="animate-fade">
+                    {vehicles.map(v => (
+                      <div key={v.id} className="mobile-only-card" style={{ padding: '0', overflow: 'hidden' }}>
+                        <div style={{ height: '200px', width: '100%' }}>
+                          <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                        </div>
+                        <div style={{ padding: '20px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                            <div>
+                              <div className="mobile-label">申請者</div>
+                              <div 
+                                style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }}
+                                onClick={() => {
+                                  const u = allUsers.find(user => user.id === v.owner_id);
+                                  if (u) {
+                                    setSelectedUserForVehicles(u);
+                                    setAdminTabPersist('users');
+                                  } else {
+                                    alert('ユーザー情報が見つかっていません。\nダッシュボード等でユーザー情報を同期してください。');
+                                  }
+                                }}
+                              >
+                                {v.roblox_username}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div className="mobile-label">登録</div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatDate(v.created_at)}</div>
+                            </div>
+                          </div>
+                          
+                          <div style={{ marginBottom: '16px' }}>
+                            <div className="mobile-label">車両情報</div>
+                            <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-main)' }}>{v.year} {v.maker} {v.model}</div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>色: {v.color || '---'} / グレード: {v.trim || '---'}</div>
+                          </div>
+
+                          <div style={{ marginBottom: '20px' }}>
+                            <div className="mobile-label">ナンバー</div>
+                            <div style={{ display: 'inline-flex', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                              <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#ffffff', padding: '4px 8px', fontSize: '0.65rem', fontWeight: 600 }}>{v.plate_region}</div>
+                              <div style={{ background: '#fff', color: '#000', padding: '4px 10px', fontSize: '0.9rem', fontWeight: 700, fontFamily: 'monospace' }}>{v.plate}</div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ flex: 1, padding: '12px', justifyContent: 'center' }}>承認</button>
+                            <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'rejected')} style={{ flex: 1, padding: '12px', justifyContent: 'center', color: 'var(--error)' }}>却下</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {vehicles.length === 0 && (
+                      <div className="glass" style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <CheckCircle2 size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                        <p>待機中の申請はありません。</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* PC-friendly Table */
+                  <div className="glass" style={{ overflowX: 'auto', borderRadius: '16px', background: 'var(--panel-bg)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.85rem', letterSpacing: '0.05em' }}><th style={{ padding: '24px' }}>ユーザー</th><th style={{ padding: '24px' }}>車両</th><th style={{ padding: '24px' }}>操作</th></tr></thead>
+                      <tbody>
+                        {vehicles.map(v => (
+                          <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <td style={{ padding: '24px', fontWeight: 600, verticalAlign: 'middle' }}>
+                              <div 
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline', transition: '0.2s' }}
+                                onClick={() => {
+                                  const u = allUsers.find(user => user.id === v.owner_id);
+                                  if (u) {
+                                    setSelectedUserForVehicles(u);
+                                    setAdminTabPersist('users');
+                                  } else {
+                                    alert('ユーザー情報が見つかりません。\nダッシュボード等でユーザー情報を同期してください。');
+                                  }
+                                }}
+                              >
+                                {v.roblox_username}
+                              </div>
+                            </td>
+                            <td style={{ padding: '24px' }}>
+                              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                <div style={{ width: '160px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                                  <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '8px' }}>{v.year} {v.maker} {v.model}</div>
+                                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '12px' }}>色: {v.color || '---'} / グレード: {v.trim || '---'}</div>
+                                  
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                                      <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#ffffff', padding: '4px 8px', fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center' }}>{v.plate_region}</div>
+                                      <div style={{ background: '#fff', color: '#000', padding: '4px 10px', fontSize: '0.9rem', fontWeight: 700, fontFamily: 'monospace, sans-serif' }}>{v.plate}</div>
+                                    </div>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>申請: {formatDate(v.created_at)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '24px', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', gap: '10px' }}>
+                                <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ padding: '10px 20px', fontSize: '0.9rem', flex: 1, justifyContent: 'center' }}>承認</button>
+                                <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'rejected')} style={{ color: 'var(--error)', padding: '10px 20px', fontSize: '0.9rem', flex: 1, justifyContent: 'center' }}>却下</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {vehicles.length === 0 && <tr><td colSpan={3} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>待機中の申請はありません。</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {adminTab === 'applications' && (
+              <div style={{ paddingBottom: isMobile ? '40px' : '0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {allApplications.length === 0 ? (
+                    <div className="glass" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>申請はまだありません。</div>
+                  ) : (
+                    allApplications.map((app: any) => (
+                      <div key={app.user_id} className="glass" style={{ padding: isMobile ? '16px' : '28px', borderRadius: '16px', background: 'var(--panel-bg)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: isMobile ? '1rem' : '1.1rem', marginBottom: '4px' }}>{app.discord_username}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Roblox: {app.roblox_username}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '4px' }}>{formatDate(app.submitted_at)}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <StatusBadge status={app.status} />
+                            {app.auto_score_max > 0 && (
+                              <span style={{ fontSize: '0.75rem', color: app.auto_score === app.auto_score_max ? 'var(--success)' : 'var(--error)', fontWeight: 700 }}>
+                                {app.auto_score}/{app.auto_score_max}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {isMobile ? (
+                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginBottom: '16px' }}>
+                             <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>審査回答:</div>
+                             {allQuestionsAdmin.map((q: any) => {
+                               const answers = getAnswersObj(app.answers);
+                               const userAnswer = answers[q.id];
+                               return userAnswer ? (
+                                 <div key={q.id} style={{ marginBottom: '10px', fontSize: '0.85rem' }}>
+                                   <div style={{ color: 'var(--text-muted)', marginBottom: '2px' }}>Q: {q.question.length > 30 ? q.question.substring(0, 30) + '...' : q.question}</div>
+                                   <div style={{ background: 'rgba(255,255,255,0.04)', padding: '6px 10px', borderRadius: '6px' }}>{Array.isArray(userAnswer) ? userAnswer.join(', ') : userAnswer}</div>
+                                 </div>
+                               ) : null;
+                             })}
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                            {allQuestionsAdmin.map((q: any) => {
+                              const answers = getAnswersObj(app.answers);
+                              const userAnswer = answers[q.id];
+                              let isCorrect = false;
+                              if (q.type !== 'text') {
+                                try {
+                                  const correctRaw = JSON.parse(q.answer);
+                                  if (q.type === 'checkbox') {
+                                    const correct = Array.isArray(correctRaw) ? [...correctRaw].sort() : [correctRaw].sort();
+                                    const user = Array.isArray(userAnswer) ? [...userAnswer].sort() : [];
+                                    isCorrect = JSON.stringify(correct) === JSON.stringify(user);
+                                  } else {
+                                    isCorrect = String(userAnswer).trim() === String(correctRaw).trim();
+                                  }
+                                } catch {}
+                              }
+                              return (
+                                <div key={q.id} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '16px', borderLeft: q.type !== 'text' ? (isCorrect ? '4px solid var(--success)' : '4px solid var(--error)') : '4px solid var(--primary)' }}>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Q: {q.question}</div>
+                                  <div style={{ fontSize: '0.95rem' }}>{Array.isArray(userAnswer) ? userAnswer.join(', ') : (userAnswer || '未回答')}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {app.status === 'pending' && (
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                             <button className="btn btn-primary" onClick={() => handleReviewApplication(app.user_id, 'approved')} style={{ flex: 1, padding: '12px', justifyContent: 'center' }}>承認</button>
+                             <button className="btn btn-secondary" onClick={() => { const r = prompt("却下理由:"); if(r!==null) handleReviewApplication(app.user_id, 'rejected', r); }} style={{ flex: 1, padding: '12px', justifyContent: 'center', color: 'var(--error)' }}>却下</button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {adminTab === 'lookup' && (
+
+              <div>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
+                    <SearchIcon size={20} style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      type="text" 
+                      placeholder="メーカー、モデル、ナンバー、ユーザー名で検索..." 
+                      value={adminSearchTerm} 
+                      onChange={e => setAdminSearchTerm(e.target.value)} 
+                      className="glass" 
+                      style={{ width: '100%', padding: '20px 20px 20px 56px', borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem' }} 
+                    />
+                  </div>
+                  <select 
+                    className="glass" 
+                    value={adminSortOrder} 
+                    onChange={(e: any) => setAdminSortOrder(e.target.value)}
+                    style={{ padding: '0 20px', borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '0.95rem', cursor: 'pointer', outline: 'none' }}
+                  >
+                    <option value="newest">登録順 (新しい順)</option>
+                    <option value="oldest">登録順 (古い順)</option>
+                    <option value="maker">メーカー順 (A-Z)</option>
+                  </select>
+                </div>
+                <div className="card-grid">
+                  {allSearchVehicles
+                    .filter(v => {
+                      const s = adminSearchTerm.toLowerCase();
+                      return (v.plate?.toLowerCase().includes(s)) || 
+                             (v.roblox_username?.toLowerCase().includes(s)) ||
+                             (v.maker?.toLowerCase().includes(s)) ||
+                             (v.model?.toLowerCase().includes(s));
+                    })
+                    .sort((a, b) => {
+                      if (adminSortOrder === 'newest') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+                      if (adminSortOrder === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+                      if (adminSortOrder === 'maker') return (a.maker || '').localeCompare(b.maker || '');
+                      return 0;
+                    })
+                    .map(v => (
+                    <div key={v.id} className="glass card" style={{ padding: 0, borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                      <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                      <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                          <span 
+                            style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                            onClick={() => {
+                              const u = allUsers.find(user => user.id === v.owner_id);
+                              if (u) {
+                                setSelectedUserForVehicles(u);
+                                setAdminTabPersist('users');
+                              } else {
+                                alert('ユーザー情報が見つかりません。\nダッシュボード等でユーザー情報を同期してください。');
+                              }
+                            }}
+                          >
+                            {v.roblox_username}
+                          </span>
+                          <StatusBadge status={v.status} />
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: '1.2rem', color: 'var(--text-main)', marginBottom: '8px' }}>{v.year} {v.maker} {v.model}</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '16px' }}>色: {v.color || '---'} / グレード: {v.trim || '---'}</div>
+                        <div style={{ marginTop: 'auto' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}>
+                            <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                              <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#ffffff', padding: '8px 12px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center' }}>{v.plate_region}</div>
+                              <div style={{ background: '#fff', color: '#000', padding: '8px 16px', fontSize: '1.1rem', fontWeight: 700, fontFamily: 'monospace, sans-serif' }}>{v.plate}</div>
+                            </div>
+                            <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ padding: '8px', color: 'var(--error)', background: 'transparent', border: 'none' }}>
+                               <Trash2 size={18} />
+                            </button>
+                          </div>
+                          
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                             {v.status !== 'approved' && (
+                               <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ flex: 1, padding: '10px', fontSize: '0.85rem' }}>承認</button>
+                             )}
+                             {v.status !== 'rejected' && (
+                               <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'rejected')} style={{ flex: 1, padding: '10px', fontSize: '0.85rem', color: 'var(--error)' }}>却下</button>
+                             )}
+                          </div>
+                          
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>登録: {formatDate(v.created_at)}</div>
+                        </div>
+
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {adminTab === 'users' && (
+              <div>
+                {selectedUserForVehicles ? (
+                  <div>
+                    <button className="btn btn-secondary" onClick={() => setSelectedUserForVehicles(null)} style={{ marginBottom: '24px', background: 'transparent', border: 'none', padding: 0 }}><ArrowLeft size={16} /> <span style={{ marginLeft: '8px' }}>ユーザー一覧に戻る</span></button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+                       <img src={selectedUserForVehicles.avatar} style={{ width: 64, height: 64, borderRadius: 16 }} />
+                       <div>
+                         <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedUserForVehicles.username}</h3>
+                         <div style={{ color: 'var(--text-muted)' }}>の登録車両一覧</div>
+                       </div>
+                    </div>
+                     
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                      <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                        <SearchIcon size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                        <input 
+                          type="text" 
+                          placeholder="メーカー、モデル、ナンバーで検索..." 
+                          value={userSearchTerm} 
+                          onChange={e => setUserSearchTerm(e.target.value)} 
+                          className="glass" 
+                          style={{ width: '100%', padding: '14px 14px 14px 44px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-main)', fontSize: '0.9rem' }} 
+                        />
+                      </div>
+                      <select 
+                        className="glass" 
+                        value={userSortOrder} 
+                        onChange={(e: any) => setUserSortOrder(e.target.value)}
+                        style={{ padding: '0 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-main)', fontSize: '0.85rem', cursor: 'pointer', outline: 'none' }}
+                      >
+                        <option value="newest">新しい順</option>
+                        <option value="oldest">古い順</option>
+                        <option value="maker">メーカー順</option>
+                      </select>
+                    </div>
+
+                    <div className="card-grid">
+                      {allSearchVehicles
+                        .filter(v => v.owner_id === selectedUserForVehicles.id)
+                        .filter(v => {
+                          const s = userSearchTerm.toLowerCase();
+                          return (v.plate?.toLowerCase().includes(s)) || (v.maker?.toLowerCase().includes(s)) || (v.model?.toLowerCase().includes(s));
+                        })
+                        .sort((a, b) => {
+                          if (userSortOrder === 'newest') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+                          if (userSortOrder === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+                          if (userSortOrder === 'maker') return (a.maker || '').localeCompare(b.maker || '');
+                          return 0;
+                        })
+                        .map(v => (
+                        <div key={v.id} className="glass card" style={{ padding: 0, borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                          <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} />
+                          <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                              <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>{v.year} {v.maker} {v.model}</span>
+                              <StatusBadge status={v.status} />
+                            </div>
+                            
+                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '16px' }}>色: {v.color || '---'} / グレード: {v.trim || '---'}</div>
+                            
+                            <div style={{ marginBottom: '24px' }}>
+                              <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                                <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#ffffff', padding: '8px 12px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center' }}>{v.plate_region}</div>
+                                <div style={{ background: '#fff', color: '#000', padding: '8px 16px', fontSize: '1.1rem', fontWeight: 700, fontFamily: 'monospace, sans-serif' }}>{v.plate}</div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', marginBottom: '12px' }}>
+                              {v.status !== 'approved' && (
+                                <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ flex: 1, padding: '10px', fontSize: '0.85rem', justifyContent: 'center' }}>承認</button>
+                              )}
+                              {v.status !== 'rejected' && (
+                                <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'rejected')} style={{ flex: 1, color: 'var(--error)', padding: '10px', fontSize: '0.85rem', justifyContent: 'center' }}>却下</button>
+                              )}
+                              <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ padding: '10px', color: 'var(--error)', justifyContent: 'center', background: 'transparent', border: 'none' }}><Trash2 size={18}/></button>
+                            </div>
+
+                          </div>
+                        </div>
+                      ))}
+                      {allSearchVehicles.filter(v => v.owner_id === selectedUserForVehicles.id).length === 0 && (
+                        <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>車両が存在しません。</div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="glass" style={{ borderRadius: '16px', overflowX: 'auto', background: 'var(--panel-bg)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}><th style={{ padding: '24px' }}>ユーザー</th><th style={{ padding: '24px' }}>権限</th><th style={{ padding: '24px' }}>操作</th></tr></thead>
+                      <tbody>
+                        {allUsers.map(u => (
+                          <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <td style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                              <img src={u.avatar} style={{ width: 40, height: 40, borderRadius: 12 }} />
+                              <div style={{ fontWeight: 600 }}>{u.username}</div>
+                            </td>
+                            <td style={{ padding: '24px' }}>
+                               {u.role === 'admin' ? <span style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}>運営</span> : <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>一般</span>}
+                            </td>
+                            <td style={{ padding: '24px' }}>
+                              <button className="btn btn-primary" onClick={() => setSelectedUserForVehicles(u)} style={{ marginRight: '16px', padding: '8px 16px', fontSize: '0.85rem' }}>詳細</button>
+                              {u.id !== currentUser.id && <button className="btn btn-secondary" onClick={() => handleUpdateRole(u.id, u.role === 'admin' ? 'user' : 'admin')} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>{u.role === 'admin' ? '権限を剥奪' : '運営にする'}</button>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {adminTab === 'questions' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                  <button className="btn btn-primary" onClick={() => setEditingQuestion({ question: '', type: 'radio', choices: [], answer: null, sort_order: allQuestionsAdmin.length + 1 })} style={{ padding: '10px 20px' }}><Plus size={16} /> 問題を追加</button>
+                </div>
+                {allQuestionsAdmin.map((q: any) => (
+                  <div key={q.id} className="glass" style={{ padding: '20px 24px', borderRadius: '14px', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'flex-start', background: q.is_active ? 'var(--panel-bg)' : 'var(--btn-secondary-bg)', opacity: q.is_active ? 1 : 0.5 }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem', marginRight: '8px' }}>問{q.sort_order}</span>
+                      <span style={{ fontSize: '0.85rem', background: 'var(--btn-secondary-bg)', color: 'var(--btn-secondary-text)', padding: '2px 8px', borderRadius: '6px', marginRight: '8px' }}>{q.type}</span>
+                      <span style={{ lineHeight: 1.6 }}>{q.question}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button className="btn btn-secondary" onClick={() => setEditingQuestion({
+                        ...q,
+                        choices: typeof q.choices === 'string' ? (() => { try { return JSON.parse(q.choices); } catch { return []; } })() : (q.choices || [])
+                      })} style={{ padding: '6px 14px', fontSize: '0.8rem' }}><Edit3 size={14} /></button>
+                      <button className="btn btn-secondary" onClick={() => handleToggleQuestion(q.id, q.is_active)} style={{ padding: '6px 14px', fontSize: '0.8rem', color: q.is_active ? 'var(--error)' : 'var(--success)' }}>{q.is_active ? '非表示' : '表示'}</button>
+                    </div>
+                  </div>
+                ))}
+                {editingQuestion && (
+                  <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px' }}>
+                    <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '680px', padding: '40px', borderRadius: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
+                      <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>{editingQuestion.id ? '問題を編集' : '問題を追加'}</h2>
+                      <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>必要な情報を入力してください。</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>表示順</label>
+                          <input type="number" value={editingQuestion.sort_order} onChange={e => setEditingQuestion((p: any) => ({ ...p, sort_order: parseInt(e.target.value) }))} className="glass" style={{ width: '100px', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>種別</label>
+                          <select value={editingQuestion.type} onChange={e => setEditingQuestion((p: any) => ({ ...p, type: e.target.value }))} className="glass" style={{ padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', background: 'var(--input-bg)', fontSize: '1rem' }}>
+                            <option value="radio">単一選択 (radio)</option>
+                            <option value="checkbox">複数選択 (checkbox)</option>
+                            <option value="text">記述式 (text)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>問題文</label>
+                          <textarea value={editingQuestion.question} onChange={e => setEditingQuestion((p: any) => ({ ...p, question: e.target.value }))} rows={3} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)', resize: 'vertical' }} />
+                        </div>
+                        {editingQuestion.type !== 'text' && (
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>選択肢と正解設定（{editingQuestion.type === 'checkbox' ? '複数可' : '1つ'}）</label>
+                                <button className="btn" onClick={() => {
+                                  const c = Array.isArray(editingQuestion.choices) ? [...editingQuestion.choices] : [];
+                                  c.push('');
+                                  setEditingQuestion((p: any) => ({ ...p, choices: c }));
+                                }} style={{ padding: '8px 16px', fontSize: '0.9rem', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', color: 'var(--text-main)' }}>＋ 選択肢を追加</button>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {(!editingQuestion.choices || editingQuestion.choices.length === 0) && (
+                                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '20px', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '10px' }}>選択肢を追加してください</div>
+                                )}
+                                {(Array.isArray(editingQuestion.choices) ? editingQuestion.choices : []).map((choice: string, idx: number) => {
+                                  const parsedAnswers = getEditingAnswerArray(editingQuestion);
+                                  const isChecked = parsedAnswers.includes(choice) && choice.trim() !== '';
+                                  return (
+                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: isChecked ? 'rgba(0, 255, 136, 0.05)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isChecked ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', transition: '0.2s' }}>
+                                      <input 
+                                        type={editingQuestion.type === 'radio' ? 'radio' : 'checkbox'} 
+                                        checked={isChecked}
+                                        onChange={() => {
+                                          if (!choice.trim()) return;
+                                          if (editingQuestion.type === 'radio') {
+                                            setEditingQuestion((p: any) => ({ ...p, answer: JSON.stringify(choice) }));
+                                          } else {
+                                            const newAns = isChecked ? parsedAnswers.filter((a: string) => a !== choice) : [...parsedAnswers, choice];
+                                            setEditingQuestion((p: any) => ({ ...p, answer: JSON.stringify(newAns) }));
+                                          }
+                                        }}
+                                        style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }}
+                                      />
+                                      <input
+                                        type="text"
+                                        value={choice}
+                                        placeholder={`選択肢 ${idx + 1}`}
+                                        onChange={(e) => {
+                                          const newChoices = [...editingQuestion.choices];
+                                          const oldChoice = newChoices[idx];
+                                          newChoices[idx] = e.target.value;
+                                          
+                                          // Update answer if the text of the selected choice changes
+                                          let newAnswer = editingQuestion.answer;
+                                          if (isChecked && oldChoice !== e.target.value) {
+                                            if (editingQuestion.type === 'radio') {
+                                              newAnswer = JSON.stringify(e.target.value);
+                                            } else {
+                                              const newAnsArr = parsedAnswers.map((a: string) => a === oldChoice ? e.target.value : a);
+                                              newAnswer = JSON.stringify(newAnsArr);
+                                            }
+                                          }
+                                          
+                                          setEditingQuestion((p: any) => ({ ...p, choices: newChoices, answer: newAnswer }));
+                                        }}
+                                        className="glass"
+                                        style={{ flex: 1, border: 'none', background: 'transparent', color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none' }}
+                                      />
+                                      <button onClick={() => {
+                                        const newChoices = editingQuestion.choices.filter((_: any, i: number) => i !== idx);
+                                        const newAnsArr = parsedAnswers.filter((a: string) => a !== choice);
+                                        let newAnswer = editingQuestion.answer;
+                                        if (isChecked) {
+                                           newAnswer = editingQuestion.type === 'radio' ? null : JSON.stringify(newAnsArr);
+                                        }
+                                        setEditingQuestion((p: any) => ({ ...p, choices: newChoices, answer: newAnswer }));
+                                      }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
+                                        <X size={16} />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
+                          <button type="button" className="btn btn-secondary" onClick={() => setEditingQuestion(null)} style={{ flex: 1, padding: '16px', fontSize: '1rem', borderRadius: '12px' }}>キャンセル</button>
+                          <button type="submit" className="btn btn-primary" onClick={() => handleSaveQuestion(editingQuestion)} style={{ flex: 2, padding: '16px', fontSize: '1rem', borderRadius: '12px' }}>保存する</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {adminTab === 'catalog' && (
+              <div className="animate-fade">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                   <div className="glass card" style={{ padding: '32px', borderRadius: '20px', background: 'var(--panel-bg)' }}>
+                     <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}><RefreshCw size={20} className="text-primary" /> カタログ管理</h3>
+                     <p style={{ color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6 }}>Wikiから最新の車両データを取得し、登録システムのドロップダウンリストを更新します。</p>
+                     <div style={{ display: 'flex', gap: '12px' }}>
+                       <button className="btn btn-primary" onClick={handleWikiSync} style={{ padding: '14px 28px', fontSize: '1rem' }}><RefreshCw size={18} /> Wikiから同期</button>
+                     </div>
+                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        )}
+      </main>
+
+      {isMobile && (
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(10px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 16px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
+          <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
+            <Home size={24} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>ホーム</span>
+          </button>
+          <button onClick={() => setView('garage')} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
+            <LayoutDashboard size={24} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>さがす</span>
+          </button>
+          <button onClick={() => setView('apply')} style={{ background: 'none', border: 'none', color: view === 'apply' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', position: 'relative' }}>
+            <ClipboardList size={24} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>やること</span>
+            {(!myApplication || myApplication.status === 'rejected') && <span style={{ position: 'absolute', top: 0, right: 'calc(50% - 16px)', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />}
+          </button>
+          <button onClick={() => setView('profile')} style={{ background: 'none', border: 'none', color: view === 'profile' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
+            <UserIcon size={24} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>メニュー</span>
+          </button>
+          {currentUser.role === 'admin' && (
+            <button onClick={() => setView('admin')} style={{ background: 'none', border: 'none', color: view === 'admin' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
+              <ShieldCheck size={24} />
+              <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>運営</span>
+            </button>
+          )}
+        </nav>
+      )}
+
+      {showAddModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}>
+          <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '680px', padding: isMobile ? '20px' : '40px', borderRadius: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
+
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>{editingVehicleId ? '車両情報の修正' : '新規車両の登録'}</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>必要な情報を入力してください。</p>
+            <div style={{ padding: '16px', background: 'rgba(255,177,66,0.1)', borderRadius: '12px', borderLeft: '4px solid #ffb142', marginBottom: isMobile ? '16px' : '32px' }}>
+
+              <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#ffb142', fontSize: '0.95rem' }}>
+                ⚠️ 車両選定の基準（公式ルールより）
+              </strong>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.6, margin: 0 }}>
+                「この車は、アメリカの田舎町のスーパーの駐車場に停まっていて違和感がないか？」を基準に選定してください。<br/>
+                <span style={{ color: 'var(--text-muted)' }}>※スーパーカーや競技車両、過度なカスタムなど、基準に適合しないと運営が判断した場合、登録取り消しをお願いする場合があります。</span>
+              </p>
+            </div>
+            <form onSubmit={handleSubmitVehicle} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '20px' }}>
+
+                 <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Maker</label>
+                    <input type="text" list="maker-list" placeholder="例: Toyota" value={formData.maker} onChange={e => setFormData({...formData, maker: e.target.value, model: ''})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                    <datalist id="maker-list">
+                      {Object.keys(carModels).map(maker => (
+                        <option key={maker} value={maker} />
+                      ))}
+                    </datalist>
+                 </div>
+                 <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Model</label>
+                    <input type="text" list="model-list" placeholder="例: Camry" value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                    <datalist id="model-list">
+                      {(carModels[formData.maker] || []).map(model => (
+                         <option key={model} value={model} />
+                      ))}
+                    </datalist>
+                 </div>
+              </div>
+
+              {/* Wiki Image Preview */}
+              {(wikiLoading || wikiPreviewUrl) && (
+                <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--glass-border)', position: 'relative' }}>
+                  {wikiLoading && (
+                    <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--input-bg)', color: 'var(--text-muted)', fontSize: '0.85rem', gap: '8px' }}>
+                      <RefreshCw size={16} className="animate-spin" /> Wikiから画像を取得中...
+                    </div>
+                  )}
+                  {!wikiLoading && wikiPreviewUrl && (
+                    <div style={{ position: 'relative' }}>
+                      <img src={wikiPreviewUrl} alt="Wiki preview" style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }} />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', fontSize: '0.75rem', color: '#fff' }}>📖 Greenville Wiki より参照画像（登録にはご自身の画像をアップロードしてください）</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: isMobile ? '12px' : '20px' }}>
+
+                 <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Year</label>
+                    <input type="number" value={formData.year} onChange={e => setFormData({...formData, year: parseInt(e.target.value)})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                 </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Trim / Grade</label>
+                    <input type="text" list="trim-list" placeholder="例: XSE" value={formData.trim} onChange={e => setFormData({...formData, trim: e.target.value})} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                    <datalist id="trim-list">
+                      {wikiTrims.map(t => <option key={t} value={t} />)}
+                    </datalist>
+                 </div>
+                 <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Color</label>
+                    <input type="text" list="color-list" placeholder="例: Black" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                    <datalist id="color-list">
+                      {wikiColors.map(c => <option key={c} value={c} />)}
+                    </datalist>
+                 </div>
+              </div>
+              
+              <div>
+                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Area</label>
+                 <input type="text" placeholder="例: WISCONSIN" value={formData.plate_region} onChange={e => setFormData({...formData, plate_region: e.target.value})} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+              </div>
+              
+              <div>
+                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Number</label>
+                 <input type="text" placeholder="例: ABC-1234" value={formData.plate} onChange={e => setFormData({...formData, plate: e.target.value.toUpperCase()})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1.2rem', fontFamily: 'monospace', fontWeight: 700, background: 'var(--input-bg)' }} />
+              </div>
+
+              <div>
+                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                   Vehicle Images (最大4枚)
+                 </label>
+                 <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', alignItems: 'center' }}>
+                   {parseImages(formData.image_data).map((imgUrl, i) => (
+                     <div key={i} style={{ width: '120px', height: '120px', flexShrink: 0, borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
+                       <img src={imgUrl} alt={`preview ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                       <button type="button" onClick={() => handleRemoveImage(i)} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', color: 'var(--text-main)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>&times;</button>
+                     </div>
+                   ))}
+                   {parseImages(formData.image_data).length < 4 && (
+                     <div style={{ width: '120px', height: '120px', flexShrink: 0, borderRadius: '12px', border: '2px dashed rgba(255,255,255,0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', background: 'var(--input-bg)' }}>
+                       <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}><ImageIcon size={24} style={{ margin: '0 auto 4px' }}/>追加 ({parseImages(formData.image_data).length}/4)</div>
+                       <input type="file" multiple accept="image/*" onChange={handleImageUpload} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                     </div>
+                   )}
+                 </div>
+
+
+
+              </div>
+
+
+              <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
+                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary" style={{ flex: 1, padding: '16px', fontSize: '1rem', borderRadius: '12px' }}>キャンセル</button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 2, padding: '16px', fontSize: '1rem', borderRadius: '12px' }}
+                >
+                  {editingVehicleId ? '変更を保存する' : '申請を送信する'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showTrailerModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px', overflowY: 'auto' }}>
+          <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '560px', padding: isMobile ? '20px' : '40px', borderRadius: '24px' }}>
+
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '4px' }}>🚛 トレーラーを追加</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '28px', fontSize: '0.9rem' }}>被牽引車（トレーラー）の登録申請を行います。</p>
+            <form onSubmit={handleSubmitTrailer} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '16px' }}>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Model（トレーラー名） *</label>
+                  <div style={{ position: 'relative' }}>
+                    <div 
+                      onClick={() => setShowModelDropdown(!showModelDropdown)}
+                      className="glass" 
+                      style={{ 
+                        width: '100%', 
+                        padding: '14px', 
+                        borderRadius: '12px', 
+                        border: '1px solid rgba(255,255,255,0.1)', 
+                        color: trailerFormData.model ? 'var(--text-main)' : 'var(--text-muted)', 
+                        fontSize: '1rem', 
+                        background: 'var(--input-bg)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      {trailerFormData.model ? `Durable ${trailerFormData.model}` : '-- 選択 --'}
+                      <ChevronDown size={18} style={{ transform: showModelDropdown ? 'rotate(180deg)' : 'none', transition: '0.3s' }} />
+                    </div>
+
+                    {showModelDropdown && (
+                      <div className="glass animate-fade" style={{ 
+                        position: 'absolute', 
+                        top: 'calc(100% + 8px)', 
+                        left: 0, 
+                        right: 0, 
+                        background: 'var(--glass-bg)', 
+                        backdropFilter: 'blur(16px)',
+                        borderRadius: '16px', 
+                        border: '1px solid var(--primary)', 
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                        zIndex: 1100, 
+                        maxHeight: '300px', 
+                        overflowY: 'auto',
+                        padding: '8px'
+                      }}>
+                        {[
+                          "4' x 6' Enclosed Box Trailer",
+                          "6' x 8' Trailer",
+                          "8' x 24' Car Transporter",
+                          "12' x 6' Off-Road Trailer",
+                          "15' x 8' Tear Drop Camper",
+                          "16' x 6' Enclosed Box Trailer",
+                          "16' X 8' Car Transporter",
+                          "16' x 8' Camper",
+                          "20' x 8' Dual Axle Camper",
+                          "Boat Trailer",
+                          "Sign Message Trailer"
+                        ].map(m => (
+                          <div 
+                            key={m}
+                            onClick={() => {
+                              setTrailerFormData({...trailerFormData, model: m, maker: 'Durable'});
+                              setShowModelDropdown(false);
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)',
+                              fontSize: '0.95rem',
+                              transition: '0.2s',
+                              background: trailerFormData.model === m ? 'var(--primary-glow)' : 'transparent',
+                              border: trailerFormData.model === m ? '1px solid var(--primary)' : '1px solid transparent',
+                              marginBottom: '4px'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'var(--btn-secondary-hover)';
+                              e.currentTarget.style.transform = 'translateX(4px)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = trailerFormData.model === m ? 'var(--primary-glow)' : 'transparent';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            Durable {m}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Maker（メーカー）</label>
+                  <input type="text" value={trailerFormData.maker} readOnly className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '1rem', background: 'var(--input-bg)', cursor: 'default' }} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Trailer Type（種別）</label>
+                  <div style={{ position: 'relative' }}>
+                    <div 
+                      onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                      className="glass" 
+                      style={{ 
+                        width: '100%', 
+                        padding: '14px', 
+                        borderRadius: '12px', 
+                        border: '1px solid rgba(255,255,255,0.1)', 
+                        color: trailerFormData.trailer_type ? 'var(--text-main)' : 'var(--text-muted)', 
+                        fontSize: '1rem', 
+                        background: 'var(--input-bg)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      {trailerFormData.trailer_type || '-- 選択 --'}
+                      <ChevronDown size={18} style={{ transform: showTypeDropdown ? 'rotate(180deg)' : 'none', transition: '0.3s' }} />
+                    </div>
+
+                    {showTypeDropdown && (
+                      <div className="glass animate-fade" style={{ 
+                        position: 'absolute', 
+                        top: 'calc(100% + 8px)', 
+                        left: 0, 
+                        right: 0, 
+                        background: 'var(--glass-bg)', 
+                        backdropFilter: 'blur(16px)',
+                        borderRadius: '16px', 
+                        border: '1px solid var(--primary)', 
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                        zIndex: 1100, 
+                        maxHeight: '300px', 
+                        overflowY: 'auto',
+                        padding: '8px'
+                      }}>
+                        {[
+                          { val: "Flatbed", label: "Flatbed（平台）" },
+                          { val: "Box", label: "Box（ボックス）" },
+                          { val: "Enclosed", label: "Enclosed（密閉型）" },
+                          { val: "Car Hauler", label: "Car Hauler（車両運搬）" },
+                          { val: "Livestock", label: "Livestock（家畜）" },
+                          { val: "Dump", label: "Dump（ダンプ）" },
+                          { val: "Utility", label: "Utility（汎用）" },
+                          { val: "Other", label: "Other（その他）" }
+                        ].map(t => (
+                          <div 
+                            key={t.val}
+                            onClick={() => {
+                              setTrailerFormData({...trailerFormData, trailer_type: t.val});
+                              setShowTypeDropdown(false);
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)',
+                              fontSize: '0.95rem',
+                              transition: '0.2s',
+                              background: trailerFormData.trailer_type === t.val ? 'var(--primary-glow)' : 'transparent',
+                              border: trailerFormData.trailer_type === t.val ? '1px solid var(--primary)' : '1px solid transparent',
+                              marginBottom: '4px'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'var(--btn-secondary-hover)';
+                              e.currentTarget.style.transform = 'translateX(4px)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = trailerFormData.trailer_type === t.val ? 'var(--primary-glow)' : 'transparent';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            {t.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Color</label>
+                  <input type="text" placeholder="例: Black" value={trailerFormData.color} onChange={e => setTrailerFormData({...trailerFormData, color: e.target.value})} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Area *</label>
+                <input type="text" placeholder="例: WISCONSIN" value={trailerFormData.plate_region} onChange={e => setTrailerFormData({...trailerFormData, plate_region: e.target.value.toUpperCase()})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Number *</label>
+                <input type="text" placeholder="例: TRL-1234" value={trailerFormData.plate} onChange={e => setTrailerFormData({...trailerFormData, plate: e.target.value.toUpperCase()})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1.2rem', fontFamily: 'monospace', fontWeight: 700, background: 'var(--input-bg)' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button type="button" onClick={() => setShowTrailerModal(false)} className="btn btn-secondary" style={{ flex: 1, padding: '16px', borderRadius: '12px' }} disabled={trailerSubmitting}>キャンセル</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }} disabled={trailerSubmitting}>
+                  {trailerSubmitting ? '送信中...' : '🚛 登録申請を送信'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showBetaAutoFillModal && (
+
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}>
+          <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '500px', padding: '40px', borderRadius: '24px', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>✨ 自動入力 (Beta)</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+              Greenville内のスマホ車両画面スクリーンショットから、<br />
+              情報を読み取って自動入力します。
+            </p>
+
+            {ocrLoading ? (
+              <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <RefreshCw size={40} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                <p style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>画像から文字を抽出しています...</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>数十秒かかる場合があります</p>
+              </div>
+            ) : (
+              <div style={{ border: '2px dashed rgba(255,255,255,0.2)', borderRadius: '16px', padding: '40px', position: 'relative', background: 'var(--input-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <ImageIcon size={48} style={{ color: 'var(--text-muted)' }} />
+                <div style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>ここをクリックして画像を選択</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>または、スクショ画像をペースト (Ctrl+V) も可能です。</div>
+                <input 
+                  type="file" 
+                  accept="image/jpeg, image/png" 
+                  onChange={handleOCRFileSelect} 
+                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
+                />
+              </div>
+            )}
+
+            <div style={{ marginTop: '32px' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowBetaAutoFillModal(false)} 
+                disabled={ocrLoading}
+                style={{ width: '100%', padding: '16px', fontSize: '1rem', borderRadius: '12px' }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+

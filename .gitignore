@@ -1,0 +1,60 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Production build outputs
+dist/
+dist-test/
+dist_test/
+build/
+
+# Vite / TS
+*.tsbuildinfo
+.eslintcache
+
+# Cloudflare Wrangler
+.wrangler/
+.dev.vars
+
+# Android local / build outputs
+android/.gradle/
+android/local.properties
+android/captures/
+android/app/build/
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/build/
+.gradle/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+*.txt
+
+# Executables & Archives
+*.apk
+*.zip
+*.tar.gz
+
+# Local dev/test backups
+backup/
+backup_*/
+gv-vehicle-registry-backup/
+gv-vehicle-registry-backup-*/
+App_backup.tsx
+App_bottom.tsx
+App_bottom_restored.tsx
+App_middle.tsx
+App_tmp.tsx
+admin_decoded.txt
+fetched.txt

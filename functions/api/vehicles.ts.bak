@@ -1,0 +1,346 @@
+// API for user and vehicle management
+
+const sendWebhook = async (url: string, content: any) => {
+  try {
+    const isFormData = content instanceof FormData;
+    await fetch(url, {
+      method: 'POST',
+      headers: isFormData ? {} : { 'Content-Type': 'application/json' },
+      body: isFormData ? content : JSON.stringify(content),
+    });
+  } catch (e) {
+    console.error('Webhook send failed:', e);
+  }
+};
+
+const fetchWikiImageUrl = async (title: string): Promise<string | null> => {
+  try {
+    const fandomUrl = new URL('https://greenville-wisconsin.fandom.com/api.php');
+    fandomUrl.searchParams.set('action', 'query');
+    fandomUrl.searchParams.set('prop', 'pageimages');
+    fandomUrl.searchParams.set('titles', title);
+    fandomUrl.searchParams.set('format', 'json');
+    fandomUrl.searchParams.set('pithumbsize', '600');
+    fandomUrl.searchParams.set('origin', '*');
+
+    const res = await fetch(fandomUrl.toString(), {
+      headers: { 'User-Agent': 'Mozilla/5.0 PizzaCitizenPortal/1.0', 'Accept': 'application/json' },
+      cf: { cacheEverything: true, cacheTtl: 3600 } as any
+    });
+    if (!res.ok) return null;
+    const data: any = await res.json();
+    const pages = data?.query?.pages;
+    if (!pages) return null;
+    const pageId = Object.keys(pages)[0];
+    if (pageId === '-1') return null;
+    return pages[pageId].thumbnail?.source ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const ensureTable = async (db: any) => {
+  console.log("Ensuring database schema is up-to-date...");
+  
+  // 1. Create table if not exists
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS vehicles (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL,
+      maker TEXT NOT NULL,
+      model TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      trim TEXT,
+      color TEXT,
+      plate TEXT NOT NULL,
+      roblox_username TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      avatar TEXT,
+      role TEXT DEFAULT 'user',
+      roblox_username TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `).run();
+
+  // 2. Automated Migration: Check and add missing columns
+  try {
+    // Check vehicles table
+    const { results: vCols } = await db.prepare("PRAGMA table_info(vehicles)").all();
+    const vColsToAdd = ['plate_region', 'roblox_username', 'image_data', 'reject_reason', 'vehicle_type', 'trailer_type'];
+    for (const colName of vColsToAdd) {
+      if (!(vCols as any[]).some((col: any) => col.name === colName)) {
+        console.log(`Migration: Adding missing column '${colName}' to 'vehicles' table...`);
+        await db.prepare(`ALTER TABLE vehicles ADD COLUMN ${colName} TEXT`).run();
+      }
+    }
+
+    // Check users table
+    const { results: uCols } = await db.prepare("PRAGMA table_info(users)").all();
+    if (!(uCols as any[]).some((col: any) => col.name === 'roblox_username')) {
+      console.log(`Migration: Adding missing column 'roblox_username' to 'users' table...`);
+      await db.prepare(`ALTER TABLE users ADD COLUMN roblox_username TEXT`).run();
+    }
+  } catch (e: any) {
+    console.error("Migration check failed:", e.message);
+  }
+
+  console.log("Database schema check complete.");
+};
+
+export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
+  const url = new URL(request.url);
+  const userId = url.searchParams.get('userId') || '12345';
+  const isAdmin = url.searchParams.get('admin') === 'true';
+
+  try {
+    await ensureTable(env.D1_DB);
+    let query = "SELECT * FROM vehicles WHERE owner_id = ? ORDER BY created_at DESC";
+    let params = [userId];
+
+    if (isAdmin) {
+      console.log("Admin list requested");
+      const query = `
+        SELECT v.*, u.username as discord_username, u.avatar as discord_avatar
+        FROM vehicles v
+        LEFT JOIN users u ON v.owner_id = u.id
+        ORDER BY v.created_at DESC
+      `;
+      const { results } = await env.D1_DB.prepare(query).all();
+      return new Response(JSON.stringify(results), { 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        } 
+      });
+    } else {
+      console.log(`User vehicle list requested for: ${userId}`);
+      const query = `
+        SELECT v.*, u.username as discord_username, u.avatar as discord_avatar
+        FROM vehicles v
+        LEFT JOIN users u ON v.owner_id = u.id
+        WHERE v.owner_id = ?
+        ORDER BY v.created_at DESC
+      `;
+      const { results } = await env.D1_DB.prepare(query).bind(userId).all();
+      return new Response(JSON.stringify(results), { 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        } 
+      });
+    }
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
+  const body = await request.json() as any;
+  const { maker, model, year, trim, color, plate, plate_region, roblox_username, owner_id, image_data, vehicle_type, trailer_type } = body;
+  const isTrailer = vehicle_type === 'trailer';
+
+  // Guard: check citizenship approval
+  if (owner_id) {
+    const app = await env.D1_DB
+      .prepare('SELECT status FROM applications WHERE user_id = ?')
+      .bind(owner_id).first() as any;
+    if (!app || app.status !== 'approved') {
+      return new Response(
+        JSON.stringify({ error: '市民申請が承認されていないため、車両登録はできません。まず市民申請を完了してください。' }),
+        { status: 403, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
+      );
+    }
+  }
+
+  const id = crypto.randomUUID();
+
+  try {
+    console.log("POST Request Body:", body);
+    await ensureTable(env.D1_DB);
+    
+    await env.D1_DB.prepare(
+      "INSERT INTO vehicles (id, owner_id, maker, model, year, trim, color, plate, plate_region, roblox_username, image_data, vehicle_type, trailer_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, owner_id, maker || '', model, year || 2024, trim, color, plate, plate_region, roblox_username, image_data || null, vehicle_type || 'car', trailer_type || null).run();
+
+    console.log("Insert success!");
+
+    // Discord Webhook Notification
+    if (env.DISCORD_WEBHOOK_APPLICATIONS) {
+      const embedPayload: any = isTrailer ? {
+        title: "🚛 新規トレーラー登録の申請",
+        color: 0x3A8BCC,
+        fields: [
+          { name: "Roblox ID", value: roblox_username || "未設定", inline: true },
+          { name: "トレーラー", value: `${maker ? maker + ' ' : ''}${model}`, inline: false },
+          { name: "種別", value: trailer_type || '-', inline: true },
+          { name: "カラー", value: color || '-', inline: true },
+          { name: "ナンバープレート", value: `[${plate_region}] ${plate}`, inline: true }
+        ],
+        timestamp: new Date().toISOString(),
+      } : {
+        title: "🚗 新規車両登録の申請",
+        color: 0xFF9E00,
+        fields: [
+          { name: "Roblox ID", value: roblox_username || "未設定", inline: true },
+          { name: "車両モデル", value: `${year} ${maker} ${model}`, inline: false },
+          { name: "トリム / カラー", value: `${trim || '-'} / ${color || '-'}`, inline: true },
+          { name: "ナンバープレート", value: `[${plate_region}] ${plate}`, inline: true }
+        ],
+        timestamp: new Date().toISOString(),
+      };
+
+      try {
+        const images: string[] = image_data ? JSON.parse(image_data) : [];
+        if (images.length > 0) {
+          // User uploaded image
+          embedPayload.image = { url: "attachment://vehicle.jpg" };
+          const base64 = images[0].replace(/^data:image\/[a-z]+;base64,/, '');
+          const byteString = atob(base64);
+          const byteArray = new Uint8Array(byteString.length);
+          for (let i = 0; i < byteString.length; i++) {
+            byteArray[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([byteArray], { type: 'image/jpeg' });
+          const form = new FormData();
+          form.append('files[0]', blob, 'vehicle.jpg');
+          form.append('payload_json', JSON.stringify({ embeds: [embedPayload] }));
+          await sendWebhook(env.DISCORD_WEBHOOK_APPLICATIONS, form);
+        } else {
+          // No user image, try to fetch Wiki image
+          const query = `${year} ${maker} ${model}`;
+          let wikiUrl = await fetchWikiImageUrl(query);
+          if (!wikiUrl) {
+            // Fallback without year
+            wikiUrl = await fetchWikiImageUrl(`${maker} ${model}`);
+          }
+          
+          if (wikiUrl) {
+            embedPayload.image = { url: wikiUrl };
+            embedPayload.footer = { text: "📷 Greenville Wiki より参考画像を表示しています" };
+          }
+          
+          await sendWebhook(env.DISCORD_WEBHOOK_APPLICATIONS, { embeds: [embedPayload] });
+        }
+      } catch (e) {
+        console.error("Webhook processing error:", e);
+        await sendWebhook(env.DISCORD_WEBHOOK_APPLICATIONS, { embeds: [embedPayload] });
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, id }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (e: any) {
+    console.error("POST Error:", e.message, e.stack);
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+export const onRequestPut = async ({ env, request }: { env: any, request: Request }) => {
+  const body = await request.json() as any;
+  const { id, maker, model, year, trim, color, plate, plate_region, image_data } = body;
+
+  try {
+    await ensureTable(env.D1_DB);
+    await env.D1_DB.prepare(
+      "UPDATE vehicles SET maker = ?, model = ?, year = ?, trim = ?, color = ?, plate = ?, plate_region = ?, image_data = ? WHERE id = ?"
+    ).bind(maker, model, year, trim, color, plate, plate_region, image_data || null, id).run();
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+export const onRequestDelete = async ({ env, request }: { env: any, request: Request }) => {
+  const url = new URL(request.url);
+  const id = url.searchParams.get('id');
+
+  if (!id) {
+    return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
+  }
+
+  try {
+    await ensureTable(env.D1_DB);
+    await env.D1_DB.prepare("DELETE FROM vehicles WHERE id = ?").bind(id).run();
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+export const onRequestPatch = async ({ env, request }: { env: any, request: Request }) => {
+  const body = await request.json() as any;
+  const { id, status, expected_status, reject_reason } = body;
+
+  if (!['approved', 'pending', 'rejected'].includes(status) || !expected_status) {
+    return new Response(JSON.stringify({ error: "Invalid status" }), { status: 400 });
+  }
+
+  try {
+    await ensureTable(env.D1_DB);
+    const result = await env.D1_DB.prepare("UPDATE vehicles SET status = ?, reject_reason = ? WHERE id = ? AND status = ?").bind(status, reject_reason || null, id, expected_status).run();
+
+    if (result.meta && result.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Conflict: Status modified by another admin.' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // Fetch vehicle info for notification
+    const v = await env.D1_DB.prepare("SELECT * FROM vehicles WHERE id = ?").bind(id).first() as any;
+    if (v && env.DISCORD_WEBHOOK_RESULTS) {
+      const color = status === 'approved' ? 3066993 : 15158332; // green or red
+      const statusText = status === 'approved' ? '✅ 承認' : '❌ 却下';
+      
+      const fields = [
+        { name: "対象者", value: v.roblox_username || "不明", inline: true },
+        { name: "車両", value: `${v.year} ${v.maker} ${v.model}`, inline: false },
+        { name: "ナンバー", value: `[${v.plate_region}] ${v.plate}`, inline: true }
+      ];
+      if (status === 'rejected' && reject_reason) {
+        fields.push({ name: "却下理由", value: reject_reason, inline: false });
+      }
+
+      const vehicleIcon = v.vehicle_type === 'trailer' ? '🚛' : '🚗';
+      await sendWebhook(env.DISCORD_WEBHOOK_RESULTS, {
+        embeds: [{
+          title: `${vehicleIcon} 車両登録申請 結果: ${statusText}`,
+          color: color,
+          fields: fields,
+          timestamp: new Date().toISOString()
+        }]
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};

@@ -1,0 +1,14 @@
+{
+  "appId": "com.pizza.portal",
+  "appName": "ぴっざぁ市民総合ポータル",
+  "webDir": "dist",
+  "server": {
+    "url": "https://pizza-citzen-portal.pages.dev",
+    "androidScheme": "https",
+    "allowNavigation": [
+      "pizza-citzen-portal.pages.dev",
+      "discord.com",
+      "*.discord.com"
+    ]
+  }
+}
