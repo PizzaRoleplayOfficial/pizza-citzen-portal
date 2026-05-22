@@ -5,8 +5,8 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 export const CURRENT_VERSION = '1.3.1'; // 1.3 (ステータスバー・却下テンプレート) + 自動更新対応版
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
-export const GITHUB_REPO_OWNER = 'keabu';
-export const GITHUB_REPO_NAME = 'gv-vehicle-registry';
+export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
+export const GITHUB_REPO_NAME = 'pizza-citzen-portal';
 
 export interface ApkInstallerPlugin {
   installApk(options: { filePath: string }): Promise<{ success: boolean }>;
