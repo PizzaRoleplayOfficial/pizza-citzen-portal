@@ -5,7 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 /**
  * アプリが現在スマホ実機などのネイティブ環境（Android等）で動作しているか判定します。
  */
-export const isNative = Capacitor.isNativePlatform();
+export const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() !== 'web';
 
 /**
  * 触覚（振動）フィードバックをトリガーします。

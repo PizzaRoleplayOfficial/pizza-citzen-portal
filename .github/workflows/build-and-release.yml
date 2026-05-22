@@ -48,12 +48,12 @@ jobs:
       - name: Rename and Prepare APK Asset
         run: |
           mkdir -p release-assets
-          cp android/app/build/outputs/apk/debug/app-debug.apk release-assets/ぴっざぁ市民総合ポータル.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-assets/pizza-portal.apk
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/ぴっざぁ市民総合ポータル.apk
+          files: release-assets/pizza-portal.apk
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
           name: ${{ github.ref_type == 'tag' && format('Release {0}', github.ref_name) || '自動ビルド (最新版)' }}
           draft: false
