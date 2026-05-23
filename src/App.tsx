@@ -1648,6 +1648,16 @@ export default function App() {
                   </div>
                 </button>
 
+                <button className="glass card" onClick={() => setView('apply')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)', borderRadius: '20px', transition: 'transform 0.2s, border-color 0.2s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🪪 市民申請</div>
+                    <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                  <div style={{ width: '48px', height: '48px', background: myApplication?.status === 'approved' ? 'rgba(0,193,102,0.15)' : 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {myApplication?.status === 'approved' ? <CheckCircle2 size={22} style={{ color: 'var(--primary)' }} /> : <Clock size={22} style={{ color: 'var(--text-muted)' }} />}
+                  </div>
+                </button>
+
                 <button className="glass card" onClick={() => setView('garage')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)', borderRadius: '20px', transition: 'transform 0.2s, border-color 0.2s' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🚗 ガレージ</div>
@@ -1658,15 +1668,17 @@ export default function App() {
                   </div>
                 </button>
 
-                <button className="glass card" onClick={() => setView('apply')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)', borderRadius: '20px', transition: 'transform 0.2s, border-color 0.2s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🪪 市民申請</div>
-                    <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
-                  </div>
-                  <div style={{ width: '48px', height: '48px', background: myApplication?.status === 'approved' ? 'rgba(0,193,102,0.15)' : 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {myApplication?.status === 'approved' ? <CheckCircle2 size={22} style={{ color: 'var(--primary)' }} /> : <Clock size={22} style={{ color: 'var(--text-muted)' }} />}
-                  </div>
-                </button>
+                {currentUser.role === 'admin' && (
+                  <button className="glass card" onClick={() => setView('admin')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)', borderRadius: '20px', transition: 'transform 0.2s, border-color 0.2s' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🛡️ 管理パネル</div>
+                      <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                    <div style={{ width: '48px', height: '48px', background: 'rgba(255,177,66,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ShieldCheck size={22} style={{ color: '#ffb142' }} />
+                    </div>
+                  </button>
+                )}
 
                 <button className="glass card" onClick={() => setView('profile')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)', borderRadius: '20px', transition: 'transform 0.2s, border-color 0.2s' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>

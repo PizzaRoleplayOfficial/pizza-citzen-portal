@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.3.9'; // 1.3.9 (プラグイン登録順序の修正)
+export const CURRENT_VERSION = '1.4.0'; // 1.4.0 (クイックメニュー順序の並び替え・管理パネル追加)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
