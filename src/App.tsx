@@ -204,6 +204,9 @@ export default function App() {
     status: 'idle'
   });
   const [appVersion, setAppVersion] = useState<string>(CURRENT_VERSION);
+  const [autoCheckUpdates, setAutoCheckUpdates] = useState<boolean>(() => {
+    return localStorage.getItem('auto_check_updates') !== 'false';
+  });
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
   const [adminSortOrder, setAdminSortOrder] = useState<'newest' | 'oldest' | 'maker' | 'userCount'>('newest');
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -896,13 +899,24 @@ export default function App() {
     }
   };
 
-  // 起動後1.5秒に自動更新チェックを走らせる
+  // 起動後の自動更新チェック（設定でオンオフ可能）
+  const [hasCheckedAutoUpdate, setHasCheckedAutoUpdate] = useState(false);
+
+  const handleToggleAutoCheck = (enabled: boolean) => {
+    setAutoCheckUpdates(enabled);
+    localStorage.setItem('auto_check_updates', enabled ? 'true' : 'false');
+    triggerHaptic('light');
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      handleCheckUpdate(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (isLoggedIn && isNative && autoCheckUpdates && !hasCheckedAutoUpdate) {
+      setHasCheckedAutoUpdate(true);
+      const timer = setTimeout(() => {
+        handleCheckUpdate(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoggedIn, autoCheckUpdates, hasCheckedAutoUpdate]);
 
   const handleAutoFillFromImage = async (file: File) => {
     setOcrLoading(true);
@@ -1884,6 +1898,8 @@ export default function App() {
             onCheckUpdate={() => handleCheckUpdate(true)}
             isCheckingUpdate={isCheckingUpdate}
             appVersion={appVersion}
+            autoCheckUpdates={autoCheckUpdates}
+            onToggleAutoCheck={handleToggleAutoCheck}
           />
         ) : (
           <AdminDashboardView

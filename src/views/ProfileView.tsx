@@ -12,6 +12,8 @@ interface ProfileViewProps {
   onCheckUpdate: () => Promise<void>;
   isCheckingUpdate: boolean;
   appVersion: string;
+  autoCheckUpdates: boolean;
+  onToggleAutoCheck: (enabled: boolean) => void;
 }
 
 export const ProfileView = ({
@@ -22,7 +24,9 @@ export const ProfileView = ({
   handleUpdateProfile,
   onCheckUpdate,
   isCheckingUpdate,
-  appVersion
+  appVersion,
+  autoCheckUpdates,
+  onToggleAutoCheck
 }: ProfileViewProps) => {
   return (
     <div className="animate-fade" style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -83,6 +87,42 @@ export const ProfileView = ({
               >
                 {isCheckingUpdate ? '確認中...' : '最新バージョンをチェック'}
               </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+              <div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>起動時に自動更新をチェック</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>アプリの起動時に自動で最新版を確認します。</div>
+              </div>
+              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={autoCheckUpdates} 
+                  onChange={(e) => onToggleAutoCheck(e.target.checked)} 
+                  style={{ opacity: 0, width: 0, height: 0 }} 
+                />
+                <span style={{
+                  position: 'absolute',
+                  cursor: 'pointer',
+                  inset: 0,
+                  backgroundColor: autoCheckUpdates ? 'var(--primary)' : '#444',
+                  transition: '0.3s',
+                  borderRadius: '34px'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    content: '""',
+                    height: '20px',
+                    width: '20px',
+                    left: autoCheckUpdates ? '26px' : '4px',
+                    bottom: '4px',
+                    backgroundColor: autoCheckUpdates ? '#000' : '#fff',
+                    transition: '0.3s',
+                    borderRadius: '50%',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                  }} />
+                </span>
+              </label>
             </div>
           </div>
 
