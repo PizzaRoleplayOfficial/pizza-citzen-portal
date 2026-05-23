@@ -1531,21 +1531,29 @@ export default function App() {
               position: 'relative',
               borderRadius: '24px',
               padding: isMobile ? '24px' : '36px',
-              background: myApplication?.status === 'approved' 
-                ? 'linear-gradient(135deg, #0a2115 0%, #060a0f 100%)' 
-                : myApplication?.status === 'pending'
-                ? 'linear-gradient(135deg, #241c0a 0%, #060a0f 100%)'
-                : 'linear-gradient(135deg, #181a1c 0%, #060a0f 100%)',
-              border: `1px solid ${
-                myApplication?.status === 'approved' 
-                  ? 'rgba(0, 193, 102, 0.25)' 
+              background: theme === 'light'
+                ? (myApplication?.status === 'approved'
+                  ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
                   : myApplication?.status === 'pending'
-                  ? 'rgba(255, 177, 66, 0.25)'
+                  ? 'linear-gradient(135deg, #fffcf5 0%, #ffffff 100%)'
+                  : 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)')
+                : (myApplication?.status === 'approved'
+                  ? 'linear-gradient(135deg, #0a2115 0%, #060a0f 100%)'
+                  : myApplication?.status === 'pending'
+                  ? 'linear-gradient(135deg, #241c0a 0%, #060a0f 100%)'
+                  : 'linear-gradient(135deg, #181a1c 0%, #060a0f 100%)'),
+              border: `1px solid ${
+                myApplication?.status === 'approved'
+                  ? (theme === 'light' ? 'rgba(0, 193, 102, 0.3)' : 'rgba(0, 193, 102, 0.25)')
+                  : myApplication?.status === 'pending'
+                  ? (theme === 'light' ? 'rgba(255, 177, 66, 0.3)' : 'rgba(255, 177, 66, 0.25)')
                   : 'var(--glass-border)'
               }`,
               boxShadow: myApplication?.status === 'approved'
-                ? '0 12px 40px rgba(0, 193, 102, 0.15), inset 0 1px 2px rgba(255,255,255,0.05)'
-                : '0 12px 40px rgba(0,0,0,0.3)',
+                ? (theme === 'light'
+                  ? '0 12px 30px rgba(0, 193, 102, 0.08), inset 0 1px 2px rgba(255,255,255,0.6)'
+                  : '0 12px 40px rgba(0, 193, 102, 0.15), inset 0 1px 2px rgba(255,255,255,0.05)')
+                : (theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'),
               overflow: 'hidden',
               display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',
@@ -1558,8 +1566,8 @@ export default function App() {
                 position: 'absolute',
                 top: 0, left: 0, right: 0,
                 height: '4px',
-                background: myApplication?.status === 'approved' 
-                  ? 'linear-gradient(90deg, #00c166, #00d2fc)' 
+                background: myApplication?.status === 'approved'
+                  ? 'linear-gradient(90deg, #00c166, #00d2fc)'
                   : myApplication?.status === 'pending'
                   ? 'linear-gradient(90deg, #ffb142, #ff7b00)'
                   : 'linear-gradient(90deg, #666, #333)'
@@ -1568,23 +1576,23 @@ export default function App() {
               {/* 左側: アバターとステータスバッジ */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
                 <div style={{ position: 'relative' }}>
-                  <img 
-                    src={currentUser.avatar} 
-                    alt="Avatar" 
-                    style={{ 
-                      width: '100px', 
-                      height: '100px', 
-                      borderRadius: '20px', 
+                  <img
+                    src={currentUser.avatar}
+                    alt="Avatar"
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      borderRadius: '20px',
                       border: `3px solid ${
-                        myApplication?.status === 'approved' 
-                          ? 'var(--primary)' 
+                        myApplication?.status === 'approved'
+                          ? 'var(--primary)'
                           : myApplication?.status === 'pending'
                           ? '#ffb142'
-                          : '#444'
-                      }`, 
+                          : (theme === 'light' ? 'var(--glass-border)' : '#444')
+                      }`,
                       objectFit: 'cover',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
-                    }} 
+                      boxShadow: theme === 'light' ? '0 4px 12px rgba(0,0,0,0.08)' : '0 8px 24px rgba(0,0,0,0.3)'
+                    }}
                   />
                   {myApplication?.status === 'approved' && (
                     <span style={{
@@ -1592,7 +1600,7 @@ export default function App() {
                       bottom: '-6px',
                       right: '-6px',
                       background: 'var(--primary)',
-                      color: '#000',
+                      color: theme === 'light' ? '#fff' : '#000',
                       borderRadius: '50%',
                       width: '24px',
                       height: '24px',
@@ -1601,7 +1609,7 @@ export default function App() {
                       justifyContent: 'center',
                       fontWeight: 'bold',
                       fontSize: '0.8rem',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                     }}>✓</span>
                   )}
                 </div>
@@ -1610,22 +1618,22 @@ export default function App() {
                   fontWeight: 800,
                   padding: '6px 12px',
                   borderRadius: '20px',
-                  background: myApplication?.status === 'approved' 
-                    ? 'rgba(0, 193, 102, 0.15)' 
+                  background: myApplication?.status === 'approved'
+                    ? 'rgba(0, 193, 102, 0.15)'
                     : myApplication?.status === 'pending'
                     ? 'rgba(255, 177, 66, 0.15)'
-                    : 'rgba(255,255,255,0.05)',
-                  color: myApplication?.status === 'approved' 
-                    ? '#00c166' 
+                    : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+                  color: myApplication?.status === 'approved'
+                    ? 'var(--primary)'
                     : myApplication?.status === 'pending'
                     ? '#ffb142'
-                    : 'rgba(255,255,255,0.5)',
+                    : 'var(--text-muted)',
                   border: `1px solid ${
-                    myApplication?.status === 'approved' 
-                      ? 'rgba(0, 193, 102, 0.2)' 
+                    myApplication?.status === 'approved'
+                      ? 'rgba(0, 193, 102, 0.2)'
                       : myApplication?.status === 'pending'
                       ? 'rgba(255, 177, 66, 0.2)'
-                      : 'rgba(255,255,255,0.05)'
+                      : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)')
                   }`,
                   letterSpacing: '0.05em'
                 }}>
@@ -1636,20 +1644,20 @@ export default function App() {
               {/* 右側: 情報グリッド */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', textAlign: isMobile ? 'center' : 'left' }}>
                 <div>
-                  <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Roblox Citizen Identifier</span>
-                  <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', margin: 0, letterSpacing: '0.02em' }}>{currentUser.roblox_username || currentUser.username}</h2>
+                  <span style={{ fontSize: '0.8rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Roblox Citizen Identifier</span>
+                  <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: theme === 'light' ? 'var(--text-main)' : '#ffffff', margin: 0, letterSpacing: '0.02em' }}>{currentUser.roblox_username || currentUser.username}</h2>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', borderTop: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
                   <div>
-                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>ROLE</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: currentUser.role === 'admin' ? '#00d2fc' : '#ffffff' }}>
+                    <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>ROLE</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: currentUser.role === 'admin' ? (theme === 'light' ? 'var(--secondary)' : '#00d2fc') : (theme === 'light' ? 'var(--text-main)' : '#ffffff') }}>
                       {currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}
                     </span>
                   </div>
                   <div>
-                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>STATUS</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: myApplication?.status === 'approved' ? '#00c166' : myApplication?.status === 'rejected' ? '#ef4444' : 'rgba(255,255,255,0.5)' }}>
+                    <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>STATUS</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: myApplication?.status === 'approved' ? 'var(--primary)' : myApplication?.status === 'rejected' ? 'var(--error)' : (theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)') }}>
                       {myApplication?.status === 'approved' ? '認可済み' : myApplication?.status === 'pending' ? '審査中' : myApplication?.status === 'rejected' ? '却下' : '未登録'}
                     </span>
                   </div>
