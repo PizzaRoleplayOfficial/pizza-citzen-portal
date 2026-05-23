@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.6'; // 1.5.6 (全画像のアスペクト比完全維持・切り取りの完全防止（contain表示化）)
+export const CURRENT_VERSION = '1.5.7'; // 1.5.7 (戻るジェスチャー・物理ボタン対応)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

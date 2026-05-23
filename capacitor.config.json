@@ -10,5 +10,8 @@
       "discord.com",
       "*.discord.com"
     ]
+  },
+  "ios": {
+    "allowsBackForwardNavigationGestures": true
   }
 }

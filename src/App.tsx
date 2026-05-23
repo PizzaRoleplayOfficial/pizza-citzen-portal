@@ -558,6 +558,124 @@ export default function App() {
       .catch(e => console.error("Failed to load car models catalog:", e));
   }, []);
 
+  // =========================================================================
+  // ネイティブ「戻る」操作（ジェスチャー・ハードウェアボタン）および履歴の同期処理
+  // =========================================================================
+
+  // 各モーダルの開閉状態を window.history と同期
+  useEffect(() => {
+    if (showAddModal) {
+      if (window.history.state?.modal !== 'add') {
+        window.history.pushState({ modal: 'add' }, '');
+      }
+    } else {
+      if (window.history.state?.modal === 'add') {
+        window.history.back();
+      }
+    }
+  }, [showAddModal]);
+
+  useEffect(() => {
+    if (showTrailerModal) {
+      if (window.history.state?.modal !== 'trailer') {
+        window.history.pushState({ modal: 'trailer' }, '');
+      }
+    } else {
+      if (window.history.state?.modal === 'trailer') {
+        window.history.back();
+      }
+    }
+  }, [showTrailerModal]);
+
+  useEffect(() => {
+    if (showBetaAutoFillModal) {
+      if (window.history.state?.modal !== 'autofill') {
+        window.history.pushState({ modal: 'autofill' }, '');
+      }
+    } else {
+      if (window.history.state?.modal === 'autofill') {
+        window.history.back();
+      }
+    }
+  }, [showBetaAutoFillModal]);
+
+  useEffect(() => {
+    if (rejectModal.isOpen) {
+      if (window.history.state?.modal !== 'reject') {
+        window.history.pushState({ modal: 'reject' }, '');
+      }
+    } else {
+      if (window.history.state?.modal === 'reject') {
+        window.history.back();
+      }
+    }
+  }, [rejectModal.isOpen]);
+
+  useEffect(() => {
+    if (updateState.isOpen) {
+      if (window.history.state?.modal !== 'update') {
+        window.history.pushState({ modal: 'update' }, '');
+      }
+    } else {
+      if (window.history.state?.modal === 'update') {
+        window.history.back();
+      }
+    }
+  }, [updateState.isOpen]);
+
+  // popstate イベント監視（履歴が戻った際にモーダルが開いていれば閉じる）
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      let modalClosed = false;
+      if (showAddModal) {
+        setShowAddModal(false);
+        modalClosed = true;
+      }
+      if (showTrailerModal) {
+        setShowTrailerModal(false);
+        modalClosed = true;
+      }
+      if (showBetaAutoFillModal) {
+        setShowBetaAutoFillModal(false);
+        modalClosed = true;
+      }
+      if (rejectModal.isOpen) {
+        setRejectModal(prev => ({ ...prev, isOpen: false }));
+        modalClosed = true;
+      }
+      if (updateState.isOpen) {
+        setUpdateState(prev => ({ ...prev, isOpen: false }));
+        modalClosed = true;
+      }
+      // モーダルが閉じられた場合は振動を軽めに発生させる
+      if (modalClosed) {
+        triggerHaptic('light');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
+
+  // Androidの物理戻るボタン / システム戻るジェスチャーの制御
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      const backHandler = CapApp.addListener('backButton', (data) => {
+        const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
+        if (isAnyModalOpen || view !== 'home') {
+          // モーダルが開いている、またはホーム以外の画面なら履歴を戻る
+          window.history.back();
+        } else {
+          // ホーム画面かつモーダルなしの場合はアプリを終了する
+          CapApp.exitApp();
+        }
+      });
+      return () => {
+        backHandler.then(h => h.remove());
+      };
+    }
+  }, [view, showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
+
   const handleManualRefresh = () => {
     if (!isLoggedIn) return;
     setIsLoading(true);
