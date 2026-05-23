@@ -65,17 +65,16 @@ jobs:
           name: ${{ format('ぴっざぁ市民総合ポータル {0}', env.VERSION) }}
           draft: false
           prerelease: false
+          generate_release_notes: true
           body: |
-            ### 🤖 自動リリース情報
-            GitHub Actionsによって最新のAPKファイルが自動的にビルドされました。
+            ## 📝 アップデート内容
+            ${{ github.event.head_commit.message }}
             
+            ---
+            ### 🤖 自動ビルド情報
             - **バージョン:** `${{ env.VERSION }}`
-            - **ビルドトリガー:** `${{ github.ref_name }}` (${{ github.ref_type }})
+            - **ビルドトリガー:** `${{ github.ref_name }}`
             - **コミットハッシュ:** `${{ github.sha }}`
-            - **コミットメッセージ:** 
-              ```
-              ${{ github.event.head_commit.message }}
-              ```
             - **ビルド日時:** ${{ github.event.head_commit.timestamp || '不明' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
