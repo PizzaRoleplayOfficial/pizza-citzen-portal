@@ -252,7 +252,7 @@ export const MyGarageView = ({
                 })
                 .map(v => (
                 <div key={v.id} className="glass card garage-card animate-fade">
-                  <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
+                  <div className="garage-card-image"><VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} /></div>
                   <div className="garage-card-body">
                     <div className="garage-card-header">
                       <div>
@@ -286,25 +286,27 @@ export const MyGarageView = ({
                       </div>
                     </div>
 
-                    <div className="garage-card-plate-section">
-                      <div className="garage-card-plate-title">LICENSE PLATE</div>
-                      <div className="garage-card-plate">
-                        <div className="garage-card-plate-region">
-                          {v.plate_region || 'WISCONSIN'}
+                    <div className="garage-card-footer">
+                      <div className="garage-card-plate-section">
+                        <div className="garage-card-plate-title">LICENSE PLATE</div>
+                        <div className="garage-card-plate">
+                          <div className="garage-card-plate-region">
+                            {v.plate_region || 'WISCONSIN'}
+                          </div>
+                          <div className="garage-card-plate-number">
+                            {v.plate || 'ABC-1234'}
+                          </div>
                         </div>
-                        <div className="garage-card-plate-number">
-                          {v.plate || 'ABC-1234'}
-                        </div>
-                      </div>
-                     </div>
+                       </div>
 
-                    <div className="garage-card-actions">
-                      <button className="btn btn-secondary" onClick={() => handleStartEdit(v)}>
-                        <Edit3 size={16} /> 編集
-                      </button>
-                      <button className="btn btn-secondary btn-delete" onClick={() => handleDeleteVehicle(v.id)} style={{ color: 'var(--error)' }}>
-                        <Trash2 size={16} /> 削除
-                      </button>
+                      <div className="garage-card-actions">
+                        <button className="btn btn-secondary" onClick={() => handleStartEdit(v)}>
+                          <Edit3 size={16} /> 編集
+                        </button>
+                        <button className="btn btn-secondary btn-delete" onClick={() => handleDeleteVehicle(v.id)} style={{ color: 'var(--error)' }}>
+                          <Trash2 size={16} /> 削除
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

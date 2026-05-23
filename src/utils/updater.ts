@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.4.9'; // 1.4.9 (起動時自動アップデート確認のReactステート同期不具合の修正)
+export const CURRENT_VERSION = '1.5.0'; // 1.5.0 (画像なし車両カードの表示崩れ、およびライセンスプレート・ボタン並び順の崩れの完全解消)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

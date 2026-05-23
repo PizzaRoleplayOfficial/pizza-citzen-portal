@@ -201,38 +201,66 @@ h1 {
     flex-direction: column;
     gap: 16px;
   }
-  .list-view .card {
+  .list-view .garage-card {
     flex-direction: row !important;
     align-items: stretch;
   }
-  .list-view .card > div:first-child {
+  
+  /* Desktop list view image container sizing */
+  .list-view .garage-card-image {
     width: 250px !important;
     height: auto !important;
     min-height: 200px;
     flex-shrink: 0;
+    border-bottom: none !important;
+    border-right: 1px solid var(--glass-border);
   }
-  .list-view .card > div:nth-child(2) {
+  .list-view .garage-card-image div {
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+  
+  .list-view .garage-card-body {
     display: flex !important;
     gap: 32px;
     align-items: center;
     padding: 24px !important;
     flex-direction: row !important;
+    flex: 1;
   }
   
-  .list-view .card > div:nth-child(2) > div:first-child {
+  .list-view .garage-card-header {
     flex: 2; /* Title / Status area */
+    margin-bottom: 0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
   }
-  .list-view .card > div:nth-child(2) > div:nth-child(3) {
+  
+  .list-view .garage-card-fields {
     flex: 1; /* Trim / Color area */
     margin-bottom: 0 !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
-  .list-view .card > div:nth-child(2) > div:nth-child(4) {
-    flex: 1; /* License plate area */
+  
+  .list-view .garage-card-footer {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 32px !important;
+    flex: 2 !important;
+  }
+  
+  .list-view .garage-card-plate-section {
+    flex: 1;
     margin-bottom: 0 !important;
   }
-  .list-view .card > div:nth-child(2) > div:last-child {
-    flex-shrink: 0; /* Action buttons area */
-    flex-direction: column;
+  
+  .list-view .garage-card-actions {
+    flex-shrink: 0;
+    flex-direction: column !important;
+    gap: 8px !important;
   }
 }
 
@@ -922,6 +950,19 @@ h1 {
   border-color: var(--primary);
 }
 
+.garage-card-image {
+  height: 200px;
+  position: relative;
+  border-bottom: 1px solid var(--glass-border);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Empty-safe hiding for card image when there's no user image and no wiki image! */
+.garage-card-image:empty {
+  display: none !important;
+}
+
 .garage-card-body {
   padding: 32px;
   display: flex;
@@ -977,9 +1018,14 @@ h1 {
   color: var(--text-main);
 }
 
+.garage-card-footer {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+}
+
 .garage-card-plate-section {
   margin-bottom: 32px;
-  flex: 1;
 }
 
 .garage-card-plate-title {
@@ -1014,6 +1060,7 @@ h1 {
   font-size: 1.3rem;
   font-weight: 700;
   font-family: monospace, sans-serif;
+  white-space: nowrap !important;
 }
 
 .garage-card-actions {
@@ -1060,14 +1107,14 @@ h1 {
     border-radius: 12px !important;
   }
 
-  /* CRITICAL FIX: Ensure the inner image/gallery doesn't overflow the 110px parent! */
-  .card-grid .garage-card > div:first-child,
-  .card-grid .garage-card .image-gallery {
+  /* Target the wrapped image container on mobile grid view */
+  .card-grid .garage-card-image {
     height: 110px !important;
     overflow: hidden !important;
+    border-bottom: 1px solid var(--glass-border) !important;
   }
 
-  .card-grid .garage-card > div:first-child div {
+  .card-grid .garage-card-image div {
     height: 100% !important;
     min-height: 100% !important;
   }
@@ -1087,6 +1134,17 @@ h1 {
     box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
     display: inline-flex !important;
     width: auto !important;
+  }
+
+  /* If there's no image, position the status badge cleanly relative to the body content */
+  .card-grid .garage-card-image:empty ~ .garage-card-body .garage-card-status {
+    position: static !important;
+    margin-top: 4px !important;
+    background: none !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
   }
 
   .card-grid .garage-card-status span {
@@ -1208,7 +1266,8 @@ h1 {
     border-radius: 12px !important;
   }
 
-  .list-view .garage-card > div:first-child {
+  /* Target the wrapped image container on mobile list view */
+  .list-view .garage-card-image {
     display: block !important;
     width: 90px !important;
     height: 90px !important;
@@ -1217,12 +1276,12 @@ h1 {
     border-radius: 8px !important;
     overflow: hidden !important;
     border-bottom: none !important;
+    border-right: none !important;
   }
 
-  .list-view .garage-card > div:first-child div {
+  .list-view .garage-card-image div {
     height: 100% !important;
     min-height: 100% !important;
-    border-bottom: none !important;
   }
 
   .list-view .garage-card-body {
@@ -1305,14 +1364,20 @@ h1 {
     color: var(--text-muted) !important;
   }
 
-  /* Compact License Plate and Actions layout */
-  .list-view .garage-card-plate-section {
-    margin-bottom: 0 !important;
+  /* Compact License Plate and Actions horizontal alignment inside Footer! */
+  .list-view .garage-card-footer {
     display: flex !important;
+    flex-direction: row !important;
     justify-content: space-between !important;
     align-items: center !important;
     width: 100% !important;
-    margin-top: 4px !important;
+    margin-top: auto !important;
+  }
+
+  .list-view .garage-card-plate-section {
+    margin-bottom: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
   }
 
   .list-view .garage-card-plate-title {
@@ -1344,7 +1409,7 @@ h1 {
   .list-view .garage-card-actions {
     gap: 6px !important;
     justify-content: flex-end !important;
-    flex: 1 !important;
+    flex: none !important;
   }
 
   .list-view .garage-card-actions .btn {
