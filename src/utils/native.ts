@@ -1,6 +1,12 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { LocalNotifications } from '@capacitor/local-notifications';
+
+export interface PixelHapticsPlugin {
+  trigger(options: { type: 'tick' | 'selection' | 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' }): Promise<void>;
+}
+const PixelHaptics = registerPlugin<PixelHapticsPlugin>('PixelHaptics');
+
 
 /**
  * アプリが現在スマホ実機などのネイティブ環境（Android等）で動作しているか判定します。
@@ -17,6 +23,40 @@ export const triggerHaptic = async (
   if (!isNative) return;
   
   try {
+    const platform = Capacitor.getPlatform();
+    
+    // Android 環境かつ自作プラグインが有効な場合、Pixel/Android向け極限ハプティクスを使用
+    if (platform === 'android') {
+      try {
+        let nativeType: 'tick' | 'selection' | 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' = 'tick';
+        switch (type) {
+          case 'light':
+            nativeType = 'tick'; // CLOCK_TICK（Pixel本来のチクタク極小触覚）
+            break;
+          case 'medium':
+            nativeType = 'medium'; // KEYBOARD_TAP
+            break;
+          case 'heavy':
+            nativeType = 'heavy'; // LONG_PRESS
+            break;
+          case 'success':
+            nativeType = 'success'; // CONFIRM (トントン連打)
+            break;
+          case 'warning':
+            nativeType = 'warning';
+            break;
+          case 'error':
+            nativeType = 'error'; // REJECT (ブルブル連打)
+            break;
+        }
+        await PixelHaptics.trigger({ type: nativeType });
+        return;
+      } catch (err) {
+        console.warn('PixelHaptics native plugin execution failed, falling back to standard haptics:', err);
+      }
+    }
+
+    // iOS または Android でカスタムプラグインが失敗した場合の標準フォールバック
     switch (type) {
       case 'light':
         // 従来の Light よりさらに繊細で微細な「コトッ」とした感触を得るために Selection 触覚を使用

@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.11'; // 1.5.11 (巨大画像読み込みによる車両API遅延のオンデマンド遅延ロードによる爆速化)
+export const CURRENT_VERSION = '1.5.12'; // 1.5.12 (Android/Pixel向けにネイティブ極微細ハプティクスCLOCK_TICKプラグインを実装)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

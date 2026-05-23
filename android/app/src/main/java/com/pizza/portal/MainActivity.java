@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Register custom native plugins
         registerPlugin(ApkInstallerPlugin.class);
+        registerPlugin(PixelHapticsPlugin.class);
 
         super.onCreate(savedInstanceState);
     }
