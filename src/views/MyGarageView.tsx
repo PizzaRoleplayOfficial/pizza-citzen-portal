@@ -252,7 +252,7 @@ export const MyGarageView = ({
                 })
                 .map(v => (
                 <div key={v.id} className="glass card garage-card animate-fade">
-                  <div className="garage-card-image"><VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} /></div>
+                  <div className="garage-card-image"><VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} /></div>
                   <div className="garage-card-body">
                     <div className="garage-card-header">
                       <div>

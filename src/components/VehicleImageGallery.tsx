@@ -4,12 +4,50 @@ import { parseImages } from './UIBase';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { ImageLightbox } from './ImageLightbox';
 
-export const VehicleImageGallery = ({ imageData, fallbackQuery, targetTrim }: { imageData: string | undefined; fallbackQuery?: string; targetTrim?: string }) => {
+export const VehicleImageGallery = ({ 
+  vehicleId, 
+  imageData, 
+  fallbackQuery, 
+  targetTrim 
+}: { 
+  vehicleId?: string; 
+  imageData?: string; 
+  fallbackQuery?: string; 
+  targetTrim?: string 
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [wikiUrl, setWikiUrl] = useState<string | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
-  const images = parseImages(imageData);
+  const [fetchedImageData, setFetchedImageData] = useState<string | undefined>(imageData);
+  const [imageLoading, setImageLoading] = useState(false);
+
+  // データベースから取得した image_data が空、かつ vehicleId が提供されている場合に画像を非同期フェッチする
+  useEffect(() => {
+    if (imageData) {
+      setFetchedImageData(imageData);
+      return;
+    }
+    if (!vehicleId) return;
+
+    let cancelled = false;
+    setImageLoading(true);
+    fetch(`/api/vehicle-image?id=${vehicleId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: any) => {
+        if (!cancelled && data?.image_data) {
+          setFetchedImageData(data.image_data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setImageLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [vehicleId, imageData]);
+
+  const images = parseImages(fetchedImageData);
   const isMobile = useIsMobile();
 
   useEffect(() => {

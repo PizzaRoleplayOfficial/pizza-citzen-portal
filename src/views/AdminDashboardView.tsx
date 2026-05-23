@@ -637,7 +637,7 @@ export const AdminDashboardView = ({
                   {vehicles.map(v => (
                     <div key={v.id} className="glass card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
                       <div style={{ height: '240px', width: '100%', position: 'relative' }}>
-                        <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
+                        <VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
                         <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                           <div style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <Clock size={14} /> 審査中
@@ -921,7 +921,7 @@ export const AdminDashboardView = ({
                   }).map(v => (
                     <div key={v.id} className="glass card animate-fade" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
                       <div style={{ height: lookupViewMode === 'grid' ? '220px' : '200px', width: lookupViewMode === 'grid' ? '100%' : '250px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-                        <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
+                         <VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
                         <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10 }}>
                            <StatusBadge status={v.status} reason={v.reject_reason} tempExpiresAt={v.temp_expires_at} />
                         </div>
