@@ -1605,7 +1605,7 @@ export default function App() {
                     ? '#00c166' 
                     : myApplication?.status === 'pending'
                     ? '#ffb142'
-                    : 'var(--text-muted)',
+                    : 'rgba(255,255,255,0.5)',
                   border: `1px solid ${
                     myApplication?.status === 'approved' 
                       ? 'rgba(0, 193, 102, 0.2)' 
@@ -1622,20 +1622,20 @@ export default function App() {
               {/* 右側: 情報グリッド */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', textAlign: isMobile ? 'center' : 'left' }}>
                 <div>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Roblox Citizen Identifier</span>
-                  <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, letterSpacing: '0.02em' }}>{currentUser.roblox_username || currentUser.username}</h2>
+                  <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Roblox Citizen Identifier</span>
+                  <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', margin: 0, letterSpacing: '0.02em' }}>{currentUser.roblox_username || currentUser.username}</h2>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
                   <div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>ROLE</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: currentUser.role === 'admin' ? '#00d2fc' : 'var(--text-main)' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>ROLE</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: currentUser.role === 'admin' ? '#00d2fc' : '#ffffff' }}>
                       {currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}
                     </span>
                   </div>
                   <div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>STATUS</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: myApplication?.status === 'approved' ? '#00c166' : myApplication?.status === 'rejected' ? '#ef4444' : 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>STATUS</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: myApplication?.status === 'approved' ? '#00c166' : myApplication?.status === 'rejected' ? '#ef4444' : 'rgba(255,255,255,0.5)' }}>
                       {myApplication?.status === 'approved' ? '認可済み' : myApplication?.status === 'pending' ? '審査中' : myApplication?.status === 'rejected' ? '却下' : '未登録'}
                     </span>
                   </div>
