@@ -529,7 +529,7 @@ export const AdminDashboardView = ({
                 </>
               )}
             </div>
-            {!isLoading && (
+            {!isLoading && !isMobile && (
               <>
                 <DashboardCharts 
                   vehicles={allSearchVehicles} 

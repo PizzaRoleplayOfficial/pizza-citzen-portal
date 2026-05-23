@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.16'; // 1.5.16 (全要素におけるモバイルでのタップハイライト無効化・アプリネイティブ化)
+export const CURRENT_VERSION = '1.5.17'; // 1.5.17 (管理パネルダッシュボードのモバイルコンパクト化・チャート等の非表示化)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
