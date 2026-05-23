@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.3'; // 1.5.3 (モバイルグリッド表示におけるWiki参考画像や画像枚数バッジの縦伸び・黒枠バグの修正)
+export const CURRENT_VERSION = '1.5.4'; // 1.5.4 (モバイルグリッド表示におけるWiki参考画像やステータスバッジ、画像枚数表示の更なるコンパクト化)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

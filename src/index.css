@@ -1125,22 +1125,22 @@ h1 {
   /* Floating Status Badge Pill on top of the image to save huge space! */
   .card-grid .garage-card-status {
     position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
+    top: 6px !important;
+    right: 6px !important;
     z-index: 10 !important;
     background: rgba(10, 12, 16, 0.8) !important;
-    border-radius: 6px !important;
+    border-radius: 4px !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
     
-    /* Strict dimensions to prevent vertical stretching */
+    /* Strict smaller dimensions to avoid blocking the image */
     display: block !important;
     width: auto !important;
-    height: 24px !important;
-    max-height: 24px !important;
-    padding: 0 8px !important;
+    height: 18px !important;
+    max-height: 18px !important;
+    padding: 0 6px !important;
     overflow: hidden !important;
   }
 
@@ -1166,8 +1166,8 @@ h1 {
   }
 
   .card-grid .garage-card-status span {
-    font-size: 0.65rem !important;
-    gap: 4px !important;
+    font-size: 0.55rem !important;
+    gap: 3px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1176,9 +1176,32 @@ h1 {
   }
   
   .card-grid .garage-card-status span svg {
-    width: 12px !important;
-    height: 12px !important;
+    width: 9px !important;
+    height: 9px !important;
     flex-shrink: 0 !important;
+  }
+
+  /* Compact responsive scaling for gallery badges to prevent obscuring the vehicle image */
+  .card-grid .image-count-badge {
+    bottom: 6px !important;
+    right: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 0.55rem !important;
+    border-radius: 4px !important;
+  }
+
+  .card-grid .wiki-fallback-badge {
+    bottom: 6px !important;
+    left: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 0.52rem !important;
+    border-radius: 4px !important;
+  }
+
+  .card-grid .wiki-fallback-badge svg {
+    width: 8px !important;
+    height: 8px !important;
+    vertical-align: middle !important;
   }
 
   .card-grid .garage-card-body {
