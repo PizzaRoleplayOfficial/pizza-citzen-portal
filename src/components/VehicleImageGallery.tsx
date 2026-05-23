@@ -66,7 +66,7 @@ export const VehicleImageGallery = ({
   if (images.length === 0) {
     if (wikiLoading) {
       return (
-        <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.8rem', gap: '8px' }}>
+        <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--image-bg)', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.8rem', gap: '8px' }}>
           <RefreshCw size={14} className="animate-spin" /> 参考画像を読み込み中...
         </div>
       );

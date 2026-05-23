@@ -24,6 +24,7 @@
   --btn-secondary-text: #fff;
   --modal-overlay: rgba(10,12,16,0.85);
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --image-bg: rgba(0, 0, 0, 0.25);
 }
 
 :root[data-theme='light'] {
@@ -49,6 +50,7 @@
   --btn-secondary-hover: #f1f5f9;
   --btn-secondary-text: #2b3a4a;
   --modal-overlay: rgba(100,116,139,0.5);
+  --image-bg: #f1f5f9;
 }
 
 
@@ -834,7 +836,6 @@ h1 {
 
 
 
-/* Filter Tags & Buttons Premium Styling */
 .filter-tag-btn {
   padding: 6px 14px;
   border-radius: 20px;
@@ -842,16 +843,16 @@ h1 {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid var(--glass-border);
-  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  background: var(--btn-secondary-bg);
   color: var(--text-muted);
   outline: none;
 }
 
 .filter-tag-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--btn-secondary-hover);
   color: var(--text-main);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--border);
   transform: translateY(-1px);
 }
 
@@ -1136,7 +1137,7 @@ h1 {
     background-size: contain !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
-    background-color: rgba(0, 0, 0, 0.25) !important;
+    background-color: var(--image-bg) !important;
   }
 
   /* Floating Status Badge Pill on top of the image to save huge space! */
