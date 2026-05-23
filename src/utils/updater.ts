@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.21'; // 1.5.21 (自動更新インストーラーの全端末完全安定化：インストール権限の検知と設定自動遷移・外部ストレージ保存への切替)
+export const CURRENT_VERSION = '1.5.22'; // 1.5.22 (スマホアプリ環境での自動登録OCR「APIを初期化中」フリーズバグ修正：workerBlobURL有効化)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

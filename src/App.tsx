@@ -1097,7 +1097,7 @@ export default function App() {
         workerPath: `${origin}/tesseract/worker.min.js`,
         corePath: `${origin}/tesseract/tesseract-core.js`,
         langPath: `${origin}/tesseract/langs`,
-        workerBlobURL: false,
+        workerBlobURL: isNative ? true : false,
         logger: m => {
           if (m && typeof m === 'object') {
             let statusText = '';
