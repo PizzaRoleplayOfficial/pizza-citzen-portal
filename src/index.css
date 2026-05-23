@@ -1114,7 +1114,10 @@ h1 {
     border-bottom: 1px solid var(--glass-border) !important;
   }
 
-  .card-grid .garage-card-image div {
+  /* Target only direct and intermediate gallery wrappers to prevent matching nested absolute overlay elements */
+  .card-grid .garage-card-image > div,
+  .card-grid .garage-card-image .image-gallery,
+  .card-grid .garage-card-image .image-gallery > div {
     height: 100% !important;
     min-height: 100% !important;
   }
