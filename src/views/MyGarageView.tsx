@@ -251,14 +251,14 @@ export const MyGarageView = ({
                   return 0;
                 })
                 .map(v => (
-                <div key={v.id} className="glass card animate-fade" style={{ padding: '0', borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div key={v.id} className="glass card garage-card animate-fade">
                   <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
-                  <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+                  <div className="garage-card-body">
+                    <div className="garage-card-header">
                       <div>
-                        <div style={{ color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>{(v as any).vehicle_type === 'trailer' ? '🚛 ' : ''}{v.year ? `${v.year} ` : ''}{v.maker}</div>
-                        <h3 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)' }}>{v.model}</h3>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '12px' }}>申請: {formatDate(v.created_at)}</div>
+                        <div className="garage-card-meta">{(v as any).vehicle_type === 'trailer' ? '🚛 ' : ''}{v.year ? `${v.year} ` : ''}{v.maker}</div>
+                        <h3 className="garage-card-title">{v.model}</h3>
+                        <div className="garage-card-date">申請: {formatDate(v.created_at)}</div>
                       </div>
                       <StatusBadge status={v.status} reason={v.reject_reason} tempExpiresAt={v.temp_expires_at} />
                     </div>
@@ -273,34 +273,34 @@ export const MyGarageView = ({
                       </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                    <div className="garage-card-fields">
                       <div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>{(v as any).vehicle_type === 'trailer' ? 'TRAILER TYPE' : 'GRADE / TRIM'}</div>
-                        <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-main)' }}>{(v as any).vehicle_type === 'trailer' ? ((v as any).trailer_type || '---') : (v.trim || '---')}</div>
+                        <div className="garage-card-field-title">{(v as any).vehicle_type === 'trailer' ? 'TRAILER TYPE' : 'GRADE / TRIM'}</div>
+                        <div className="garage-card-field-value">{(v as any).vehicle_type === 'trailer' ? ((v as any).trailer_type || '---') : (v.trim || '---')}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>COLOR</div>
-                        <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-main)' }}>{v.color || '---'}</div>
+                        <div className="garage-card-field-title">COLOR</div>
+                        <div className="garage-card-field-value">{v.color || '---'}</div>
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: '32px', flex: 1 }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '10px', letterSpacing: '0.05em' }}>LICENSE PLATE</div>
-                      <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
-                        <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#ffffff', padding: '10px 16px', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                    <div className="garage-card-plate-section">
+                      <div className="garage-card-plate-title">LICENSE PLATE</div>
+                      <div className="garage-card-plate">
+                        <div className="garage-card-plate-region">
                           {v.plate_region || 'WISCONSIN'}
                         </div>
-                        <div style={{ background: '#fff', color: '#000', padding: '10px 20px', fontSize: '1.3rem', fontWeight: 700, fontFamily: 'monospace, sans-serif' }}>
+                        <div className="garage-card-plate-number">
                           {v.plate || 'ABC-1234'}
                         </div>
                       </div>
                      </div>
 
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      <button className="btn btn-secondary" onClick={() => handleStartEdit(v)} style={{ flex: 1, justifyContent: 'center', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
+                    <div className="garage-card-actions">
+                      <button className="btn btn-secondary" onClick={() => handleStartEdit(v)}>
                         <Edit3 size={16} /> 編集
                       </button>
-                      <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ flex: 1, justifyContent: 'center', color: 'var(--error)', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
+                      <button className="btn btn-secondary btn-delete" onClick={() => handleDeleteVehicle(v.id)} style={{ color: 'var(--error)' }}>
                         <Trash2 size={16} /> 削除
                       </button>
                     </div>

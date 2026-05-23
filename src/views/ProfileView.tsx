@@ -35,7 +35,7 @@ export const ProfileView = ({
         <p style={{ color: 'var(--text-muted)', marginBottom: '0px' }}>アカウント設定を管理します。</p>
       </div>
 
-      <form onSubmit={handleUpdateProfile} className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '32px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+      <form onSubmit={handleUpdateProfile} className="glass card settings-card">
         <div>
           <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Roblox ユーザー名</label>
           <div style={{ position: 'relative' }}>
@@ -45,12 +45,12 @@ export const ProfileView = ({
         </div>
         <div>
           <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>テーマ設定（見た目）</label>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '16px', background: theme === 'dark' ? 'rgba(0,193,102,0.1)' : 'var(--input-bg)', border: `1px solid ${theme === 'dark' ? 'var(--primary)' : 'var(--glass-border)'}`, borderRadius: '12px', flex: 1, color: 'var(--text-main)' }}>
+          <div className="theme-selector-container">
+            <label className={`theme-selector-item ${theme === 'dark' ? 'active' : ''}`}>
               <input type="radio" value="dark" checked={theme === 'dark'} onChange={() => setTheme('dark')} style={{ accentColor: 'var(--primary)' }} />
               <Palette size={18} /> ダークモード
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '16px', background: theme === 'light' ? 'rgba(0,193,102,0.1)' : 'var(--input-bg)', border: `1px solid ${theme === 'light' ? 'var(--primary)' : 'var(--glass-border)'}`, borderRadius: '12px', flex: 1, color: 'var(--text-main)' }}>
+            <label className={`theme-selector-item ${theme === 'light' ? 'active' : ''}`}>
               <input type="radio" value="light" checked={theme === 'light'} onChange={() => setTheme('light')} style={{ accentColor: 'var(--primary)' }} />
               <Palette size={18} /> ライトモード
             </label>

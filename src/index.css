@@ -238,16 +238,111 @@ h1 {
 
 @media (max-width: 768px) {
   .list-view {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
   }
-  /* スマホのリスト表示では画像を非表示にしてテキスト重視のコンパクトカードにする */
-  .list-view .card > div:first-child {
-    display: none !important;
+  
+  /* Horizontal compact row on mobile list view */
+  .list-view .garage-card {
+    flex-direction: row !important;
+    align-items: stretch !important;
+    padding: 12px !important;
+    gap: 16px !important;
+    border-radius: 12px !important;
   }
-  .list-view .card {
-    padding: 20px !important;
+  
+  .list-view .garage-card > div:first-child {
+    display: block !important;
+    width: 100px !important;
+    height: 100px !important;
+    min-height: 100px !important;
+    flex-shrink: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border-bottom: none !important;
+  }
+  
+  .list-view .garage-card > div:first-child div {
+    height: 100% !important;
+    min-height: 100% !important;
+    border-bottom: none !important;
+  }
+  
+  .list-view .garage-card-body {
+    padding: 0 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+  
+  .list-view .garage-card-header {
+    margin-bottom: 4px !important;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  
+  .list-view .garage-card-meta {
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+  }
+  
+  .list-view .garage-card-title {
+    font-size: 1.1rem;
+    line-height: 1.2;
+  }
+  
+  .list-view .garage-card-date {
+    display: none; /* Hide date on list row to save space */
+  }
+  
+  .list-view .garage-card-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  
+  .list-view .garage-card-fields > div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .list-view .garage-card-field-title {
+    font-size: 0.6rem;
+    margin-bottom: 0;
+  }
+  
+  .list-view .garage-card-field-value {
+    font-size: 0.8rem;
+  }
+  
+  .list-view .garage-card-plate-section {
+    margin-bottom: 8px;
+  }
+  
+  .list-view .garage-card-plate-title {
+    display: none;
+  }
+  
+  .list-view .garage-card-plate {
+    transform: scale(0.8);
+    transform-origin: left top;
+    margin-bottom: -15px;
+  }
+  
+  .list-view .garage-card-actions {
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+  
+  .list-view .garage-card-actions .btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    border-radius: 8px;
   }
 }
 
@@ -403,8 +498,8 @@ h1 {
   }
 
   .card-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
   }
 
   .view-header {
@@ -764,3 +859,271 @@ h1 {
   border-color: #3b82f6;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
+
+/* ==========================================================================
+   Responsive & Premium UI Updates (v1.4.8)
+   ========================================================================== */
+
+/* Settings Profile & Theme Selector */
+.settings-card {
+  padding: 40px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  background: var(--panel-bg);
+  border: 1px solid var(--glass-border);
+}
+
+.theme-selector-container {
+  display: flex;
+  gap: 16px;
+}
+
+.theme-selector-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 16px;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  flex: 1;
+  color: var(--text-main);
+  font-weight: 500;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-selector-item:hover {
+  border-color: rgba(0, 193, 102, 0.4);
+  background: rgba(0, 193, 102, 0.02);
+}
+
+.theme-selector-item.active {
+  background: rgba(0, 193, 102, 0.1) !important;
+  border: 1.5px solid var(--primary) !important;
+}
+
+/* Garage Card Premium Layout */
+.garage-card {
+  padding: 0;
+  border-radius: 16px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(255,255,255,0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.garage-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+}
+
+.garage-card-body {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.garage-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.garage-card-meta {
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.garage-card-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.garage-card-date {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
+.garage-card-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.garage-card-field-title {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.garage-card-field-value {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.garage-card-plate-section {
+  margin-bottom: 32px;
+  flex: 1;
+}
+
+.garage-card-plate-title {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.garage-card-plate {
+  display: inline-flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+.garage-card-plate-region {
+  background: var(--plate-region-bg, #1c2e4a);
+  color: #ffffff;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.garage-card-plate-number {
+  background: #fff;
+  color: #000;
+  padding: 10px 20px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: monospace, sans-serif;
+}
+
+.garage-card-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.garage-card-actions .btn {
+  flex: 1;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   Mobile Responsive Adjustments for settings and cards
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Settings Page Card & Theme options spacing */
+  .settings-card {
+    padding: 24px 20px !important;
+    gap: 24px !important;
+  }
+  
+  .theme-selector-container {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .theme-selector-item {
+    padding: 14px !important;
+    font-size: 0.95rem !important;
+  }
+
+  /* Grid View - Compact scaling for 2 columns */
+  .card-grid .garage-card {
+    border-radius: 12px !important;
+  }
+
+  .card-grid .garage-card .image-gallery,
+  .card-grid .garage-card > div:first-child {
+    height: 110px !important;
+  }
+
+  .card-grid .garage-card-body {
+    padding: 16px 12px !important;
+  }
+
+  .card-grid .garage-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .card-grid .garage-card-meta {
+    font-size: 0.75rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .card-grid .garage-card-title {
+    font-size: 1.1rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .card-grid .garage-card-date {
+    font-size: 0.7rem !important;
+    margin-top: 4px !important;
+  }
+
+  .card-grid .garage-card-fields {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .card-grid .garage-card-field-title {
+    font-size: 0.6rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .card-grid .garage-card-field-value {
+    font-size: 0.85rem !important;
+  }
+
+  .card-grid .garage-card-plate-section {
+    margin-bottom: 16px !important;
+  }
+
+  .card-grid .garage-card-plate-title {
+    font-size: 0.6rem !important;
+    margin-bottom: 4px !important;
+  }
+
+  .card-grid .garage-card-plate {
+    transform: scale(0.8);
+    transform-origin: left top !important;
+    margin-bottom: -15px !important;
+  }
+
+  .card-grid .garage-card-actions {
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+
+  .card-grid .garage-card-actions .btn {
+    padding: 8px 10px !important;
+    font-size: 0.8rem !important;
+    border-radius: 8px !important;
+  }
+}
+
