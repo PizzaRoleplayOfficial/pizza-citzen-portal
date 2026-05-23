@@ -12,12 +12,14 @@ interface DashboardChartsProps {
   vehicles: Vehicle[];
   onMakerClick?: (maker: string) => void;
   onStatusClick?: (status: string) => void;
+  isMobile?: boolean;
 }
 
 export const DashboardCharts: React.FC<DashboardChartsProps> = ({ 
   vehicles,
   onMakerClick,
-  onStatusClick
+  onStatusClick,
+  isMobile = false
 }) => {
   const [hoveredStatusIndex, setHoveredStatusIndex] = useState<number | null>(null);
   const [hoveredMakerIndex, setHoveredMakerIndex] = useState<number | null>(null);
@@ -81,7 +83,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
     });
   }, [statusData]);
 
-  // 2. メーカー別シェアの集集計 (上位5つ + その他)
+  // 2. メーカー別シェアの集集計 (上位5つ/10個 + その他)
   const makerData = useMemo(() => {
     const total = vehicles.length;
     if (total === 0) return [];
@@ -100,22 +102,23 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
       }))
       .sort((a, b) => b.count - a.count);
 
-    if (sortedMakers.length <= 10) {
+    const maxMakers = isMobile ? 5 : 10;
+    if (sortedMakers.length <= maxMakers) {
       return sortedMakers;
     }
 
-    const top10 = sortedMakers.slice(0, 10);
-    const othersCount = sortedMakers.slice(10).reduce((acc, m) => acc + m.count, 0);
+    const topMakers = sortedMakers.slice(0, maxMakers);
+    const othersCount = sortedMakers.slice(maxMakers).reduce((acc, m) => acc + m.count, 0);
 
     return [
-      ...top10,
+      ...topMakers,
       {
         name: 'その他',
         count: othersCount,
         percentage: (othersCount / total) * 100,
       },
     ];
-  }, [vehicles]);
+  }, [vehicles, isMobile]);
 
   // 現在ドーナツチャート中央に表示する情報
   const activeStatus = useMemo(() => {
@@ -133,25 +136,30 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
 
   if (vehicles.length === 0) {
     return (
-      <div className="glass" style={{ padding: '32px', borderRadius: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div className="glass" style={{ padding: isMobile ? '20px' : '32px', borderRadius: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
         集計対象の車両データがないため、統計グラフを表示できません。
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginTop: '24px' }}>
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', 
+      gap: isMobile ? '12px' : '24px', 
+      marginTop: isMobile ? '12px' : '24px' 
+    }}>
       
       {/* 1. ステータス内訳 ドーナツチャート */}
-      <div className="glass card" style={{ padding: '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="glass card" style={{ padding: isMobile ? '16px' : '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+        <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 700, marginBottom: isMobile ? '12px' : '20px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }}></span>
           承認申請のステータス割合
         </h3>
         
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: isMobile ? '12px' : '20px', flex: 1 }}>
           {/* SVG Donut */}
-          <div style={{ position: 'relative', width: '180px', height: '180px' }}>
+          <div style={{ position: 'relative', width: isMobile ? '130px' : '180px', height: isMobile ? '130px' : '180px' }}>
             <svg width="100%" height="100%" viewBox="0 0 100 100">
               {/* 背景の薄い円 */}
               <circle
@@ -202,15 +210,15 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
               textAlign: 'center',
               pointerEvents: 'none',
             }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.05em' }}>
                 {activeStatus.label}
               </span>
-              <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px', display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+              <span style={{ fontSize: isMobile ? '1.3rem' : '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '2px' }}>
                 {activeStatus.count}
-                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>件</span>
+                <span style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>件</span>
               </span>
               {hoveredStatusIndex !== null && (
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: activeStatus.color, marginTop: '2px', background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+                <span style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 600, color: activeStatus.color, marginTop: '2px', background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
                   {activeStatus.percentage.toFixed(1)}%
                 </span>
               )}
@@ -218,7 +226,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
           </div>
           
           {/* レジェンド（凡例リスト） */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '120px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '4px' : '10px', minWidth: '120px' }}>
             {donutSlices.map((slice, index) => {
               const isHovered = hoveredStatusIndex === index;
               return (
@@ -230,8 +238,8 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
-                    padding: '6px 8px',
+                    gap: isMobile ? '6px' : '10px',
+                    padding: isMobile ? '4px 6px' : '6px 8px',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     background: isHovered ? 'rgba(255,255,255,0.05)' : 'transparent',
@@ -242,8 +250,8 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                 >
                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: slice.color, display: 'inline-block', flexShrink: 0 }}></span>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: isHovered ? 700 : 500, color: 'var(--text-main)' }}>{slice.label}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{slice.count}台 ({slice.percentage.toFixed(0)}%)</span>
+                    <span style={{ fontSize: isMobile ? '0.78rem' : '0.85rem', fontWeight: isHovered ? 700 : 500, color: 'var(--text-main)' }}>{slice.label}</span>
+                    <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)' }}>{slice.count}台 ({slice.percentage.toFixed(0)}%)</span>
                   </div>
                 </div>
               );
@@ -253,13 +261,13 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
       </div>
 
       {/* 2. メーカー別シェア 横棒グラフ */}
-      <div className="glass card" style={{ padding: '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="glass card" style={{ padding: isMobile ? '16px' : '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+        <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 700, marginBottom: isMobile ? '12px' : '20px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }}></span>
           人気自動車メーカーシェア
         </h3>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center', flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '6px' : '10px', justifyContent: 'center', flex: 1 }}>
           {makerData.map((item, index) => {
             const isHovered = hoveredMakerIndex === index;
             const isClickable = item.name !== 'その他' && !!onMakerClick;
@@ -273,7 +281,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '4px',
-                  padding: '2px 8px',
+                  padding: isMobile ? '1px 6px' : '2px 8px',
                   borderRadius: '8px',
                   background: isHovered ? 'rgba(255,255,255,0.03)' : 'transparent',
                   cursor: isClickable ? 'pointer' : 'default',
@@ -282,24 +290,24 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                 }}
                 title={isClickable ? `クリックして ${item.name} で車両検索へ` : undefined}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobile ? '0.78rem' : '0.85rem' }}>
                   <span style={{ fontWeight: isHovered ? 700 : 600, color: 'var(--text-main)', letterSpacing: '0.02em' }}>
                     {item.name}
                   </span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    <strong style={{ color: 'var(--text-main)', fontSize: '0.85rem' }}>{item.count}</strong>台 ({item.percentage.toFixed(0)}%)
+                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', color: 'var(--text-muted)' }}>
+                    <strong style={{ color: 'var(--text-main)', fontSize: isMobile ? '0.78rem' : '0.85rem' }}>{item.count}</strong>台 ({item.percentage.toFixed(0)}%)
                   </span>
                 </div>
                 
                 {/* バーコンテナ */}
-                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ width: '100%', height: isMobile ? '6px' : '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
                   <div
                     style={{
                       height: '100%',
                       width: `${item.percentage}%`,
                       background: isHovered 
-                        ? 'linear-gradient(90deg, #00ff88 0%, #00c166 100%)' 
-                        : 'linear-gradient(90deg, var(--primary) 0%, rgba(0, 193, 102, 0.7) 100%)',
+                       ? 'linear-gradient(90deg, #00ff88 0%, #00c166 100%)' 
+                       : 'linear-gradient(90deg, var(--primary) 0%, rgba(0, 193, 102, 0.7) 100%)',
                       borderRadius: '4px',
                       transition: 'width 1s cubic-bezier(0.1, 0.8, 0.3, 1), background 0.3s ease',
                       boxShadow: isHovered ? '0 0 6px rgba(0,255,136,0.6)' : 'none',

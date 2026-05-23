@@ -110,6 +110,7 @@ export const AdminDashboardView = ({
   const [lookupSortOpen, setLookupSortOpen] = useState(false);
   const [lookupStatusFilter, setLookupStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'temp'>('all');
   const [lookupTypeFilter, setLookupTypeFilter] = useState<'all' | 'car' | 'trailer'>('all');
+  const [showAllActivities, setShowAllActivities] = useState(false);
 
   React.useEffect(() => {
     if (!isMobile) {
@@ -529,10 +530,11 @@ export const AdminDashboardView = ({
                 </>
               )}
             </div>
-            {!isLoading && !isMobile && (
+            {!isLoading && (
               <>
                 <DashboardCharts 
                   vehicles={allSearchVehicles} 
+                  isMobile={isMobile}
                   onMakerClick={(maker) => {
                     if (maker === 'その他') return;
                     setAdminSearchTerm(maker);
@@ -551,13 +553,13 @@ export const AdminDashboardView = ({
                 />
 
                 {/* 最近のアクティビティ・タイムライン */}
-                <div className="glass card" style={{ padding: isMobile ? '16px 20px' : '28px 32px', borderRadius: isMobile ? '16px' : '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', marginTop: '24px' }}>
-                  <h3 style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 800, marginBottom: isMobile ? '16px' : '24px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(0, 193, 102, 0.12)', border: '1px solid rgba(0, 193, 102, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Activity size={20} color="var(--primary)" />
+                <div className="glass card" style={{ padding: isMobile ? '16px 14px' : '28px 32px', borderRadius: isMobile ? '16px' : '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', marginTop: isMobile ? '16px' : '24px' }}>
+                  <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.25rem', fontWeight: 800, marginBottom: isMobile ? '12px' : '24px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: isMobile ? '30px' : '36px', height: isMobile ? '30px' : '36px', borderRadius: '10px', background: 'rgba(0, 193, 102, 0.12)', border: '1px solid rgba(0, 193, 102, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Activity size={isMobile ? 16 : 20} color="var(--primary)" />
                     </div>
                     <span>最近のアクティビティ</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '20px' }}>
+                    <span style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '20px' }}>
                       リアルタイム履歴
                     </span>
                   </h3>
@@ -569,9 +571,9 @@ export const AdminDashboardView = ({
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
                       {/* タイムラインの縦線 */}
-                      <div style={{ position: 'absolute', left: '32px', top: '29px', bottom: '29px', width: '2px', background: 'linear-gradient(180deg, var(--primary) 0%, rgba(255,255,255,0.05) 100%)', zIndex: 0 }} />
+                      <div style={{ position: 'absolute', left: isMobile ? '18px' : '32px', top: '29px', bottom: '29px', width: '2px', background: 'linear-gradient(180deg, var(--primary) 0%, rgba(255,255,255,0.05) 100%)', zIndex: 0 }} />
 
-                      {activities.map((act, index) => {
+                      {(isMobile && !showAllActivities ? activities.slice(0, 3) : activities).map((act, index) => {
                         // タイプに応じたアイコン、カラーの設定
                         let icon = <Clock size={14} color="#f59e0b" />;
                         let dotColor = '#f59e0b';
@@ -616,8 +618,8 @@ export const AdminDashboardView = ({
                             key={act.id} 
                             style={{ 
                               display: 'flex', 
-                              gap: '16px', 
-                              padding: '12px 16px', 
+                              gap: isMobile ? '10px' : '16px', 
+                              padding: isMobile ? '8px 4px' : '12px 16px', 
                               borderRadius: '12px', 
                               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
                               cursor: 'default',
@@ -626,18 +628,22 @@ export const AdminDashboardView = ({
                               background: 'transparent'
                             }}
                             onMouseOver={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-                              e.currentTarget.style.transform = 'translateX(4px)';
+                              if (!isMobile) {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                                e.currentTarget.style.transform = 'translateX(4px)';
+                              }
                             }}
                             onMouseOut={(e) => {
-                              e.currentTarget.style.background = 'transparent';
-                              e.currentTarget.style.transform = 'translateX(0)';
+                              if (!isMobile) {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.transform = 'translateX(0)';
+                              }
                             }}
                           >
                             {/* ドット・アイコンコンテナ */}
                             <div style={{ 
-                              width: '34px', 
-                              height: '34px', 
+                              width: isMobile ? '28px' : '34px', 
+                              height: isMobile ? '28px' : '34px', 
                               borderRadius: '50%', 
                               background: 'var(--panel-bg)', 
                               border: `2px solid ${dotColor}`, 
@@ -653,21 +659,21 @@ export const AdminDashboardView = ({
                             {/* 内容 */}
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '6px', background: badgeBg, border: `1px solid ${badgeBorder}`, color: dotColor, fontWeight: 700 }}>
+                                <span style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', padding: isMobile ? '1px 6px' : '2px 8px', borderRadius: '6px', background: badgeBg, border: `1px solid ${badgeBorder}`, color: dotColor, fontWeight: 700 }}>
                                   {badgeText}
                                 </span>
-                                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                <span style={{ fontSize: isMobile ? '0.82rem' : '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
                                   {act.title}
                                 </span>
                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
                                   {getRelativeTimeString(act.timestamp)}
                                 </span>
                               </div>
-                              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                              <p style={{ fontSize: isMobile ? '0.78rem' : '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
                                 {act.description}
                               </p>
                               {act.details && (
-                                <div style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', padding: '6px 12px', borderRadius: '6px', borderLeft: `3px solid ${dotColor}`, color: 'var(--text-muted)', marginTop: '4px' }}>
+                                <div style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', background: 'rgba(255,255,255,0.02)', padding: isMobile ? '4px 8px' : '6px 12px', borderRadius: '6px', borderLeft: `3px solid ${dotColor}`, color: 'var(--text-muted)', marginTop: '4px' }}>
                                   理由: {act.details}
                                 </div>
                               )}
@@ -676,6 +682,30 @@ export const AdminDashboardView = ({
                         );
                       })}
                     </div>
+                  )}
+                  {isMobile && activities.length > 3 && (
+                    <button 
+                      onClick={() => setShowAllActivities(!showAllActivities)}
+                      className="btn btn-secondary"
+                      style={{ 
+                        width: '100%', 
+                        padding: '10px', 
+                        fontSize: '0.8rem', 
+                        marginTop: '12px',
+                        borderRadius: '10px',
+                        justifyContent: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontWeight: 700,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-main)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {showAllActivities ? '🔼 履歴をたたむ' : `🔽 さらに ${activities.length - 3} 件の履歴を表示`}
+                    </button>
                   )}
                 </div>
               </>
