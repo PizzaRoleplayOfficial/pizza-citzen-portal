@@ -260,7 +260,9 @@ export const MyGarageView = ({
                         <h3 className="garage-card-title">{v.model}</h3>
                         <div className="garage-card-date">申請: {formatDate(v.created_at)}</div>
                       </div>
-                      <StatusBadge status={v.status} reason={v.reject_reason} tempExpiresAt={v.temp_expires_at} />
+                      <div className="garage-card-status">
+                        <StatusBadge status={v.status} reason={v.reject_reason} tempExpiresAt={v.temp_expires_at} />
+                      </div>
                     </div>
                     {v.status === 'rejected' && v.reject_reason && (
                       <div style={{ padding: '16px', background: 'rgba(239,68,68,0.1)', borderLeft: '4px solid var(--error)', borderRadius: '4px', marginBottom: '24px', color: 'var(--error)' }}>

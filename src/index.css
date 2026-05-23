@@ -1050,24 +1050,65 @@ h1 {
   }
 
   /* Grid View - Compact scaling for 2 columns */
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  
   .card-grid .garage-card {
+    position: relative !important;
     border-radius: 12px !important;
   }
 
-  .card-grid .garage-card .image-gallery,
-  .card-grid .garage-card > div:first-child {
+  /* CRITICAL FIX: Ensure the inner image/gallery doesn't overflow the 110px parent! */
+  .card-grid .garage-card > div:first-child,
+  .card-grid .garage-card .image-gallery {
     height: 110px !important;
+    overflow: hidden !important;
+  }
+
+  .card-grid .garage-card > div:first-child div {
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+
+  /* Floating Status Badge Pill on top of the image to save huge space! */
+  .card-grid .garage-card-status {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    z-index: 10 !important;
+    background: rgba(10, 12, 16, 0.8) !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    display: inline-flex !important;
+    width: auto !important;
+  }
+
+  .card-grid .garage-card-status span {
+    font-size: 0.65rem !important;
+    gap: 4px !important;
+  }
+  
+  .card-grid .garage-card-status span svg {
+    width: 12px !important;
+    height: 12px !important;
   }
 
   .card-grid .garage-card-body {
-    padding: 16px 12px !important;
+    padding: 12px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
   }
 
   .card-grid .garage-card-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 6px !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 0 !important;
+    display: block !important;
   }
 
   .card-grid .garage-card-meta {
@@ -1076,19 +1117,21 @@ h1 {
   }
 
   .card-grid .garage-card-title {
-    font-size: 1.1rem !important;
+    font-size: 1.05rem !important;
     line-height: 1.2 !important;
+    margin-bottom: 4px !important;
   }
 
   .card-grid .garage-card-date {
-    font-size: 0.7rem !important;
-    margin-top: 4px !important;
+    font-size: 0.65rem !important;
+    margin-top: 2px !important;
   }
 
+  /* Fields stacked inside Grid View */
   .card-grid .garage-card-fields {
     grid-template-columns: 1fr !important;
-    gap: 8px !important;
-    margin-bottom: 12px !important;
+    gap: 6px !important;
+    margin-bottom: 6px !important;
   }
 
   .card-grid .garage-card-field-title {
@@ -1100,8 +1143,9 @@ h1 {
     font-size: 0.85rem !important;
   }
 
+  /* License Plate scaling */
   .card-grid .garage-card-plate-section {
-    margin-bottom: 16px !important;
+    margin-bottom: 8px !important;
   }
 
   .card-grid .garage-card-plate-title {
@@ -1110,20 +1154,204 @@ h1 {
   }
 
   .card-grid .garage-card-plate {
-    transform: scale(0.8);
-    transform-origin: left top !important;
-    margin-bottom: -15px !important;
+    display: inline-flex !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--glass-border) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
   }
 
+  .card-grid .garage-card-plate-region {
+    padding: 4px 8px !important;
+    font-size: 0.65rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card-grid .garage-card-plate-number {
+    padding: 4px 10px !important;
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Stack actions vertically in 2-column grid view to prevent horizontal overflow */
   .card-grid .garage-card-actions {
-    gap: 8px !important;
-    margin-top: 10px !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    margin-top: auto !important;
   }
 
   .card-grid .garage-card-actions .btn {
-    padding: 8px 10px !important;
+    width: 100% !important;
+    padding: 8px !important;
     font-size: 0.8rem !important;
     border-radius: 8px !important;
+    justify-content: center !important;
+  }
+
+
+  /* ==========================================
+     Horizontal Compact Row on Mobile List View
+     ========================================== */
+  .list-view {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .list-view .garage-card {
+    flex-direction: row !important;
+    align-items: stretch !important;
+    padding: 10px !important;
+    gap: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  .list-view .garage-card > div:first-child {
+    display: block !important;
+    width: 90px !important;
+    height: 90px !important;
+    min-height: 90px !important;
+    flex-shrink: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border-bottom: none !important;
+  }
+
+  .list-view .garage-card > div:first-child div {
+    height: 100% !important;
+    min-height: 100% !important;
+    border-bottom: none !important;
+  }
+
+  .list-view .garage-card-body {
+    padding: 0 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-width: 0 !important; /* Allow flex children to truncate/wrap safely */
+  }
+
+  .list-view .garage-card-header {
+    margin-bottom: 2px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .list-view .garage-card-meta {
+    font-size: 0.75rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .list-view .garage-card-title {
+    font-size: 1.1rem !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 120px !important; /* Safely constrain model name width to prevent overlaps */
+  }
+
+  .list-view .garage-card-status {
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+  }
+
+  .list-view .garage-card-status span {
+    font-size: 0.7rem !important;
+    gap: 4px !important;
+  }
+  
+  .list-view .garage-card-status span svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .list-view .garage-card-date {
+    display: none; /* Hide date on compact list row to keep it sleek */
+  }
+
+  /* Display Grade/Trim & Color in a single extremely elegant line! */
+  .list-view .garage-card-fields {
+    display: block !important;
+    margin-bottom: 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .list-view .garage-card-fields > div {
+    display: inline-block !important;
+  }
+
+  .list-view .garage-card-fields > div:not(:last-child)::after {
+    content: " • ";
+    color: var(--text-muted);
+    margin: 0 6px;
+  }
+
+  .list-view .garage-card-field-title {
+    display: none !important; /* Hide labels on mobile list row to gain massive spacing */
+  }
+
+  .list-view .garage-card-field-value {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    color: var(--text-muted) !important;
+  }
+
+  /* Compact License Plate and Actions layout */
+  .list-view .garage-card-plate-section {
+    margin-bottom: 0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+  }
+
+  .list-view .garage-card-plate-title {
+    display: none !important;
+  }
+
+  .list-view .garage-card-plate {
+    display: inline-flex !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--glass-border) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .list-view .garage-card-plate-region {
+    padding: 4px 8px !important;
+    font-size: 0.65rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .list-view .garage-card-plate-number {
+    padding: 4px 10px !important;
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .list-view .garage-card-actions {
+    gap: 6px !important;
+    justify-content: flex-end !important;
+    flex: 1 !important;
+  }
+
+  .list-view .garage-card-actions .btn {
+    padding: 6px 10px !important;
+    font-size: 0.75rem !important;
+    border-radius: 6px !important;
+    flex: none !important; /* Prevent button stretching */
   }
 }
 
