@@ -319,7 +319,7 @@ export default function App() {
           StatusBar.setBackgroundColor({ color: '#0a0c10' });
           StatusBar.setStyle({ style: Style.Dark });
         } else {
-          StatusBar.setBackgroundColor({ color: '#f0f4f8' });
+          StatusBar.setBackgroundColor({ color: '#ffffff' });
           StatusBar.setStyle({ style: Style.Light });
         }
       } catch (err) {

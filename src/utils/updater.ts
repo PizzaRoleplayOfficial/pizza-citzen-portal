@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.13'; // 1.5.13 (Pixel向け極限ハプティクスプラグインの強さをKEYBOARD_TAPへ最適化調整)
+export const CURRENT_VERSION = '1.5.14'; // 1.5.14 (ダッシュボードライトモード背景改善、スマホコンパクト化、ステータスバー黒化バグ修正)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

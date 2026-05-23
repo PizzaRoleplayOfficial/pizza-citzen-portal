@@ -270,7 +270,7 @@ export const AdminDashboardView = ({
   }, [allSearchVehicles, allApplications]);
 
   return (
-    <div className="animate-fade" style={{ display: 'flex', minHeight: 'calc(100vh - 120px)', gap: '2px', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--glass-border)', position: 'relative' }}>
+    <div className="animate-fade" style={{ display: 'flex', minHeight: 'calc(100vh - 120px)', gap: '2px', background: 'var(--panel-bg)', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--glass-border)', position: 'relative' }}>
       
       {/* Mobile Overlay */}
       {isMobile && showMobileMenu && (
@@ -358,7 +358,7 @@ export const AdminDashboardView = ({
       </div>
 
       {/* Admin Content Area */}
-      <div style={{ flex: 1, padding: isMobile ? '20px' : '40px', overflowY: 'auto', background: 'rgba(0,0,0,0.1)' }}>
+      <div style={{ flex: 1, padding: isMobile ? '20px' : '40px', overflowY: 'auto', background: 'var(--admin-content-bg, transparent)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {!isMobile && !showMobileMenu && (
@@ -423,36 +423,108 @@ export const AdminDashboardView = ({
 
         {adminTab === 'dashboard' && (
           <div className="animate-fade">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '12px' : '24px' }}>
               {isLoading ? (
                 [1, 2, 3].map(i => (
-                  <div key={i} className="glass card" style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--panel-bg)', height: '180px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="skeleton skeleton-circle" style={{ width: '24px', height: '24px' }} />
-                      <div className="skeleton skeleton-text" style={{ width: '60%' }} />
+                  <div key={i} className="glass card" style={{ 
+                    padding: isMobile ? '16px 20px' : '32px', 
+                    borderRadius: isMobile ? '16px' : '20px', 
+                    display: 'flex', 
+                    flexDirection: isMobile ? 'row' : 'column', 
+                    alignItems: isMobile ? 'center' : 'stretch',
+                    justifyContent: isMobile ? 'space-between' : 'flex-start',
+                    gap: isMobile ? '12px' : '16px', 
+                    background: 'var(--panel-bg)', 
+                    height: isMobile ? 'auto' : '180px' 
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                      <div className="skeleton skeleton-circle" style={{ width: isMobile ? '20px' : '24px', height: isMobile ? '20px' : '24px', flexShrink: 0 }} />
+                      <div className="skeleton skeleton-text" style={{ width: '50%' }} />
                     </div>
-                    <div className="skeleton skeleton-title" style={{ width: '40%', height: '40px', marginTop: '8px' }} />
-                    <div className="skeleton skeleton-text short" style={{ width: '30%', marginTop: 'auto' }} />
+                    <div className="skeleton skeleton-title" style={{ width: isMobile ? '60px' : '40%', height: isMobile ? '24px' : '40px', marginTop: isMobile ? '0' : '8px' }} />
                   </div>
                 ))
               ) : (
                 <>
-                  <div className="glass card" onClick={() => setAdminTabPersist('vehicles')} style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', background: 'var(--panel-bg)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}><Car size={24} /> <h2 style={{ fontSize: '1.2rem', margin: 0 }}>保留中の車両承認</h2></div>
-                    <div style={{ fontSize: '3rem', fontWeight: 800 }}>{vehicles.length} <span style={{ fontSize: '1.2rem' }}>件</span></div>
-                    <div style={{ color: 'var(--primary)', fontWeight: 600 }}>審査する <ChevronRight size={16} /></div>
+                  <div className="glass card" onClick={() => setAdminTabPersist('vehicles')} style={{ 
+                    padding: isMobile ? '16px 20px' : '32px', 
+                    borderRadius: isMobile ? '16px' : '20px', 
+                    display: 'flex', 
+                    flexDirection: isMobile ? 'row' : 'column', 
+                    alignItems: isMobile ? 'center' : 'stretch',
+                    justifyContent: isMobile ? 'space-between' : 'flex-start',
+                    gap: isMobile ? '12px' : '16px', 
+                    cursor: 'pointer', 
+                    background: 'var(--panel-bg)' 
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
+                      <Car size={isMobile ? 20 : 24} />
+                      <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>保留中の車両承認</h2>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: isMobile ? 'auto' : '0' }}>
+                      <div style={{ fontSize: isMobile ? '1.8rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
+                        {vehicles.length} <span style={{ fontSize: isMobile ? '0.85rem' : '1.2rem', fontWeight: 500 }}>件</span>
+                      </div>
+                      {isMobile ? (
+                        <ChevronRight size={18} style={{ color: 'var(--primary)', opacity: 0.8 }} />
+                      ) : (
+                        <div style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 'auto' }}>審査する <ChevronRight size={16} /></div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="glass card" onClick={() => setAdminTabPersist('applications')} style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', background: 'var(--panel-bg)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}><ClipboardList size={24} /> <h2 style={{ fontSize: '1.2rem', margin: 0 }}>未審査の市民申請</h2></div>
-                    <div style={{ fontSize: '3rem', fontWeight: 800 }}>{allApplications.filter(a => a.status === 'pending').length} <span style={{ fontSize: '1.2rem' }}>件</span></div>
-                    <div style={{ color: 'var(--primary)', fontWeight: 600 }}>審査する <ChevronRight size={16} /></div>
+                  <div className="glass card" onClick={() => setAdminTabPersist('applications')} style={{ 
+                    padding: isMobile ? '16px 20px' : '32px', 
+                    borderRadius: isMobile ? '16px' : '20px', 
+                    display: 'flex', 
+                    flexDirection: isMobile ? 'row' : 'column', 
+                    alignItems: isMobile ? 'center' : 'stretch',
+                    justifyContent: isMobile ? 'space-between' : 'flex-start',
+                    gap: isMobile ? '12px' : '16px', 
+                    cursor: 'pointer', 
+                    background: 'var(--panel-bg)' 
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
+                      <ClipboardList size={isMobile ? 20 : 24} />
+                      <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>未審査の市民申請</h2>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: isMobile ? 'auto' : '0' }}>
+                      <div style={{ fontSize: isMobile ? '1.8rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
+                        {allApplications.filter(a => a.status === 'pending').length} <span style={{ fontSize: isMobile ? '0.85rem' : '1.2rem', fontWeight: 500 }}>件</span>
+                      </div>
+                      {isMobile ? (
+                        <ChevronRight size={18} style={{ color: 'var(--primary)', opacity: 0.8 }} />
+                      ) : (
+                        <div style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 'auto' }}>審査する <ChevronRight size={16} /></div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="glass card" onClick={() => setAdminTabPersist('users')} style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', background: 'var(--panel-bg)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}><UserIcon size={24} /> <h2 style={{ fontSize: '1.2rem', margin: 0 }}>登録ユーザー数</h2></div>
-                    <div style={{ fontSize: '3rem', fontWeight: 800 }}>{allUsers.length} <span style={{ fontSize: '1.2rem' }}>人</span></div>
-                    <div style={{ color: 'var(--primary)', fontWeight: 600 }}>管理する <ChevronRight size={16} /></div>
+                  <div className="glass card" onClick={() => setAdminTabPersist('users')} style={{ 
+                    padding: isMobile ? '16px 20px' : '32px', 
+                    borderRadius: isMobile ? '16px' : '20px', 
+                    display: 'flex', 
+                    flexDirection: isMobile ? 'row' : 'column', 
+                    alignItems: isMobile ? 'center' : 'stretch',
+                    justifyContent: isMobile ? 'space-between' : 'flex-start',
+                    gap: isMobile ? '12px' : '16px', 
+                    cursor: 'pointer', 
+                    background: 'var(--panel-bg)' 
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
+                      <UserIcon size={isMobile ? 20 : 24} />
+                      <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>登録ユーザー数</h2>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: isMobile ? 'auto' : '0' }}>
+                      <div style={{ fontSize: isMobile ? '1.8rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
+                        {allUsers.length} <span style={{ fontSize: isMobile ? '0.85rem' : '1.2rem', fontWeight: 500 }}>人</span>
+                      </div>
+                      {isMobile ? (
+                        <ChevronRight size={18} style={{ color: 'var(--primary)', opacity: 0.8 }} />
+                      ) : (
+                        <div style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 'auto' }}>管理する <ChevronRight size={16} /></div>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
@@ -479,8 +551,8 @@ export const AdminDashboardView = ({
                 />
 
                 {/* 最近のアクティビティ・タイムライン */}
-                <div className="glass card" style={{ padding: '28px 32px', borderRadius: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', marginTop: '24px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '24px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="glass card" style={{ padding: isMobile ? '16px 20px' : '28px 32px', borderRadius: isMobile ? '16px' : '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', marginTop: '24px' }}>
+                  <h3 style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 800, marginBottom: isMobile ? '16px' : '24px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(0, 193, 102, 0.12)', border: '1px solid rgba(0, 193, 102, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Activity size={20} color="var(--primary)" />
                     </div>

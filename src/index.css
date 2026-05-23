@@ -14,6 +14,7 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --nav-bg: #12161f;
   --panel-bg: rgba(20,25,35,0.6);
+  --admin-content-bg: transparent;
   --input-bg: rgba(0,0,0,0.2);
   --input-text: #fff;
   --error: #ff4757;
@@ -41,6 +42,7 @@
   --glass-border: rgba(0, 0, 0, 0.08);
   --nav-bg: #ffffff;
   --panel-bg: #ffffff;
+  --admin-content-bg: #f8fafc;
   --input-bg: #ffffff;
   --input-text: #2b3a4a;
   --btn-secondary-bg: #ffffff;
