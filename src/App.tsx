@@ -90,6 +90,7 @@ import { VehicleImageGallery } from './components/VehicleImageGallery';
 import { formatDate } from './utils/helpers';
 import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission } from './utils/native';
 import { Capacitor } from '@capacitor/core';
+import { handleAvatarError } from './utils/avatarFallback';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -1615,7 +1616,7 @@ export default function App() {
               <div className="nav-username">{currentUser.username}</div>
               <div className="nav-userrole">{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
             </div>
-            <img src={currentUser.avatar} alt="u" style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff', objectFit: 'cover' }} />
+            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff', objectFit: 'cover' }} />
             <a href="/api/auth/logout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--glass-border)', transition: '0.2s' }}>
               <LogOut size={18} />
             </a>
@@ -1641,7 +1642,7 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src={currentUser.avatar} alt="u" style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
+            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
             <a href="/api/auth/logout" style={{ color: 'var(--text-muted)' }}><LogOut size={20} /></a>
           </div>
         </div>
@@ -1704,6 +1705,7 @@ export default function App() {
                   <img
                     src={currentUser.avatar}
                     alt="Avatar"
+                    onError={(e) => handleAvatarError(e, currentUser.username)}
                     style={{
                       width: '100px',
                       height: '100px',

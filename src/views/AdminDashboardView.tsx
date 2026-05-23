@@ -29,6 +29,7 @@ import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
 import { formatDate, parseUTCDate } from '../utils/helpers';
 import { DashboardCharts } from '../components/DashboardCharts';
+import { handleAvatarError } from '../utils/avatarFallback';
 
 interface AdminDashboardViewProps {
   adminTab: string;
@@ -1075,6 +1076,7 @@ export const AdminDashboardView = ({
                            <img 
                              src={u.avatar} 
                              alt="User Avatar" 
+                             onError={(e) => handleAvatarError(e, u.username)}
                              style={{ 
                                width: '48px', 
                                height: '48px', 

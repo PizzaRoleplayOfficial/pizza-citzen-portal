@@ -61,7 +61,16 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
     let dbUser = await env.D1_DB.prepare("SELECT * FROM users WHERE id = ?").bind(userData.id).first() as any;
     const username = userData.global_name || userData.username;
-    const avatar = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`;
+    
+    let avatar = '';
+    if (userData.avatar) {
+      avatar = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`;
+    } else {
+      const defaultIndex = userData.discriminator && userData.discriminator !== '0'
+        ? (parseInt(userData.discriminator) % 5)
+        : Number((BigInt(userData.id) >> 22n) % 6n);
+      avatar = `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`;
+    }
     
     // FIRST ADMIN: wasimon
     let role = 'user';
