@@ -1123,6 +1123,19 @@ h1 {
     min-height: 100% !important;
   }
 
+  /* Enforce contain layout on mobile to prevent any cropping of wheels or bumper for varying resolutions */
+  .card-grid .garage-card-image div,
+  .card-grid .garage-card-image .image-gallery div,
+  .card-grid .garage-card-image .wiki-fallback-image,
+  .list-view .garage-card-image div,
+  .list-view .garage-card-image .image-gallery div,
+  .list-view .garage-card-image .wiki-fallback-image {
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-color: rgba(0, 0, 0, 0.25) !important;
+  }
+
   /* Floating Status Badge Pill on top of the image to save huge space! */
   .card-grid .garage-card-status {
     position: absolute !important;
