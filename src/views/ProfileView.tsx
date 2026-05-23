@@ -25,7 +25,7 @@ export const ProfileView = ({
   return (
     <div className="animate-fade" style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <div>
-        <h2 style={{ fontSize: '2rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>アカウント設定</h2>
+        <h2 style={{ fontSize: '2rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>設定</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '0px' }}>アカウント設定を管理します。</p>
       </div>
 

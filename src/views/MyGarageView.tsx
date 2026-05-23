@@ -68,7 +68,7 @@ export const MyGarageView = ({
         <>
           <div className="view-header">
             <div>
-              <h2 style={{ fontSize: '2.4rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>マイガレージ</h2>
+              <h2 style={{ fontSize: '2.4rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>ガレージ</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <p style={{ color: 'var(--text-muted)', margin: 0 }}>管理中の車両一覧です。</p>
                 <div style={{ display: 'flex', gap: '8px' }}>

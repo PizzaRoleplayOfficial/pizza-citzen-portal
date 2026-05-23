@@ -1650,7 +1650,7 @@ export default function App() {
 
                 <button className="glass card" onClick={() => setView('apply')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)', borderRadius: '20px', transition: 'transform 0.2s, border-color 0.2s' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🪪 市民証（申請状況）</div>
+                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🪪 市民申請</div>
                     <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
                   </div>
                   <div style={{ width: '48px', height: '48px', background: myApplication?.status === 'approved' ? 'rgba(0,193,102,0.15)' : 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1660,7 +1660,7 @@ export default function App() {
 
                 <button className="glass card" onClick={() => setView('garage')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)', borderRadius: '20px', transition: 'transform 0.2s, border-color 0.2s' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🚗 車検証（マイガレージ）</div>
+                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🚗 ガレージ</div>
                     <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
                   </div>
                   <div style={{ width: '48px', height: '48px', background: 'rgba(0,160,204,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1670,7 +1670,7 @@ export default function App() {
 
                 <button className="glass card" onClick={() => setView('profile')} style={{ textAlign: 'left', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', cursor: 'pointer', border: '1px solid var(--glass-border)', background: 'var(--panel-bg)', borderRadius: '20px', transition: 'transform 0.2s, border-color 0.2s' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>⚙️ アカウント・設定</div>
+                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>⚙️ 設定</div>
                     <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
                   </div>
                   <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
