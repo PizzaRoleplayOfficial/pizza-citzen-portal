@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.19'; // 1.5.19 (管理パネル文字サイズ＆パディングのモバイル最適化・非選択タグボタン/画像読込中のグレー感排除)
+export const CURRENT_VERSION = '1.5.20'; // 1.5.20 (モバイル用管理パネルサマリーカードのタイトル折り返し防止バグ修正)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

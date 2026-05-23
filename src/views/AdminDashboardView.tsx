@@ -458,9 +458,9 @@ export const AdminDashboardView = ({
                     cursor: 'pointer', 
                     background: 'var(--panel-bg)' 
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)', flexShrink: 0 }}>
                       <Car size={isMobile ? 20 : 24} />
-                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>保留中の車両承認</h2>
+                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>保留中の車両承認</h2>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0' }}>
                       <div style={{ fontSize: isMobile ? '1.4rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
@@ -485,9 +485,9 @@ export const AdminDashboardView = ({
                     cursor: 'pointer', 
                     background: 'var(--panel-bg)' 
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)', flexShrink: 0 }}>
                       <ClipboardList size={isMobile ? 20 : 24} />
-                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>未審査の市民申請</h2>
+                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>未審査の市民申請</h2>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0' }}>
                       <div style={{ fontSize: isMobile ? '1.4rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
@@ -512,9 +512,9 @@ export const AdminDashboardView = ({
                     cursor: 'pointer', 
                     background: 'var(--panel-bg)' 
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)', flexShrink: 0 }}>
                       <UserIcon size={isMobile ? 20 : 24} />
-                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>登録ユーザー数</h2>
+                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>登録ユーザー数</h2>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0' }}>
                       <div style={{ fontSize: isMobile ? '1.4rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
