@@ -1016,10 +1016,18 @@ export default function App() {
       triggerHaptic('success');
     } catch (err: any) {
       console.error('Download/Install failed:', err);
+      let errorMsg = err.message || '不明なエラーが発生しました。';
+      if (
+        errorMsg.includes('permission_required') || 
+        errorMsg.includes('PermissionDenied') || 
+        errorMsg.includes('unknown app sources')
+      ) {
+        errorMsg = 'インストーラーを起動できませんでした。アプリの更新を続行するには、自動で開いた設定画面にて「この提供元のアプリを許可」を有効（ON）にした上で、再度「今すぐ更新する」をタップしてください。';
+      }
       setUpdateState(prev => ({
         ...prev,
         status: 'error',
-        errorMsg: err.message || '不明なエラーが発生しました。'
+        errorMsg: errorMsg
       }));
       triggerHaptic('error');
     }

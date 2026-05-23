@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.20'; // 1.5.20 (モバイル用管理パネルサマリーカードのタイトル折り返し防止バグ修正)
+export const CURRENT_VERSION = '1.5.21'; // 1.5.21 (自動更新インストーラーの全端末完全安定化：インストール権限の検知と設定自動遷移・外部ストレージ保存への切替)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
@@ -100,12 +100,12 @@ export async function downloadAndInstallApk(
       }
     });
 
-    // 2. 一時キャッシュディレクトリにダウンロード
+    // 2. 外部ストレージ領域にダウンロード (内部キャッシュだと一部のAndroid端末のセキュリティ制限でインストーラーが読み込めないことがあるため、安全な外部ストレージ領域を使用)
     const filename = 'pizza_update.apk';
     const result = await Filesystem.downloadFile({
       url: downloadUrl,
       path: filename,
-      directory: Directory.Cache,
+      directory: Directory.External,
       progress: true
     });
 

@@ -9,6 +9,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import androidx.core.content.FileProvider;
 import java.io.File;
 
@@ -35,6 +36,20 @@ public class ApkInstallerPlugin extends Plugin {
                 return;
             }
 
+            // Android 8.0 (Oreo) and above requires REQUEST_INSTALL_PACKAGES runtime approval
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!getContext().getPackageManager().canRequestPackageInstalls()) {
+                    // Start settings activity specifically targeting our package
+                    Intent settingsIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                    settingsIntent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                    settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getContext().startActivity(settingsIntent);
+
+                    call.reject("permission_required");
+                    return;
+                }
+            }
+
             Intent intent = new Intent(Intent.ACTION_VIEW);
             Uri apkUri;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -44,6 +59,10 @@ public class ApkInstallerPlugin extends Plugin {
                     file
                 );
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                
+                // Explicitly grant read permissions to all potential system package installer packages
+                getContext().grantUriPermission("com.google.android.packageinstaller", apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                getContext().grantUriPermission("com.android.packageinstaller", apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } else {
                 apkUri = Uri.fromFile(file);
             }
