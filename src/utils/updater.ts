@@ -12,7 +12,8 @@ export interface ApkInstallerPlugin {
   installApk(options: { filePath: string }): Promise<{ success: boolean }>;
 }
 
-export const ApkInstaller = registerPlugin<ApkInstallerPlugin>('ApkInstaller');
+// 読み込みタイミングの Race Condition を避けるため、使用時に動的取得する getter を定義します
+export const getApkInstaller = () => registerPlugin<ApkInstallerPlugin>('ApkInstaller');
 
 export interface GitHubRelease {
   version: string;
@@ -119,8 +120,9 @@ export async function downloadAndInstallApk(
       progressListener = null;
     }
 
-    // 5. 自作ネイティブプラグインの呼び出し
-    await ApkInstaller.installApk({ filePath: result.path });
+    // 5. 自作ネイティブプラグインの動的取得と呼び出し
+    const apkInstaller = getApkInstaller();
+    await apkInstaller.installApk({ filePath: result.path });
   } catch (err) {
     if (progressListener) {
       await progressListener.remove();
