@@ -1093,11 +1093,9 @@ export default function App() {
       });
 
       const origin = window.location.origin;
-      const result = await Tesseract.recognize(processedFile as File, 'eng', {
-        workerPath: `${origin}/tesseract/worker.min.js`,
-        corePath: `${origin}/tesseract/tesseract-core.js`,
-        langPath: `${origin}/tesseract/langs`,
-        workerBlobURL: isNative ? true : false,
+      const tesseractOptions: any = isNative ? {
+        // スマホアプリ（ネイティブ）環境では、WebViewのローカルリソース制約・Web Worker内のオリジン制限（blob: スキームからのアクセスブロック）を回避するため、
+        // 信頼性の高い公式の高速外部CDNを使用して100%安定してOCRを初期化させます。
         logger: m => {
           if (m && typeof m === 'object') {
             let statusText = '';
@@ -1119,7 +1117,36 @@ export default function App() {
             setOcrProgress(0.1 + m.progress * 0.9);
           }
         }
-      });
+      } : {
+        // Web環境では、パフォーマンス向上のためローカルホストの静的アセットを使用します。
+        workerPath: `${origin}/tesseract/worker.min.js`,
+        corePath: `${origin}/tesseract/tesseract-core.js`,
+        langPath: `${origin}/tesseract/langs`,
+        workerBlobURL: false,
+        logger: m => {
+          if (m && typeof m === 'object') {
+            let statusText = '';
+            switch (m.status) {
+              case 'loading tesseract core':
+                statusText = 'OCRエンジンをロード中...';
+                break;
+              case 'initializing api':
+                statusText = 'APIを初期化中...';
+                break;
+              case 'recognizing text':
+                statusText = `文字を認識中: ${Math.round(m.progress * 100)}%`;
+                break;
+              default:
+                statusText = m.status;
+                break;
+            }
+            setOcrStatus(statusText);
+            setOcrProgress(0.1 + m.progress * 0.9);
+          }
+        }
+      };
+
+      const result = await Tesseract.recognize(processedFile as File, 'eng', tesseractOptions);
       const text = result.data.text;
       const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
 
