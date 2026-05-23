@@ -496,7 +496,7 @@ export const AdminDashboardView = ({
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
                       {/* タイムラインの縦線 */}
-                      <div style={{ position: 'absolute', left: '16px', top: '16px', bottom: '16px', width: '2px', background: 'linear-gradient(180deg, var(--primary) 0%, rgba(255,255,255,0.05) 100%)', zIndex: 0 }} />
+                      <div style={{ position: 'absolute', left: '32px', top: '29px', bottom: '29px', width: '2px', background: 'linear-gradient(180deg, var(--primary) 0%, rgba(255,255,255,0.05) 100%)', zIndex: 0 }} />
 
                       {activities.map((act, index) => {
                         // タイプに応じたアイコン、カラーの設定
