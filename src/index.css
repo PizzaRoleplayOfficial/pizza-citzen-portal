@@ -1126,21 +1126,23 @@ h1 {
     right: 8px !important;
     z-index: 10 !important;
     background: rgba(10, 12, 16, 0.8) !important;
-    padding: 4px 8px !important;
     border-radius: 6px !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
-    display: inline-flex !important;
+    
+    /* Strict dimensions to prevent vertical stretching */
+    display: block !important;
     width: auto !important;
     height: 24px !important;
-    align-items: center !important;
-    justify-content: center !important;
+    max-height: 24px !important;
+    padding: 0 8px !important;
+    overflow: hidden !important;
   }
 
   .card-grid .garage-card-status div {
-    height: auto !important;
+    height: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1155,16 +1157,25 @@ h1 {
     border: none !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
+    height: auto !important;
+    max-height: none !important;
+    display: inline-flex !important;
   }
 
   .card-grid .garage-card-status span {
     font-size: 0.65rem !important;
     gap: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    line-height: 1 !important;
   }
   
   .card-grid .garage-card-status span svg {
     width: 12px !important;
     height: 12px !important;
+    flex-shrink: 0 !important;
   }
 
   .card-grid .garage-card-body {
