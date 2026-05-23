@@ -1117,7 +1117,8 @@ h1 {
   /* Target only direct and intermediate gallery wrappers to prevent matching nested absolute overlay elements */
   .card-grid .garage-card-image > div,
   .card-grid .garage-card-image .image-gallery,
-  .card-grid .garage-card-image .image-gallery > div {
+  .card-grid .garage-card-image .image-gallery > div,
+  .card-grid .garage-card-image .wiki-fallback-image {
     height: 100% !important;
     min-height: 100% !important;
   }
@@ -1196,12 +1197,41 @@ h1 {
     padding: 2px 6px !important;
     font-size: 0.52rem !important;
     border-radius: 4px !important;
+    white-space: nowrap !important;
+    max-width: 85% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
   }
 
   .card-grid .wiki-fallback-badge svg {
     width: 8px !important;
     height: 8px !important;
-    vertical-align: middle !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Extremely compact layout for list view thumbnail badge to prevent wrapping */
+  .list-view .wiki-fallback-badge {
+    bottom: 4px !important;
+    left: 4px !important;
+    padding: 2px 4px !important;
+    font-size: 0.5rem !important;
+    border-radius: 3px !important;
+    max-width: 92px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+  }
+
+  .list-view .wiki-fallback-badge svg {
+    width: 8px !important;
+    height: 8px !important;
+    flex-shrink: 0 !important;
   }
 
   .card-grid .garage-card-body {

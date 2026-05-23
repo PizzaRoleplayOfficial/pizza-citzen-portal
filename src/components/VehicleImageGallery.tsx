@@ -36,7 +36,7 @@ export const VehicleImageGallery = ({ imageData, fallbackQuery, targetTrim }: { 
     if (wikiUrl) {
       return (
         <div style={{ position: 'relative', borderBottom: '1px solid var(--glass-border)' }}>
-          <div style={{ height: '160px', backgroundImage: `url(${wikiUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+          <div className="wiki-fallback-image" style={{ height: '160px', backgroundImage: `url(${wikiUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
           <span className="wiki-fallback-badge" style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.65)', color: '#aaa', fontSize: '0.68rem', padding: '3px 8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', pointerEvents: 'none' }}>
             <ImageIcon size={10} /> Greenville Wiki より参考画像
           </span>
