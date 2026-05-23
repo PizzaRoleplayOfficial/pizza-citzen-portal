@@ -810,6 +810,12 @@ export default function App() {
     return cleaned;
   };
 
+  // appVersion のクロージャ問題を解決するための useRef (起動時自動チェックのライフサイクル同期)
+  const appVersionRef = React.useRef(appVersion);
+  useEffect(() => {
+    appVersionRef.current = appVersion;
+  }, [appVersion]);
+
   // 手動 / 自動アップデート確認ロジック
   const handleCheckUpdate = async (isManual = false) => {
     if (!isNative) {
@@ -828,7 +834,8 @@ export default function App() {
     try {
       const release = await checkLatestRelease();
       if (release) {
-        const hasNew = isNewerVersion(appVersion, release.version);
+        const currentVer = appVersionRef.current;
+        const hasNew = isNewerVersion(currentVer, release.version);
         if (hasNew) {
           setUpdateState({
             isOpen: true,
