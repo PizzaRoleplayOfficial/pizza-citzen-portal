@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.9'; // 1.5.9 (Discordアバター変更時およびデフォルトアバターの読み込みバグ対応)
+export const CURRENT_VERSION = '1.5.10'; // 1.5.10 (触覚バイブレーションを繊細なコトコト振動にチューニング)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

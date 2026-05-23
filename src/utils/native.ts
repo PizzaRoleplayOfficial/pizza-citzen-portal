@@ -19,33 +19,39 @@ export const triggerHaptic = async (
   try {
     switch (type) {
       case 'light':
-        await Haptics.impact({ style: ImpactStyle.Light });
+        // 従来の Light よりさらに繊細で微細な「コトッ」とした感触を得るために Selection 触覚を使用
+        await Haptics.selectionStart();
+        await Haptics.selectionChanged();
         break;
       case 'medium':
-        await Haptics.impact({ style: ImpactStyle.Medium });
+        // 従来の Medium は強すぎるため、マイルドで軽快な Light に変更
+        await Haptics.impact({ style: ImpactStyle.Light });
         break;
       case 'heavy':
-        await Haptics.impact({ style: ImpactStyle.Heavy });
+        // 従来の Heavy も強すぎるため、しっかり感じつつも上品な Medium に変更
+        await Haptics.impact({ style: ImpactStyle.Medium });
         break;
       case 'success':
-        // 明確なトントン（間隔を120ms空けた2連衝撃）
-        await Haptics.impact({ style: ImpactStyle.Medium });
-        await new Promise(resolve => setTimeout(resolve, 120));
-        await Haptics.impact({ style: ImpactStyle.Medium });
+        // 成功時は「コトコトコトッ」と3つの超微細タップが流れるように（間隔60msの極小Selection連打）
+        await Haptics.selectionStart();
+        await Haptics.selectionChanged();
+        await new Promise(resolve => setTimeout(resolve, 60));
+        await Haptics.selectionChanged();
+        await new Promise(resolve => setTimeout(resolve, 60));
+        await Haptics.selectionChanged();
         break;
       case 'warning':
-        // 警告用の明確なリズム（強のあと200msおいて中）
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-        await new Promise(resolve => setTimeout(resolve, 200));
-        await Haptics.impact({ style: ImpactStyle.Medium });
+        // 警告時は「コト・コトッ」と少し間隔をあけて上品に注意喚起
+        await Haptics.impact({ style: ImpactStyle.Light });
+        await new Promise(resolve => setTimeout(resolve, 120));
+        await Haptics.selectionChanged();
         break;
       case 'error':
-        // エラー用の激しい3連打（140ms間隔のヘビー3連打）
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-        await new Promise(resolve => setTimeout(resolve, 140));
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-        await new Promise(resolve => setTimeout(resolve, 140));
-        await Haptics.impact({ style: ImpactStyle.Heavy });
+        // エラー時は「コココココッ」と微弱ながら高速で心地よいタップを5回連打（間隔70msの高速Light連打）
+        for (let i = 0; i < 5; i++) {
+          await Haptics.impact({ style: ImpactStyle.Light });
+          if (i < 4) await new Promise(resolve => setTimeout(resolve, 70));
+        }
         break;
     }
   } catch (err) {
