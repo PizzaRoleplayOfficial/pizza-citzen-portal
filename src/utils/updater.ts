@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.12'; // 1.5.12 (Android/Pixel向けにネイティブ極微細ハプティクスCLOCK_TICKプラグインを実装)
+export const CURRENT_VERSION = '1.5.13'; // 1.5.13 (Pixel向け極限ハプティクスプラグインの強さをKEYBOARD_TAPへ最適化調整)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

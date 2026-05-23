@@ -30,9 +30,12 @@ public class PixelHapticsPlugin extends Plugin {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     switch (type) {
                         case "tick":
-                        case "light":
-                            // CLOCK_TICK is the ultimate micro-haptics used by Gboard/System UI on Google Pixel
+                            // CLOCK_TICK is the ultimate ultra-micro tick (reserved for ultra-delicate actions)
                             success = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                            break;
+                        case "light":
+                            // Tuning: Upgraded to KEYBOARD_TAP to feel Gboard-style premium tactile click (stronger but crisp)
+                            success = view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                             break;
                         case "selection":
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -42,10 +45,16 @@ public class PixelHapticsPlugin extends Plugin {
                             }
                             break;
                         case "medium":
-                            success = view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                            // Upgraded to LONG_PRESS for a more distinctive medium bump
+                            success = view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
                             break;
                         case "heavy":
-                            success = view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                            // Upgraded to CONFIRM (or LONG_PRESS fallback) for a strong tactile feedback
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
+                            } else {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                            }
                             break;
                         case "success":
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
