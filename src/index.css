@@ -240,7 +240,14 @@ h1 {
   .list-view {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 16px;
+  }
+  /* スマホのリスト表示では画像を非表示にしてテキスト重視のコンパクトカードにする */
+  .list-view .card > div:first-child {
+    display: none !important;
+  }
+  .list-view .card {
+    padding: 20px !important;
   }
 }
 
