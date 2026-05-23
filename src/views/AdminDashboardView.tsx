@@ -705,10 +705,10 @@ export const AdminDashboardView = ({
              ) : vehicles.length === 0 ? (
                <div className="glass" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>待機中の申請はありません。</div>
              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 420px))', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(360px, 420px))', gap: isMobile ? '12px' : '24px' }}>
                   {vehicles.map(v => (
                     <div key={v.id} className="glass card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                      <div style={{ height: '240px', width: '100%', position: 'relative' }}>
+                      <div style={{ height: isMobile ? '130px' : '240px', width: '100%', position: 'relative' }}>
                         <VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
                         <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                           <div style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -722,80 +722,80 @@ export const AdminDashboardView = ({
                         </div>
                       </div>
                       
-                      <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      <div style={{ padding: isMobile ? '12px' : '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
-                            <div style={{ color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>{v.year} {v.maker}</div>
-                            <div style={{ fontWeight: 800, fontSize: '1.4rem', color: 'var(--text-main)', letterSpacing: '0.02em' }}>{v.model}</div>
+                            <div style={{ color: 'var(--primary)', fontSize: isMobile ? '0.75rem' : '0.85rem', fontWeight: 600, marginBottom: '2px' }}>{v.year} {v.maker}</div>
+                            <div style={{ fontWeight: 800, fontSize: isMobile ? '1rem' : '1.4rem', color: 'var(--text-main)', letterSpacing: '0.02em', lineHeight: 1.2 }}>{v.model}</div>
                             <div 
-                              style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textDecoration: 'none', marginTop: '10px' }}
+                              style={{ fontSize: isMobile ? '0.75rem' : '0.9rem', color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', textDecoration: 'none', marginTop: isMobile ? '4px' : '10px' }}
                               onClick={() => handleViewUserVehicles({ id: v.owner_id, roblox_username: v.roblox_username })}
                               onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
                               onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
                             >
-                              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0, 255, 136, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <UserIcon size={12} />
+                              <div style={{ width: isMobile ? '16px' : '22px', height: isMobile ? '16px' : '22px', borderRadius: '50%', background: 'rgba(0, 255, 136, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <UserIcon size={isMobile ? 10 : 12} />
                               </div>
                               {v.roblox_username}
                             </div>
                           </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '6px' : '12px' }}>
                           <div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '4px', letterSpacing: '0.05em' }}>GRADE / TRIM</div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>{v.trim || '---'}</div>
+                            <div style={{ fontSize: isMobile ? '0.55rem' : '0.65rem', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.05em' }}>GRADE / TRIM</div>
+                            <div style={{ fontWeight: 600, fontSize: isMobile ? '0.75rem' : '0.9rem', color: 'var(--text-main)' }}>{v.trim || '---'}</div>
                           </div>
                           <div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '4px', letterSpacing: '0.05em' }}>COLOR</div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>{v.color || '---'}</div>
+                            <div style={{ fontSize: isMobile ? '0.55rem' : '0.65rem', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.05em' }}>COLOR</div>
+                            <div style={{ fontWeight: 600, fontSize: isMobile ? '0.75rem' : '0.9rem', color: 'var(--text-main)' }}>{v.color || '---'}</div>
                           </div>
                         </div>
 
                         <div>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>LICENSE PLATE</div>
-                          <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--glass-border)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                            <div style={{ background: 'linear-gradient(135deg, #1c2e4a, #2a4060)', color: '#ffffff', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.1)' }}>{v.plate_region || 'WISCONSIN'}</div>
-                            <div style={{ background: '#fff', color: '#000', padding: '6px 14px', fontSize: '1.2rem', fontWeight: 800, fontFamily: 'monospace, sans-serif' }}>{v.plate}</div>
+                          <div style={{ fontSize: isMobile ? '0.55rem' : '0.65rem', color: 'var(--text-muted)', marginBottom: isMobile ? '4px' : '8px', letterSpacing: '0.05em' }}>LICENSE PLATE</div>
+                          <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--glass-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                            <div style={{ background: 'linear-gradient(135deg, #1c2e4a, #2a4060)', color: '#ffffff', padding: isMobile ? '3px 6px' : '6px 12px', fontSize: isMobile ? '0.55rem' : '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.1)' }}>{v.plate_region || 'WISCONSIN'}</div>
+                            <div style={{ background: '#fff', color: '#000', padding: isMobile ? '3px 8px' : '6px 14px', fontSize: isMobile ? '0.85rem' : '1.2rem', fontWeight: 800, fontFamily: 'monospace, sans-serif' }}>{v.plate}</div>
                           </div>
                         </div>
 
-                        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '10px' }}>
-                          <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: isMobile ? '6px' : '8px', paddingTop: '10px' }}>
+                          <div style={{ display: 'flex', gap: isMobile ? '6px' : '8px' }}>
                             <button 
                               type="button"
                               className="btn" 
                               onClick={() => handleOpenTempApproveModal(v)} 
                               style={{ 
                                 flex: 1.2,
-                                padding: '12px', 
+                                padding: isMobile ? '8px' : '12px', 
                                 justifyContent: 'center', 
                                 fontWeight: 800, 
-                                fontSize: '0.95rem', 
+                                fontSize: isMobile ? '0.75rem' : '0.95rem', 
                                 background: v.is_temp_registration === 1 ? 'linear-gradient(135deg, #ff9f43, #ffb142)' : 'rgba(255, 159, 67, 0.15)', 
                                 color: v.is_temp_registration === 1 ? '#000' : '#ff9f43', 
                                 border: v.is_temp_registration === 1 ? 'none' : '1px solid rgba(255, 159, 67, 0.3)', 
-                                borderRadius: '12px', 
+                                borderRadius: '10px', 
                                 display: 'flex', 
                                 alignItems: 'center', 
-                                gap: '8px', 
-                                boxShadow: v.is_temp_registration === 1 ? '0 4px 15px rgba(255, 159, 67, 0.3)' : 'none', 
+                                gap: isMobile ? '4px' : '8px', 
+                                boxShadow: v.is_temp_registration === 1 ? '0 2px 8px rgba(255, 159, 67, 0.3)' : 'none', 
                                 cursor: 'pointer',
                                 outline: 'none'
                               }}
                             >
-                              <span>🅿️ 仮承認</span>
+                              <span>{isMobile ? '🅿️ 仮' : '🅿️ 仮承認'}</span>
                             </button>
-                            <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ flex: 1, padding: '12px', justifyContent: 'center', fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <CheckCircle2 size={18} /> <span>{v.is_temp_registration === 1 ? '通常承認' : '完全承認'}</span>
+                            <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ flex: 1, padding: isMobile ? '8px' : '12px', justifyContent: 'center', fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.95rem', display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px', borderRadius: '10px' }}>
+                              <CheckCircle2 size={isMobile ? 12 : 18} /> <span>{v.is_temp_registration === 1 ? (isMobile ? '通常' : '通常承認') : (isMobile ? '完全' : '完全承認')}</span>
                             </button>
                           </div>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'approved_warning')} style={{ flex: 1, padding: '10px', justifyContent: 'center', color: '#FFA114', background: 'rgba(255, 161, 20, 0.1)', border: '1px solid rgba(255, 161, 20, 0.2)', fontSize: '0.9rem', fontWeight: 700 }}>
-                              <AlertTriangle size={16} /> 非推奨承認
+                          <div style={{ display: 'flex', gap: isMobile ? '6px' : '8px' }}>
+                            <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'approved_warning')} style={{ flex: 1, padding: isMobile ? '8px' : '10px', justifyContent: 'center', color: '#FFA114', background: 'rgba(255, 161, 20, 0.1)', border: '1px solid rgba(255, 161, 20, 0.2)', fontSize: isMobile ? '0.75rem' : '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px', borderRadius: '10px' }}>
+                              <AlertTriangle size={isMobile ? 12 : 16} /> {isMobile ? '非推奨' : '非推奨承認'}
                             </button>
-                            <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'rejected')} style={{ flex: 1, padding: '10px', justifyContent: 'center', color: 'var(--error)', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.2)', fontSize: '0.9rem', fontWeight: 700 }}>
-                              <X size={16} /> 却下
+                            <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'rejected')} style={{ flex: 1, padding: isMobile ? '8px' : '10px', justifyContent: 'center', color: 'var(--error)', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.2)', fontSize: isMobile ? '0.75rem' : '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px', borderRadius: '10px' }}>
+                              <X size={isMobile ? 12 : 16} /> 却下
                             </button>
                           </div>
                         </div>
@@ -991,19 +991,19 @@ export const AdminDashboardView = ({
                     }
                     return 0;
                   }).map(v => (
-                    <div key={v.id} className="glass card animate-fade" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                      <div style={{ height: lookupViewMode === 'grid' ? '220px' : '200px', width: lookupViewMode === 'grid' ? '100%' : '250px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                     <div key={v.id} className="glass card animate-fade" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                       <div style={{ height: (isMobile && lookupViewMode === 'grid') ? '130px' : (lookupViewMode === 'grid' ? '220px' : '200px'), width: lookupViewMode === 'grid' ? '100%' : '250px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
                          <VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
                         <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10 }}>
                            <StatusBadge status={v.status} reason={v.reject_reason} tempExpiresAt={v.temp_expires_at} />
                         </div>
                       </div>
-                      <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: lookupViewMode === 'grid' ? 'column' : 'row', gap: '16px', alignItems: lookupViewMode === 'grid' ? 'stretch' : 'center' }}>
+                      <div style={{ padding: isMobile ? '12px' : '24px', flex: 1, display: 'flex', flexDirection: lookupViewMode === 'grid' ? 'column' : 'row', gap: isMobile ? '10px' : '16px', alignItems: lookupViewMode === 'grid' ? 'stretch' : 'center' }}>
                         <div style={{ flex: 2 }}>
-                          <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-main)', marginBottom: '4px', letterSpacing: '0.02em' }}>{v.year} {v.maker} {v.model}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                          <div style={{ fontWeight: 800, fontSize: isMobile ? '0.95rem' : '1.25rem', color: 'var(--text-main)', marginBottom: '4px', letterSpacing: '0.02em', lineHeight: 1.2 }}>{v.year} {v.maker} {v.model}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: isMobile ? '8px' : '16px' }}>
                             <div 
-                              style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                              style={{ fontSize: isMobile ? '0.75rem' : '0.9rem', color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
                               onClick={() => handleViewUserVehicles({ id: v.owner_id, roblox_username: v.roblox_username })}
                               onMouseOver={(e) => (e.currentTarget.style.textDecoration = 'underline')}
                               onMouseOut={(e) => (e.currentTarget.style.textDecoration = 'none')}
@@ -1016,39 +1016,39 @@ export const AdminDashboardView = ({
                             </span>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '6px' : '12px', marginBottom: isMobile ? '8px' : '16px' }}>
                             <div>
-                              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.05em' }}>GRADE / TRIM</div>
-                              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-main)' }}>{v.trim || '---'}</div>
+                              <div style={{ fontSize: isMobile ? '0.55rem' : '0.6rem', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.05em' }}>GRADE / TRIM</div>
+                              <div style={{ fontWeight: 600, fontSize: isMobile ? '0.75rem' : '0.85rem', color: 'var(--text-main)' }}>{v.trim || '---'}</div>
                             </div>
                             <div>
-                              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.05em' }}>COLOR</div>
-                              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-main)' }}>{v.color || '---'}</div>
+                              <div style={{ fontSize: isMobile ? '0.55rem' : '0.6rem', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.05em' }}>COLOR</div>
+                              <div style={{ fontWeight: 600, fontSize: isMobile ? '0.75rem' : '0.85rem', color: 'var(--text-main)' }}>{v.color || '---'}</div>
                             </div>
                           </div>
                         </div>
                         
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--glass-border)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                            <div style={{ background: 'linear-gradient(135deg, #1c2e4a, #2a4060)', color: '#ffffff', padding: '4px 10px', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.1)' }}>{v.plate_region || 'WISCONSIN'}</div>
-                            <div style={{ background: '#fff', color: '#000', padding: '4px 12px', fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace, sans-serif' }}>{v.plate}</div>
+                        <div style={{ flex: 1, marginBottom: isMobile ? '8px' : '0' }}>
+                          <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--glass-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                            <div style={{ background: 'linear-gradient(135deg, #1c2e4a, #2a4060)', color: '#ffffff', padding: isMobile ? '3px 6px' : '4px 10px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', borderRight: '1px solid rgba(255,255,255,0.1)' }}>{v.plate_region || 'WISCONSIN'}</div>
+                            <div style={{ background: '#fff', color: '#000', padding: isMobile ? '3px 8px' : '4px 12px', fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace, sans-serif' }}>{v.plate}</div>
                           </div>
                         </div>
                         
-                        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: lookupViewMode === 'grid' ? 'column' : 'row', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', alignItems: lookupViewMode === 'grid' ? 'stretch' : 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: lookupViewMode === 'grid' ? 'column' : 'row', gap: isMobile ? '8px' : '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', alignItems: lookupViewMode === 'grid' ? 'stretch' : 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', gap: isMobile ? '6px' : '8px', flexWrap: 'wrap' }}>
                              {v.status !== 'rejected' && (
-                                <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'rejected')} style={{ padding: '6px 12px', color: 'var(--error)', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.2)', fontSize: '0.8rem', fontWeight: 700 }}>
-                                  <X size={14} /> 却下
+                                <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'rejected')} style={{ padding: isMobile ? '4px 8px' : '6px 12px', color: 'var(--error)', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.2)', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 700, borderRadius: '8px' }}>
+                                  <X size={isMobile ? 12 : 14} /> 却下
                                 </button>
                              )}
                              {(v.status === 'rejected' || v.status === 'pending') && (
                                 <>
-                                  <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 700 }}>
-                                    <CheckCircle2 size={14} /> 承認
+                                  <button className="btn btn-primary" onClick={() => handleUpdateStatus(v.id, 'approved')} style={{ padding: isMobile ? '4px 8px' : '6px 12px', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 700, borderRadius: '8px' }}>
+                                    <CheckCircle2 size={isMobile ? 12 : 14} /> 承認
                                   </button>
-                                  <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'approved_warning')} style={{ padding: '6px 12px', color: '#FFA114', background: 'rgba(255, 161, 20, 0.1)', border: '1px solid rgba(255, 161, 20, 0.2)', fontSize: '0.8rem', fontWeight: 700 }}>
-                                    <AlertTriangle size={14} /> 非推奨
+                                  <button className="btn btn-secondary" onClick={() => handleUpdateStatus(v.id, 'approved_warning')} style={{ padding: isMobile ? '4px 8px' : '6px 12px', color: '#FFA114', background: 'rgba(255, 161, 20, 0.1)', border: '1px solid rgba(255, 161, 20, 0.2)', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 700, borderRadius: '8px' }}>
+                                    <AlertTriangle size={isMobile ? 12 : 14} /> 非推奨
                                   </button>
                                 </>
                              )}

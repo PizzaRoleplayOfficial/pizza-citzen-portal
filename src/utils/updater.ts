@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.14'; // 1.5.14 (ダッシュボードライトモード背景改善、スマホコンパクト化、ステータスバー黒化バグ修正)
+export const CURRENT_VERSION = '1.5.15'; // 1.5.15 (管理パネル車両承認・車両検索グリッドのモバイル2カラム・コンパクト化刷新)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
