@@ -692,8 +692,14 @@ export default function App() {
     if (Capacitor.isNativePlatform()) {
       const backHandler = CapApp.addListener('backButton', (data) => {
         const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
-        if (isAnyModalOpen || view !== 'home') {
-          // モーダルが開いている、またはホーム以外の画面なら履歴を戻る
+        if (isAnyModalOpen) {
+          // モーダルが開いている場合は履歴を戻ってモーダルを閉じる
+          window.history.back();
+        } else if (view === 'admin' && adminTab !== 'dashboard') {
+          // 管理パネルでサブメニューを開いている場合は、ダッシュボードトップに戻る
+          setAdminTabPersist('dashboard');
+        } else if (view !== 'home') {
+          // それ以外のホーム以外の画面なら履歴を戻る
           window.history.back();
         } else {
           // ホーム画面かつモーダルなしの場合はアプリを終了する
@@ -704,7 +710,7 @@ export default function App() {
         backHandler.then(h => h.remove());
       };
     }
-  }, [view, showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
+  }, [view, adminTab, showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
 
   const handleManualRefresh = () => {
     if (!isLoggedIn) return;

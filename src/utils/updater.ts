@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.24'; // 1.5.24 (スマホアプリ環境限定の極上起動アニメーション ＆ 歓迎ダブルバイブレーション触覚フィードバック実装)
+export const CURRENT_VERSION = '1.5.25'; // 1.5.25 (Android等の物理戻るボタン押下時に管理パネル内のサブメニューからダッシュボードTOPに正しく戻る階層ナビゲーション最適化)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
