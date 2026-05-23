@@ -1465,23 +1465,23 @@ export default function App() {
               <button className={`btn nav-btn ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')}>
                 <Home size={18} /> ホーム
               </button>
-              <button className={`btn nav-btn ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
-                <LayoutDashboard size={18} /> ガレージ
-              </button>
               <button className={`btn nav-btn ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative' }}>
                 <ClipboardList size={18} /> 市民申請
                 {(!myApplication || myApplication.status === 'rejected') && (
                   <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />
                 )}
               </button>
-              <button className={`btn nav-btn ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
-                <UserIcon size={18} /> 設定
+              <button className={`btn nav-btn ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
+                <LayoutDashboard size={18} /> ガレージ
               </button>
               {currentUser.role === 'admin' && (
                 <button className={`btn nav-btn ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>
-                  <ShieldCheck size={18} color="#000" /> 管理パネル
+                  <ShieldCheck size={18} /> 管理パネル
                 </button>
               )}
+              <button className={`btn nav-btn ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
+                <UserIcon size={18} /> 設定
+              </button>
             </div>
           </div>
 
@@ -1680,7 +1680,7 @@ export default function App() {
                     <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>🪪 市民申請</div>
                     <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
                   </div>
-                  <div style={{ width: '48px', height: '48px', background: myApplication?.status === 'approved' ? 'rgba(0,193,102,0.15)' : 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '48px', height: '48px', background: myApplication?.status === 'approved' ? 'rgba(0,193,102,0.15)' : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'), borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {myApplication?.status === 'approved' ? <CheckCircle2 size={22} style={{ color: 'var(--primary)' }} /> : <Clock size={22} style={{ color: 'var(--text-muted)' }} />}
                   </div>
                 </button>
@@ -1712,7 +1712,7 @@ export default function App() {
                     <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>⚙️ 設定</div>
                     <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
                   </div>
-                  <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '48px', height: '48px', background: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <UserIcon size={22} style={{ color: 'var(--text-main)' }} />
                   </div>
                 </button>
@@ -1944,29 +1944,29 @@ export default function App() {
 
       {isMobile && (
         <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(10px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 16px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
-          <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
-            <Home size={24} color="var(--text-muted)" />
+          <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <Home size={24} />
             <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>ホーム</span>
           </button>
-          <button onClick={() => setView('garage')} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
-            <LayoutDashboard size={24} color="var(--text-muted)" />
-            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>ガレージ</span>
-          </button>
-          <button onClick={() => setView('apply')} style={{ background: 'none', border: 'none', color: view === 'apply' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', position: 'relative' }}>
-            <ClipboardList size={24} color="var(--text-muted)" />
+          <button onClick={() => setView('apply')} style={{ background: 'none', border: 'none', color: view === 'apply' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', position: 'relative', cursor: 'pointer' }}>
+            <ClipboardList size={24} />
             <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>市民申請</span>
             {(!myApplication || myApplication.status === 'rejected') && <span style={{ position: 'absolute', top: 0, right: 'calc(50% - 16px)', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />}
           </button>
-          <button onClick={() => setView('profile')} style={{ background: 'none', border: 'none', color: view === 'profile' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
-            <UserIcon size={24} color="var(--text-muted)" />
-            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>設定</span>
+          <button onClick={() => setView('garage')} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <LayoutDashboard size={24} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>ガレージ</span>
           </button>
           {currentUser.role === 'admin' && (
-            <button onClick={() => setView('admin')} style={{ background: 'none', border: 'none', color: view === 'admin' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
-              <ShieldCheck size={24} color="var(--text-muted)" />
+            <button onClick={() => setView('admin')} style={{ background: 'none', border: 'none', color: view === 'admin' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+              <ShieldCheck size={24} />
               <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>管理パネル</span>
             </button>
           )}
+          <button onClick={() => setView('profile')} style={{ background: 'none', border: 'none', color: view === 'profile' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <UserIcon size={24} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>設定</span>
+          </button>
         </nav>
       )}
 

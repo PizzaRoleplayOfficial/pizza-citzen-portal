@@ -297,10 +297,10 @@ export const MyGarageView = ({
                      </div>
 
                     <div style={{ display: 'flex', gap: '16px' }}>
-                      <button className="btn btn-secondary" onClick={() => handleStartEdit(v)} style={{ flex: 1, justifyContent: 'center', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
+                      <button className="btn btn-secondary" onClick={() => handleStartEdit(v)} style={{ flex: 1, justifyContent: 'center', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
                         <Edit3 size={16} /> 編集
                       </button>
-                      <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ flex: 1, justifyContent: 'center', background: 'rgba(255,255,255,0.05)', color: 'var(--error)', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
+                      <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ flex: 1, justifyContent: 'center', color: 'var(--error)', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
                         <Trash2 size={16} /> 削除
                       </button>
                     </div>
