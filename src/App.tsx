@@ -1922,7 +1922,7 @@ export default function App() {
           {currentUser.role === 'admin' && (
             <button onClick={() => setView('admin')} style={{ background: 'none', border: 'none', color: view === 'admin' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0' }}>
               <ShieldCheck size={24} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>運営</span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>管理パネル</span>
             </button>
           )}
         </nav>
