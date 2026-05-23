@@ -160,6 +160,35 @@ export default function App() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
 
+  // Launch / Boot Splash Animation State (v1.5.24)
+  const [showBootSplash, setShowBootSplash] = useState(isNative);
+  const [bootSplashFade, setBootSplashFade] = useState(false);
+
+  useEffect(() => {
+    if (isNative) {
+      // 1. Trigger the premium double haptic welcome vibration shortly after mount
+      const hapticTimer = setTimeout(() => {
+        triggerHaptic('success');
+      }, 400);
+
+      // 2. Play the fade-out animation after the loading bar is 100% complete (2.0s duration)
+      const fadeTimer = setTimeout(() => {
+        setBootSplashFade(true);
+      }, 2100);
+
+      // 3. Fully unmount the overlay after the fade transition completes (2.9s)
+      const unmountTimer = setTimeout(() => {
+        setShowBootSplash(false);
+      }, 2900);
+
+      return () => {
+        clearTimeout(hapticTimer);
+        clearTimeout(fadeTimer);
+        clearTimeout(unmountTimer);
+      };
+    }
+  }, []);
+
   // Application state
   const [myApplication, setMyApplication] = useState<any>(null);
   const [allApplications, setAllApplications] = useState<any[]>([]);
@@ -1531,6 +1560,22 @@ export default function App() {
       return [q.answer].filter(Boolean);
     }
   };
+
+  if (showBootSplash) {
+    return (
+      <div className={`boot-splash ${bootSplashFade ? 'fade-out' : ''}`}>
+        <div className="boot-logo-container">
+          <div className="boot-logo-glow" />
+          <img src="/pizza.png" className="boot-logo" alt="Pizza Logo" />
+        </div>
+        <div className="boot-title">ぴっざぁポータル</div>
+        <div className="boot-subtitle">Citizen Registry System</div>
+        <div className="boot-loader">
+          <div className="boot-loader-bar" />
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading && !isLoggedIn) {
     return (
