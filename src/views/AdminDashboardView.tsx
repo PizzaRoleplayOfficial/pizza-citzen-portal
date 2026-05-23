@@ -994,81 +994,246 @@ export const AdminDashboardView = ({
         )}
 
         {adminTab === 'users' && (
-          <div className="animate-fade">
-             <div className="glass" style={{ overflowX: 'auto', borderRadius: '16px' }}>
-               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                 <thead>
-                   <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                     <th style={{ padding: '20px' }}>ユーザー</th>
-                     <th style={{ padding: '20px' }}>登録台数</th>
-                     <th style={{ padding: '20px' }}>役職</th>
-                     <th style={{ padding: '20px' }}>操作</th>
-                   </tr>
-                 </thead>
-                  <tbody>
-                    {isLoading ?
-                      [1, 2, 3].map(i => (
-                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <td style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div className="skeleton skeleton-circle" style={{ width: '32px', height: '32px' }} />
-                            <div className="skeleton skeleton-text" style={{ width: '120px', height: '16px' }} />
-                          </td>
-                          <td style={{ padding: '20px' }}>
-                            <div className="skeleton skeleton-rect" style={{ width: '60px', height: '24px', borderRadius: '12px' }} />
-                          </td>
-                          <td style={{ padding: '20px' }}>
-                            <div className="skeleton skeleton-text short" style={{ width: '40px', height: '16px' }} />
-                          </td>
-                          <td style={{ padding: '20px' }}>
-                            <div className="skeleton skeleton-rect" style={{ width: '80px', height: '28px', borderRadius: '8px' }} />
-                          </td>
-                        </tr>
-                      ))
-                    :
-                      allUsers.map(u => (
-                     <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                       <td style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                         <img src={u.avatar} style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
-                         <div style={{ fontWeight: 600 }}>
-                           {u.username}{' '}
+          <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+             {/* ユーザー用 検索/レイアウト操作バー */}
+             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
+               <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
+                 <SearchIcon size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                 <input 
+                   type="text" 
+                   placeholder="ユーザー名、Robloxユーザー名で検索..." 
+                   value={userSearchTerm} 
+                   onChange={e => setUserSearchTerm(e.target.value)} 
+                   className="glass" 
+                   style={{ width: '100%', padding: '12px 12px 12px 42px', borderRadius: '12px', border: 'none', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.95rem' }} 
+                 />
+               </div>
+               
+               <div style={{ display: 'flex', gap: '8px', background: 'var(--panel-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                 <button onClick={() => setUsersViewMode('grid')} className="btn" style={{ padding: '8px', background: usersViewMode === 'grid' ? 'rgba(255,255,255,0.08)' : 'transparent', border: 'none', borderRadius: '8px', color: usersViewMode === 'grid' ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="グリッド表示">
+                   <LayoutGrid size={18} />
+                 </button>
+                 <button onClick={() => setUsersViewMode('list')} className="btn" style={{ padding: '8px', background: usersViewMode === 'list' ? 'rgba(255,255,255,0.08)' : 'transparent', border: 'none', borderRadius: '8px', color: usersViewMode === 'list' ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="リスト表示">
+                   <List size={18} />
+                 </button>
+               </div>
+             </div>
+
+             {/* ユーザー表示グリッド/リスト */}
+             <div className={usersViewMode === 'grid' ? 'user-grid' : 'user-list'}>
+               {isLoading ? (
+                 [1, 2, 3, 4].map(i => (
+                   <div key={i} className="glass card" style={{ padding: '24px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '16px', height: '175px' }}>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <div className="skeleton skeleton-circle" style={{ width: '44px', height: '44px' }} />
+                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                         <div className="skeleton skeleton-text" style={{ width: '50%', height: '16px' }} />
+                         <div className="skeleton skeleton-text short" style={{ width: '30%', height: '12px' }} />
+                       </div>
+                     </div>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                       <div className="skeleton skeleton-rect" style={{ width: '80px', height: '26px', borderRadius: '12px' }} />
+                       <div className="skeleton skeleton-rect" style={{ width: '100px', height: '32px', borderRadius: '8px' }} />
+                     </div>
+                   </div>
+                 ))
+               ) : (
+                 allUsers.filter(u => {
+                   const s = userSearchTerm.toLowerCase();
+                   return u.username.toLowerCase().includes(s) || (u.roblox_username || '').toLowerCase().includes(s);
+                 }).map(u => {
+                   const count = allSearchVehicles.filter((v: any) => v.owner_id === u.id).length;
+                   const isSelf = u.id === currentUser.id;
+                   
+                   return (
+                     <div key={u.id} className="glass card animate-fade user-card" style={{
+                       padding: '24px',
+                       borderRadius: '20px',
+                       background: 'var(--panel-bg)',
+                       border: '1px solid var(--glass-border)',
+                       display: 'flex',
+                       flexDirection: usersViewMode === 'grid' ? 'column' : 'row',
+                       alignItems: usersViewMode === 'grid' ? 'stretch' : 'center',
+                       justifyContent: 'space-between',
+                       gap: '20px',
+                       position: 'relative',
+                       overflow: 'hidden',
+                       transition: 'transform 0.2s, box-shadow 0.2s',
+                       boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)'
+                     }}>
+                       {/* 管理者と一般で上部のアクセントカラーを変更 */}
+                       <div style={{
+                         position: 'absolute',
+                         top: 0, left: 0, right: 0,
+                         height: '3px',
+                         background: u.role === 'admin' ? 'linear-gradient(90deg, var(--primary) 0%, #00d2fc 100%)' : 'rgba(255,255,255,0.05)'
+                       }} />
+
+                       {/* 左側: プロフィール情報 */}
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1.5 }}>
+                         <div style={{ position: 'relative', flexShrink: 0 }}>
+                           <img 
+                             src={u.avatar} 
+                             alt="User Avatar" 
+                             style={{ 
+                               width: '48px', 
+                               height: '48px', 
+                               borderRadius: '12px', 
+                               background: '#fff', 
+                               objectFit: 'cover',
+                               border: `2px solid ${u.role === 'admin' ? 'var(--primary)' : 'var(--glass-border)'}`,
+                               boxShadow: u.role === 'admin' ? '0 0 12px rgba(0, 193, 102, 0.25)' : 'none'
+                             }} 
+                           />
+                           {u.role === 'admin' && (
+                             <span style={{
+                               position: 'absolute',
+                               bottom: '-4px',
+                               right: '-4px',
+                               background: 'var(--primary)',
+                               color: '#000',
+                               borderRadius: '50%',
+                               width: '16px',
+                               height: '16px',
+                               display: 'flex',
+                               alignItems: 'center',
+                               justifyContent: 'center',
+                               fontWeight: 800,
+                               fontSize: '0.65rem',
+                               boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                             }} title="管理者メンバー">🛡️</span>
+                           )}
+                         </div>
+
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                           <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                             <span>{u.username}</span>
+                             {isSelf && (
+                               <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)', fontWeight: 500 }}>自分</span>
+                             )}
+                           </div>
                            <span 
-                             style={{ fontSize: '0.7rem', color: 'var(--primary)', cursor: 'pointer' }}
+                             style={{ 
+                               fontSize: '0.78rem', 
+                               color: 'var(--primary)', 
+                               fontWeight: 700, 
+                               cursor: 'pointer',
+                               display: 'inline-flex',
+                               alignItems: 'center',
+                               gap: '4px',
+                               transition: 'color 0.2s'
+                             }}
                              onClick={() => handleViewUserVehicles({ id: u.id, roblox_username: u.roblox_username || '' })}
-                             onMouseOver={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                             onMouseOut={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                             onMouseOver={(e) => e.currentTarget.style.color = '#00ff88'}
+                             onMouseOut={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                             title="クリックして車両を表示"
                            >
-                             ({u.roblox_username || '未設定'})
+                             Roblox: {u.roblox_username || '未設定'}
                            </span>
                          </div>
-                       </td>
-                       <td style={{ padding: '20px' }}>
-                         {(() => {
-                           const count = allSearchVehicles.filter((v: any) => v.owner_id === u.id).length;
-                           return (
-                             <span
-                               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '20px', background: count > 0 ? 'rgba(0,193,102,0.1)' : 'rgba(255,255,255,0.05)', border: count > 0 ? '1px solid rgba(0,193,102,0.3)' : '1px solid rgba(255,255,255,0.08)', color: count > 0 ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 700, fontSize: '0.85rem', cursor: count > 0 ? 'pointer' : 'default' }}
-                               onClick={() => count > 0 && handleViewUserVehicles({ id: u.id, roblox_username: u.roblox_username || '' })}
-                             >
-                               🚗 {count} 台
-                             </span>
-                           );
-                         })()}
-                       </td>
-                       <td style={{ padding: '20px' }}>
-                         <span style={{ color: u.role === 'admin' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600 }}>{u.role === 'admin' ? '管理者' : '一般'}</span>
-                       </td>
-                       <td style={{ padding: '20px' }}>
-                         {u.id !== currentUser.id && (
-                           <button className="btn btn-secondary" onClick={() => handleUpdateRole(u.id, u.role === 'admin' ? 'user' : 'admin')} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                             {u.role === 'admin' ? '一般へ降格' : '管理者へ昇格'}
+                       </div>
+
+                       {/* 中央: 車両台数と権限表示バッジ */}
+                       <div style={{
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '12px',
+                         flexWrap: 'wrap',
+                         flex: 1.2,
+                         justifyContent: usersViewMode === 'grid' ? 'space-between' : 'flex-start'
+                       }}>
+                         <span
+                           style={{ 
+                             display: 'inline-flex', 
+                             alignItems: 'center', 
+                             gap: '6px', 
+                             padding: '6px 14px', 
+                             borderRadius: '20px', 
+                             background: count > 0 ? 'rgba(0,193,102,0.1)' : 'rgba(255,255,255,0.03)', 
+                             border: count > 0 ? '1px solid rgba(0,193,102,0.25)' : '1px solid var(--glass-border)', 
+                             color: count > 0 ? 'var(--primary)' : 'var(--text-muted)', 
+                             fontWeight: 700, 
+                             fontSize: '0.82rem', 
+                             cursor: count > 0 ? 'pointer' : 'default',
+                             transition: 'all 0.2s'
+                           }}
+                           onClick={() => count > 0 && handleViewUserVehicles({ id: u.id, roblox_username: u.roblox_username || '' })}
+                           onMouseOver={(e) => { if (count > 0) { e.currentTarget.style.background = 'rgba(0,193,102,0.18)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                           onMouseOut={(e) => { if (count > 0) { e.currentTarget.style.background = 'rgba(0,193,102,0.1)'; e.currentTarget.style.transform = 'translateY(0)'; } }}
+                         >
+                           🚗 {count} 台登録
+                         </span>
+
+                         <span style={{ 
+                           fontSize: '0.75rem',
+                           fontWeight: 700,
+                           padding: '4px 10px',
+                           borderRadius: '10px',
+                           background: u.role === 'admin' ? 'rgba(0,193,102,0.12)' : 'rgba(255,255,255,0.03)',
+                           border: u.role === 'admin' ? '1px solid rgba(0,193,102,0.2)' : '1px solid var(--glass-border)',
+                           color: u.role === 'admin' ? 'var(--primary)' : 'var(--text-muted)',
+                           letterSpacing: '0.05em'
+                         }}>
+                           {u.role === 'admin' ? '管理者' : '一般'}
+                         </span>
+                       </div>
+
+                       {/* 右側: 操作アクションボタン */}
+                       <div style={{ 
+                         display: 'flex', 
+                         alignItems: 'center', 
+                         justifyContent: usersViewMode === 'grid' ? 'stretch' : 'flex-end',
+                         flex: 1,
+                         width: usersViewMode === 'grid' ? '100%' : 'auto'
+                       }}>
+                         {!isSelf ? (
+                           <button 
+                             className="btn btn-secondary" 
+                             onClick={() => handleUpdateRole(u.id, u.role === 'admin' ? 'user' : 'admin')} 
+                             style={{ 
+                               width: '100%',
+                               padding: '10px 16px', 
+                               fontSize: '0.85rem',
+                               fontWeight: 700,
+                               borderRadius: '12px',
+                               justifyContent: 'center',
+                               border: u.role === 'admin' ? '1px solid rgba(255, 71, 87, 0.25)' : '1px solid var(--glass-border)',
+                               background: u.role === 'admin' ? 'rgba(255, 71, 87, 0.04)' : 'rgba(255,255,255,0.03)',
+                               color: u.role === 'admin' ? 'var(--error)' : 'var(--text-main)',
+                               transition: 'all 0.2s',
+                               cursor: 'pointer',
+                               display: 'flex',
+                               alignItems: 'center',
+                               gap: '6px'
+                             }}
+                             onMouseOver={(e) => {
+                               e.currentTarget.style.background = u.role === 'admin' ? 'rgba(255, 71, 87, 0.12)' : 'rgba(255,255,255,0.08)';
+                               e.currentTarget.style.transform = 'translateY(-1px)';
+                             }}
+                             onMouseOut={(e) => {
+                               e.currentTarget.style.background = u.role === 'admin' ? 'rgba(255, 71, 87, 0.04)' : 'rgba(255,255,255,0.03)';
+                               e.currentTarget.style.transform = 'translateY(0)';
+                             }}
+                           >
+                             {u.role === 'admin' ? '🛡️ 一般へ降格' : '⚡ 管理者へ昇格'}
                            </button>
+                         ) : (
+                           <span style={{ 
+                             width: '100%',
+                             textAlign: 'center',
+                             fontSize: '0.75rem',
+                             color: 'var(--text-muted)',
+                             fontStyle: 'italic',
+                             padding: '10px 0'
+                           }}>
+                             ログイン中（操作不可）
+                           </span>
                          )}
-                       </td>
-                     </tr>
-                    ))
-                    }
-                  </tbody>
-               </table>
+                       </div>
+                     </div>
+                   );
+                 })
+               )}
              </div>
           </div>
         )}

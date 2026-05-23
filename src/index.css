@@ -1510,3 +1510,44 @@ h1 {
   }
 }
 
+/* ==========================================================================
+   ユーザー管理レスポンシブカードレイアウト (v1.5.8)
+   ========================================================================== */
+.user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* モバイル表示（768px以下）ではリスト表示も自動的に縦積みの美しいカードに最適化 */
+@media (max-width: 768px) {
+  .user-list .glass.card.user-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    text-align: center !important;
+    gap: 16px !important;
+    padding: 20px !important;
+  }
+
+  .user-list .glass.card.user-card > div {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+
+  .user-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
