@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.4.4'; // 1.4.4 (ナビゲーションタブ順序の修正とライトモード各種表示改善)
+export const CURRENT_VERSION = '1.4.5'; // 1.4.5 (自動更新タイミング改善とトグルスイッチレイアウト崩れ修正)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

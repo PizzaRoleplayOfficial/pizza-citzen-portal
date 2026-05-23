@@ -94,7 +94,7 @@ export const ProfileView = ({
                 <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>起動時に自動更新をチェック</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>アプリの起動時に自動で最新版を確認します。</div>
               </div>
-              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', cursor: 'pointer' }}>
+              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
                 <input 
                   type="checkbox" 
                   checked={autoCheckUpdates} 

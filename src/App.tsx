@@ -909,14 +909,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (isLoggedIn && isNative && autoCheckUpdates && !hasCheckedAutoUpdate) {
+    if (isNative && autoCheckUpdates && !hasCheckedAutoUpdate) {
       setHasCheckedAutoUpdate(true);
       const timer = setTimeout(() => {
         handleCheckUpdate(false);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isLoggedIn, autoCheckUpdates, hasCheckedAutoUpdate]);
+  }, [autoCheckUpdates, hasCheckedAutoUpdate]);
 
   const handleAutoFillFromImage = async (file: File) => {
     setOcrLoading(true);
