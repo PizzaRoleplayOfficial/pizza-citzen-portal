@@ -11,6 +11,7 @@ interface ProfileViewProps {
   handleUpdateProfile: (e: React.FormEvent) => void;
   onCheckUpdate: () => Promise<void>;
   isCheckingUpdate: boolean;
+  appVersion: string;
 }
 
 export const ProfileView = ({
@@ -20,7 +21,8 @@ export const ProfileView = ({
   setTheme,
   handleUpdateProfile,
   onCheckUpdate,
-  isCheckingUpdate
+  isCheckingUpdate,
+  appVersion
 }: ProfileViewProps) => {
   return (
     <div className="animate-fade" style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -70,7 +72,7 @@ export const ProfileView = ({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
               <div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>現在のバージョン</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px' }}>v{CURRENT_VERSION}</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px' }}>v{appVersion}</div>
               </div>
               <button
                 type="button"

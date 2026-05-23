@@ -203,6 +203,7 @@ export default function App() {
     downloadProgress: 0,
     status: 'idle'
   });
+  const [appVersion, setAppVersion] = useState<string>(CURRENT_VERSION);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
   const [adminSortOrder, setAdminSortOrder] = useState<'newest' | 'oldest' | 'maker' | 'userCount'>('newest');
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -493,6 +494,18 @@ export default function App() {
 
     // Deep Link handling in Capacitor native app
     if (Capacitor.isNativePlatform()) {
+      // Get the native version from the device dynamically
+      if (CapApp && typeof CapApp.getInfo === 'function') {
+        CapApp.getInfo().then((info) => {
+          if (info && info.version) {
+            setAppVersion(info.version);
+            console.log('Native app version:', info.version);
+          }
+        }).catch((err) => {
+          console.error('Failed to get native app info:', err);
+        });
+      }
+
       const setupDeepLink = async () => {
         if (CapApp && typeof CapApp.addListener === 'function') {
           try {
@@ -812,7 +825,7 @@ export default function App() {
     try {
       const release = await checkLatestRelease();
       if (release) {
-        const hasNew = isNewerVersion(CURRENT_VERSION, release.version);
+        const hasNew = isNewerVersion(appVersion, release.version);
         if (hasNew) {
           setUpdateState({
             isOpen: true,
@@ -827,7 +840,7 @@ export default function App() {
           }
         } else {
           if (isManual) {
-            alert(`お使いのアプリは最新バージョンです。(v${CURRENT_VERSION})`);
+            alert(`お使いのアプリは最新バージョンです。(v${appVersion})`);
             triggerHaptic('success');
           }
         }
@@ -1870,6 +1883,7 @@ export default function App() {
             handleUpdateProfile={handleUpdateProfile}
             onCheckUpdate={() => handleCheckUpdate(true)}
             isCheckingUpdate={isCheckingUpdate}
+            appVersion={appVersion}
           />
         ) : (
           <AdminDashboardView
