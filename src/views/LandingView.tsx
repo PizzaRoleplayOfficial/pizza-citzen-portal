@@ -36,7 +36,7 @@ export const LandingView = () => {
           }} />
           <img 
             src="/pizza.webp" 
-            alt="ぴっざぁ市民総合ポータル ロゴ" 
+            alt="ぴっざぁポータル ロゴ" 
             style={{ 
               width: '128px', 
               height: '128px', 
@@ -59,7 +59,7 @@ export const LandingView = () => {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          ぴっざぁ市民総合<br/>ポータル
+          ぴっざぁポータル
         </h1>
 
         <p style={{ color: 'var(--text-muted)', marginBottom: '48px', lineHeight: 1.8, fontSize: '1.15rem', maxWidth: '580px', margin: '0 auto 48px' }}>
