@@ -1721,27 +1721,7 @@ export default function App() {
     <div className="app-layout" style={{ background: 'var(--bg-dark)', minHeight: '100vh', paddingBottom: isMobile ? '70px' : '0' }}>
       {!isMobile && (
         <nav className="main-nav">
-          <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center' }}>
-            {view === 'admin' && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowMobileMenu(!showMobileMenu); }} 
-                className="btn glass"
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: 'var(--text-main)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  padding: '4px', 
-                  marginRight: '12px', 
-                  cursor: 'pointer',
-                  transition: 'background 0.2s' 
-                }}
-                title="メニュー開閉"
-              >
-                <Menu size={22} />
-              </button>
-            )}
+        <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center' }}>
             <img src="/pizza.webp" alt="Logo" style={{ width: '30px', height: '30px', marginRight: '8px', objectFit: 'cover', borderRadius: '50%' }} />
             <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>ぴっざぁポータル</span>
           </div>
