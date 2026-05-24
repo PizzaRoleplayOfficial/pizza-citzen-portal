@@ -1,3 +1,7 @@
+/* ==========================================
+   Google Fonts fallback import (offline safety)
+   ========================================== */
+
 :root {
   color-scheme: dark;
   --primary: #00ff88;
@@ -23,7 +27,7 @@
   --btn-secondary-hover: rgba(255, 255, 255, 0.1);
   --btn-secondary-text: #fff;
   --modal-overlay: rgba(10,12,16,0.85);
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Nunito Sans', 'Noto Sans JP', 'Noto Sans CJK JP', system-ui, -apple-system, sans-serif;
   --image-bg: rgba(0, 0, 0, 0.25);
 }
 
