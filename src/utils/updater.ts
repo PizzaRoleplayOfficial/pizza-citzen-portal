@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.5.25'; // 1.5.25 (Android等の物理戻るボタン押下時に管理パネル内のサブメニューからダッシュボードTOPに正しく戻る階層ナビゲーション最適化)
+export const CURRENT_VERSION = '1.6.0'; // 1.6.0 (Noto Sans JP + Nunito Sansフォント採用、管理パネルのハッシュベースサブタブルーティングで戻るナビゲーション最適化)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
