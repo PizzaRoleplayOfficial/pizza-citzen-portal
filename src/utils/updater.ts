@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.6.1'; // 1.6.1 (alert()をインアップカスタムモーダルに置き換え、バージョンチェック結果の表示をプレミアムUIに改善)
+export const CURRENT_VERSION = '1.6.2'; // 1.6.2 (アイコンを新デザインに置き換え（Web / Android 全サイズ対応）)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
