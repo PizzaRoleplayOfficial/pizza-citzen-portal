@@ -405,10 +405,10 @@ export default function App() {
       try {
         if (theme === 'dark') {
           StatusBar.setBackgroundColor({ color: '#0a0c10' });
-          StatusBar.setStyle({ style: Style.Dark });
+          StatusBar.setStyle({ style: Style.Light }); // Light (white) icons on dark background
         } else {
-          StatusBar.setBackgroundColor({ color: '#ffffff' });
-          StatusBar.setStyle({ style: Style.Light });
+          StatusBar.setBackgroundColor({ color: '#f8fafc' });
+          StatusBar.setStyle({ style: Style.Dark }); // Dark (black) icons on light background
         }
       } catch (err) {
         console.warn('Capacitor StatusBar action failed:', err);
