@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const resDir = path.join(__dirname, 'android', 'app', 'src', 'main', 'res');
-const sourceIcon = 'pizza_icon_default_transparent.png';
+const sourceIcon = 'pizza_icon_default_transparent_large.png';
 
 const sizes = [
   { name: 'mipmap-mdpi', size: 48, adaptive: 108 },
