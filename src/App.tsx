@@ -124,19 +124,43 @@ export default function App() {
   const [theme, setTheme] = useState<'dark'|'light'>(
     (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
   );
-  const initialView = (window.location.hash.replace('#', '') as any) || 'home';
-  const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply'>(
-    ['home', 'intro', 'garage', 'admin', 'profile', 'apply'].includes(initialView) ? initialView : 'home'
-  );
+  const getInitialHashState = () => {
+    const hash = window.location.hash.replace('#', '');
+    const parts = hash.split('/');
+    const mainView = parts[0];
+    const subTab = parts[1];
+    const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply'];
+    const validSubTabs = ['dashboard', 'vehicles', 'users', 'lookup', 'applications', 'questions', 'catalog'];
+    
+    return {
+      view: (validViews.includes(mainView) ? mainView : 'home') as 'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply',
+      adminTab: (mainView === 'admin' && subTab && validSubTabs.includes(subTab) ? subTab : null) as any
+    };
+  };
 
+  const initialParsed = getInitialHashState();
+  const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply'>(initialParsed.view);
 
   const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog'>(
-    (sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard'
+    initialParsed.adminTab || (sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard'
   );
   const setAdminTabPersist = (tab: 'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog') => {
     sessionStorage.setItem('gvvr_adminTab', tab);
     setAdminTab(tab);
     triggerHaptic('light');
+    
+    // Hash-based sub-tab routing configuration
+    const targetHash = tab === 'dashboard' ? 'admin' : `admin/${tab}`;
+    if (window.location.hash.replace('#', '') !== targetHash) {
+      if (tab !== 'dashboard' && adminTab !== 'dashboard') {
+        // Switching sub-tab to sub-tab replaces history stack to avoid cluttering back gestures
+        const url = new URL(window.location.href);
+        url.hash = targetHash;
+        window.history.replaceState(null, '', url.toString());
+      } else {
+        window.location.hash = targetHash;
+      }
+    }
   };
   const [wikiPreviewUrl, setWikiPreviewUrl] = useState<string | null>(null);
   const [wikiTrims, setWikiTrims] = useState<string[]>([]);
@@ -217,6 +241,17 @@ export default function App() {
     reason: ''
   });
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [infoModal, setInfoModal] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: ''
+  });
   const [updateState, setUpdateState] = useState<{
     isOpen: boolean;
     latestVersion: string;
@@ -270,18 +305,42 @@ export default function App() {
   });
 
   useEffect(() => {
-    window.location.hash = view;
+    if (view === 'admin') {
+      const targetHash = adminTab === 'dashboard' ? 'admin' : `admin/${adminTab}`;
+      if (window.location.hash.replace('#', '') !== targetHash) {
+        window.location.hash = targetHash;
+      }
+    } else {
+      if (window.location.hash.replace('#', '') !== view) {
+        window.location.hash = view;
+      }
+    }
     // ページ切り替え時に振動を発生させる（初回起動時のローディング中はスキップ）
     if (!isLoading) {
       triggerHaptic('light');
     }
-  }, [view, isLoading]);
+  }, [view, adminTab, isLoading]);
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (['home', 'intro', 'garage', 'admin', 'profile', 'apply'].includes(hash)) {
-        setView(hash as any);
+      const parts = hash.split('/');
+      const mainView = parts[0];
+      const subTab = parts[1];
+      const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply'];
+      const validSubTabs = ['dashboard', 'vehicles', 'users', 'lookup', 'applications', 'questions', 'catalog'];
+      
+      if (validViews.includes(mainView)) {
+        setView(mainView as any);
+        if (mainView === 'admin') {
+          if (subTab && validSubTabs.includes(subTab)) {
+            setAdminTab(subTab as any);
+            sessionStorage.setItem('gvvr_adminTab', subTab);
+          } else {
+            setAdminTab('dashboard');
+            sessionStorage.setItem('gvvr_adminTab', 'dashboard');
+          }
+        }
       }
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -696,8 +755,8 @@ export default function App() {
           // モーダルが開いている場合は履歴を戻ってモーダルを閉じる
           window.history.back();
         } else if (view === 'admin' && adminTab !== 'dashboard') {
-          // 管理パネルでサブメニューを開いている場合は、ダッシュボードトップに戻る
-          setAdminTabPersist('dashboard');
+          // 管理パネルでサブメニューを開いている場合は、履歴を戻る（ダッシュボードトップに戻る）
+          window.history.back();
         } else if (view !== 'home') {
           // それ以外のホーム以外の画面なら履歴を戻る
           window.history.back();
@@ -1004,20 +1063,35 @@ export default function App() {
           }
         } else {
           if (isManual) {
-            alert(`お使いのアプリは最新バージョンです。(v${appVersion})`);
+            setInfoModal({
+              isOpen: true,
+              type: 'success',
+              title: '✓ 最新バージョンです',
+              message: `お使いのアプリは最新バージョン v${appVersion} です。\n現在最新のバージョンをお使いいただいています。`
+            });
             triggerHaptic('success');
           }
         }
       } else {
         if (isManual) {
-          alert('最新リリースの情報が取得できませんでした。');
+          setInfoModal({
+            isOpen: true,
+            type: 'error',
+            title: '情報取得失敗',
+            message: '最新リリースの情報が取得できませんでした。\nネットワーク接続を確認して再度お試しください。'
+          });
           triggerHaptic('error');
         }
       }
     } catch (err) {
       console.error('Update check failed:', err);
       if (isManual) {
-        alert('アップデート確認中にエラーが発生しました。');
+        setInfoModal({
+          isOpen: true,
+          type: 'error',
+          title: 'エラーが発生しました',
+          message: 'アップデート確認中にネットワークエラーが発生しました。\n時間をおいて再度お試しください。'
+        });
         triggerHaptic('error');
       }
     } finally {
@@ -2806,6 +2880,70 @@ export default function App() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== Info / Notice Modal (update status, errors) ====== */}
+      {infoModal.isOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '24px' }}
+          onClick={() => { setInfoModal(prev => ({ ...prev, isOpen: false })); triggerHaptic('light'); }}
+        >
+          <div
+            className="glass card animate-fade"
+            style={{ width: '100%', maxWidth: '360px', padding: '32px 28px', borderRadius: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', textAlign: 'center' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '50%',
+              background: infoModal.type === 'success'
+                ? 'radial-gradient(circle, rgba(0,255,136,0.25) 0%, rgba(0,193,102,0.08) 100%)'
+                : infoModal.type === 'error'
+                  ? 'radial-gradient(circle, rgba(255,71,87,0.25) 0%, rgba(255,71,87,0.08) 100%)'
+                  : 'radial-gradient(circle, rgba(0,212,255,0.25) 0%, rgba(0,212,255,0.08) 100%)',
+              border: `2px solid ${ infoModal.type === 'success' ? 'rgba(0,255,136,0.4)' : infoModal.type === 'error' ? 'rgba(255,71,87,0.4)' : 'rgba(0,212,255,0.4)' }`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: infoModal.type === 'success'
+                ? '0 0 24px rgba(0,255,136,0.2)'
+                : infoModal.type === 'error'
+                  ? '0 0 24px rgba(255,71,87,0.2)'
+                  : '0 0 24px rgba(0,212,255,0.2)',
+              fontSize: '2rem',
+              flexShrink: 0
+            }}>
+              {infoModal.type === 'success' ? '✓' : infoModal.type === 'error' ? '✕' : 'ℹ'}
+            </div>
+
+            {/* Title */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h3 style={{
+                fontSize: '1.25rem', fontWeight: 700, margin: 0,
+                color: infoModal.type === 'success' ? 'var(--primary)' : infoModal.type === 'error' ? 'var(--error)' : 'var(--secondary)'
+              }}>{infoModal.title}</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {infoModal.message}
+              </p>
+            </div>
+
+            {/* Close button */}
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => { setInfoModal(prev => ({ ...prev, isOpen: false })); triggerHaptic('light'); }}
+              style={{ width: '100%', padding: '14px', borderRadius: '14px', fontSize: '1rem', fontWeight: 700, justifyContent: 'center', marginTop: '4px',
+                background: infoModal.type === 'success'
+                  ? 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)'
+                  : infoModal.type === 'error'
+                    ? 'linear-gradient(135deg, var(--error) 0%, #cc2233 100%)'
+                    : 'linear-gradient(135deg, var(--secondary) 0%, #0099bb 100%)',
+                boxShadow: infoModal.type === 'success' ? '0 4px 16px rgba(0,255,136,0.3)' : infoModal.type === 'error' ? '0 4px 16px rgba(255,71,87,0.3)' : '0 4px 16px rgba(0,212,255,0.3)',
+                border: 'none', color: '#fff'
+              }}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.6.0'; // 1.6.0 (Noto Sans JP + Nunito Sansフォント採用、管理パネルのハッシュベースサブタブルーティングで戻るナビゲーション最適化)
+export const CURRENT_VERSION = '1.6.1'; // 1.6.1 (alert()をインアップカスタムモーダルに置き換え、バージョンチェック結果の表示をプレミアムUIに改善)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
