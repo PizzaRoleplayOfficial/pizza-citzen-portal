@@ -183,14 +183,14 @@ export const ProfileView = ({
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                   <button
-                    onClick={() => scheduleLocalNotification('テスト通知', 'これは即時テスト通知です。ぴっざぁ市民ポータルより。')}
+                    onClick={() => scheduleLocalNotification('テスト通知', 'これは即時テスト通知です。ぴっざぁ市民ポータルより。', 0, 'application_results_channel')}
                     className="btn glass"
                     style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', gap: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
                   >
                     今すぐ通知をテスト
                   </button>
                   <button
-                    onClick={() => scheduleLocalNotification('テスト通知 (ディレイ)', '3秒前に予約された通知です！', 3000)}
+                    onClick={() => scheduleLocalNotification('テスト通知 (ディレイ)', '3秒前に予約された通知です！', 3000, 'application_results_channel')}
                     className="btn glass"
                     style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', gap: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
                   >
@@ -204,21 +204,21 @@ export const ProfileView = ({
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <button
-                    onClick={() => scheduleLocalNotification('車両登録申請の結果', '車両「2024年式 トヨタ プリウス」（ナンバー: WIS-1234）の申請が承認されました。', 3000)}
+                    onClick={() => scheduleLocalNotification('車両登録申請の結果', '車両「2024年式 トヨタ プリウス」（ナンバー: WIS-1234）の申請が承認されました。', 3000, 'application_results_channel')}
                     className="btn glass"
                     style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(0,193,102,0.03)', cursor: 'pointer', color: 'var(--text-main)' }}
                   >
                     🚗 車両「承認」通知をシミュレート
                   </button>
                   <button
-                    onClick={() => scheduleLocalNotification('市民申請の結果', '市民登録申請が却下されました。理由: 写真のナンバープレート文字が不鮮明です。', 3000)}
+                    onClick={() => scheduleLocalNotification('市民申請の結果', '市民登録申請が却下されました。理由: 写真のナンバープレート文字が不鮮明です。', 3000, 'application_results_channel')}
                     className="btn glass"
                     style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(239,68,68,0.03)', cursor: 'pointer', color: 'var(--text-main)' }}
                   >
                     🪪 市民申請「却下」通知をシミュレート
                   </button>
                   <button
-                    onClick={() => scheduleLocalNotification('新規の車両登録申請', '新規の登録申請が届きました: Keabu_Robloxさんの「日産 スカイライン」', 3000)}
+                    onClick={() => scheduleLocalNotification('新規の車両登録申請', '新規の登録申請が届きました: Keabu_Robloxさんの「日産 スカイライン」', 3000, 'admin_notifications_channel')}
                     className="btn glass"
                     style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
                   >

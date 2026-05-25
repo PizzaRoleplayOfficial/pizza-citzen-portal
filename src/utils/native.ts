@@ -106,7 +106,8 @@ export const triggerHaptic = async (
 export const scheduleLocalNotification = async (
   title: string,
   body: string,
-  delayMs: number = 0
+  delayMs: number = 0,
+  channelId?: string
 ) => {
   if (!isNative) return;
 
@@ -133,6 +134,7 @@ export const scheduleLocalNotification = async (
           body,
           schedule: scheduleAt ? { at: scheduleAt } : undefined,
           actionTypeId: 'pizza_alert',
+          channelId: channelId, // Specify notification category channel
           sound: undefined,
           attachments: [],
           extra: null
@@ -145,7 +147,7 @@ export const scheduleLocalNotification = async (
 };
 
 /**
- * アプリの初回起動時に通知などの必要な権限を明示的にリクエストします。
+ * アプリの初回起動時に通知などの必要な権限を明示的にリクエストし、用途別の通知カテゴリー（チャンネル）を作成します。
  */
 export const requestNotificationPermission = async () => {
   if (!isNative) return;
@@ -154,7 +156,39 @@ export const requestNotificationPermission = async () => {
     if (permission.display !== 'granted') {
       await LocalNotifications.requestPermissions();
     }
+
+    // Create utility notification channels (Notification Categories in Android settings)
+    const channels = [
+      {
+        id: 'application_results_channel',
+        name: '申請結果通知',
+        description: '市民申請や車両登録申請の審査結果を通知します。',
+        importance: 4, // HIGH
+        visibility: 1, // PUBLIC
+        sound: 'default'
+      },
+      {
+        id: 'admin_notifications_channel',
+        name: '管理者向け通知',
+        description: '運営管理者向けの新規申請到着などを通知します。',
+        importance: 3, // DEFAULT
+        visibility: 1,
+        sound: 'default'
+      },
+      {
+        id: 'live_update_channel',
+        name: 'アプリのアップデート',
+        description: 'アプリ内自動アップデートの進捗状況を通知します。',
+        importance: 4, // HIGH
+        visibility: 1
+      }
+    ];
+
+    for (const channel of channels) {
+      await LocalNotifications.createChannel(channel);
+    }
+    console.log('Notification channels created successfully.');
   } catch (err) {
-    console.error('Request notification permission failed:', err);
+    console.error('Request notification permission and channels failed:', err);
   }
 };

@@ -387,7 +387,9 @@ export default function App() {
       triggerHaptic('success');
       scheduleLocalNotification(
         '申請送信完了',
-        editingVehicleId ? 'トレーラー情報の更新申請を送信しました。' : 'トレーラー登録申請を送信しました！'
+        editingVehicleId ? 'トレーラー情報の更新申請を送信しました。' : 'トレーラー登録申請を送信しました！',
+        0,
+        'application_results_channel'
       );
     } catch {
       alert('ネットワークエラーが発生しました。');
@@ -470,7 +472,7 @@ export default function App() {
               const body = count === 1
                 ? `新規の登録申請が届きました: ${firstCar.roblox_username}さんの「${firstCar.maker} ${firstCar.model}」`
                 : `新規の登録申請が${count}件届きました。`;
-              scheduleLocalNotification(title, body);
+              scheduleLocalNotification(title, body, 0, 'admin_notifications_channel');
             }
           }
           localStorage.setItem('gvvr_admin_pending_ids', JSON.stringify(currentPendingIds));
@@ -490,7 +492,9 @@ export default function App() {
                 const carName = `${v.year}年式 ${v.maker} ${v.model}`;
                 scheduleLocalNotification(
                   '車両登録申請の結果',
-                  `車両「${carName}」（ナンバー: ${v.plate}）の申請が${statusText}されました。`
+                  `車両「${carName}」（ナンバー: ${v.plate}）の申請が${statusText}されました。`,
+                  0,
+                  'application_results_channel'
                 );
               }
             }
@@ -531,7 +535,9 @@ export default function App() {
               const statusText = app.status === 'approved' ? '承認' : '却下';
               scheduleLocalNotification(
                 '市民申請の結果',
-                `市民登録申請が${statusText}されました。${app.status === 'rejected' && app.reject_reason ? `理由: ${app.reject_reason}` : ''}`
+                `市民登録申請が${statusText}されました。${app.status === 'rejected' && app.reject_reason ? `理由: ${app.reject_reason}` : ''}`,
+                0,
+                'application_results_channel'
               );
             }
           }
@@ -1524,7 +1530,9 @@ export default function App() {
         triggerHaptic('success');
         scheduleLocalNotification(
           '申請送信完了',
-          editingVehicleId ? '車両情報の更新申請を送信しました。' : '車両登録申請を送信しました！'
+          editingVehicleId ? '車両情報の更新申請を送信しました。' : '車両登録申請を送信しました！',
+          0,
+          'application_results_channel'
         );
       } else {
         const err = await res.json() as any;
@@ -1553,7 +1561,7 @@ export default function App() {
       if (res.ok) {
         await fetchApplication();
         triggerHaptic('success');
-        scheduleLocalNotification('申請送信完了', '市民申請を送信しました！審査結果をお待ちください。');
+        scheduleLocalNotification('申請送信完了', '市民申請を送信しました！審査結果をお待ちください。', 0, 'application_results_channel');
       } else {
         const err = await res.json() as any;
         alert(err.error || '申請に失敗しました。');
