@@ -2162,6 +2162,7 @@ export default function App() {
             setShowTrailerModal={setShowTrailerModal}
             handleStartEdit={handleStartEdit}
             handleDeleteVehicle={handleDeleteVehicle}
+            isMobile={isMobile}
           />
         ) : view === 'profile' ? (
           <ProfileView

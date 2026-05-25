@@ -26,6 +26,7 @@ interface MyGarageViewProps {
   setShowTrailerModal: (b: boolean) => void;
   handleStartEdit: (v: any) => void;
   handleDeleteVehicle: (id: string) => void;
+  isMobile?: boolean;
 }
 
 export const MyGarageView = ({
@@ -48,7 +49,8 @@ export const MyGarageView = ({
   setTrailerFormData,
   setShowTrailerModal,
   handleStartEdit,
-  handleDeleteVehicle
+  handleDeleteVehicle,
+  isMobile = false
 }: MyGarageViewProps) => {
   const [garageSearchTerm, setGarageSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'temp'>('all');
@@ -85,6 +87,7 @@ export const MyGarageView = ({
               <button className="btn btn-secondary" onClick={() => { triggerHaptic('medium'); handleManualRefresh(); }} style={{ padding: '10px 16px' }} disabled={isLoading}>
                 <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
               </button>
+              {/* Auto-fill beta button: always shown in header */}
               {garageTab === 'car' && (
                 <button className="btn btn-secondary" onClick={() => {
                   triggerHaptic('light');
@@ -94,25 +97,28 @@ export const MyGarageView = ({
                   ✨ 画像から自動登録 (Beta)
                 </button>
               )}
-              {garageTab === 'car' ? (
-                <button className="btn btn-primary" onClick={() => {
-                  triggerHaptic('light');
-                  if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                  setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
-                  setEditingVehicleId(null);
-                  setShowAddModal(true);
-                }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }}>
-                  <Plus size={20} /> 車両を追加
-                </button>
-              ) : (
-                <button className="btn btn-primary" onClick={() => {
-                  triggerHaptic('light');
-                  if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                  setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
-                  setShowTrailerModal(true);
-                }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', background: 'var(--primary)', color: '#000' }}>
-                  <Plus size={20} /> トレーラーを追加
-                </button>
+              {/* Add button: desktop only — mobile uses FAB */}
+              {!isMobile && (
+                garageTab === 'car' ? (
+                  <button className="btn btn-primary" onClick={() => {
+                    triggerHaptic('light');
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setEditingVehicleId(null);
+                    setShowAddModal(true);
+                  }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }}>
+                    <Plus size={20} /> 車両を追加
+                  </button>
+                ) : (
+                  <button className="btn btn-primary" onClick={() => {
+                    triggerHaptic('light');
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setShowTrailerModal(true);
+                  }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', background: 'var(--primary)', color: '#000' }}>
+                    <Plus size={20} /> トレーラーを追加
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -319,6 +325,48 @@ export const MyGarageView = ({
             </div>
           )}
         </>
+      )}
+
+      {/* ====== Mobile FAB (Floating Action Button) ====== */}
+      {isMobile && myApplication?.status === 'approved' && (
+        <button
+          onClick={() => {
+            triggerHaptic('medium');
+            if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+            if (garageTab === 'car') {
+              setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+              setEditingVehicleId(null);
+              setShowAddModal(true);
+            } else {
+              setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+              setShowTrailerModal(true);
+            }
+          }}
+          style={{
+            position: 'fixed',
+            bottom: '90px', /* above the mobile nav bar */
+            right: '20px',
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+            color: '#000',
+            border: 'none',
+            boxShadow: '0 4px 20px rgba(0,255,136,0.45), 0 2px 8px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 500,
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+          }}
+          onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.92)')}
+          onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
+          title={garageTab === 'car' ? '車両を追加' : 'トレーラーを追加'}
+          aria-label={garageTab === 'car' ? '車両を追加' : 'トレーラーを追加'}
+        >
+          <Plus size={28} strokeWidth={2.5} />
+        </button>
       )}
     </div>
   );
