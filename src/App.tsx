@@ -33,7 +33,8 @@ import {
   BookOpen,
   RefreshCw,
   RotateCcw,
-  Menu
+  Menu,
+  Info
 } from 'lucide-react';
 import { isNative } from './utils/native';
 import { 
@@ -1066,7 +1067,7 @@ export default function App() {
             setInfoModal({
               isOpen: true,
               type: 'success',
-              title: '✓ 最新バージョンです',
+              title: '最新バージョンです',
               message: `お使いのアプリは最新バージョン v${appVersion} です。\n現在最新のバージョンをお使いいただいています。`
             });
             triggerHaptic('success');
@@ -2909,23 +2910,18 @@ export default function App() {
           >
             {/* Icon */}
             <div style={{
-              width: '72px', height: '72px', borderRadius: '50%',
-              background: infoModal.type === 'success'
-                ? 'radial-gradient(circle, rgba(0,255,136,0.25) 0%, rgba(0,193,102,0.08) 100%)'
-                : infoModal.type === 'error'
-                  ? 'radial-gradient(circle, rgba(255,71,87,0.25) 0%, rgba(255,71,87,0.08) 100%)'
-                  : 'radial-gradient(circle, rgba(0,212,255,0.25) 0%, rgba(0,212,255,0.08) 100%)',
-              border: `2px solid ${ infoModal.type === 'success' ? 'rgba(0,255,136,0.4)' : infoModal.type === 'error' ? 'rgba(255,71,87,0.4)' : 'rgba(0,212,255,0.4)' }`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: infoModal.type === 'success'
-                ? '0 0 24px rgba(0,255,136,0.2)'
-                : infoModal.type === 'error'
-                  ? '0 0 24px rgba(255,71,87,0.2)'
-                  : '0 0 24px rgba(0,212,255,0.2)',
-              fontSize: '2rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               flexShrink: 0
             }}>
-              {infoModal.type === 'success' ? '✓' : infoModal.type === 'error' ? '✕' : 'ℹ'}
+              {infoModal.type === 'success' ? (
+                <CheckCircle2 size={64} style={{ color: 'var(--success)' }} />
+              ) : infoModal.type === 'error' ? (
+                <XCircle size={64} style={{ color: 'var(--error)' }} />
+              ) : (
+                <Info size={64} style={{ color: 'var(--text-muted)' }} />
+              )}
             </div>
 
             {/* Title */}
