@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.7.8'; // 1.7.8 (モバイルFABを修正: containing block の制約を解消し、画面右端での見切れを修正)
+export const CURRENT_VERSION = '1.7.9'; // 1.7.9 (モバイルFABを修正し、アプリランチャーの表示名を🍕ポータルに変更)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
