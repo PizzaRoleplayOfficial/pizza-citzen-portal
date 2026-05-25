@@ -916,7 +916,15 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: currentUser.id, roblox_username: currentUser.roblox_username })
       });
-      if (res.ok) alert("プロフィールを更新しました。");
+      if (res.ok) {
+        setInfoModal({
+          isOpen: true,
+          type: 'success',
+          title: 'プロフィール更新完了',
+          message: 'プロフィール情報を正常に更新しました。'
+        });
+        triggerHaptic('success');
+      }
     } catch (e) {
       console.error("Update profile failed:", e);
     }
