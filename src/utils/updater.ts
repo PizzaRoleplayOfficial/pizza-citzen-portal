@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.6.9'; // 1.6.9 (モーダルチェックマークデザイン統一: lucideアイコン化)
+export const CURRENT_VERSION = '1.7.0'; // 1.7.0 (Android 16 ライブアップデート通知テスト機能 + Android 14+ 起動バグ修正)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

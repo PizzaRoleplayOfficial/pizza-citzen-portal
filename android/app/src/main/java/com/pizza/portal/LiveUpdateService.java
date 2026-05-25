@@ -46,8 +46,16 @@ public class LiveUpdateService extends Service {
             return START_NOT_STICKY;
         }
 
-        // Start Foreground Service with initial notification
-        startForeground(NOTIFICATION_ID, buildProgressNotification(0));
+        // Start Foreground Service with initial notification safely on Android 14+ (UPSIDE_DOWN_CAKE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID, 
+                buildProgressNotification(0), 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE
+            );
+        } else {
+            startForeground(NOTIFICATION_ID, buildProgressNotification(0));
+        }
 
         // Start downloading in background thread
         downloadThread = new Thread(() -> {
@@ -128,6 +136,11 @@ public class LiveUpdateService extends Service {
     }
 
     private void downloadAndInstall(String urlString) {
+        if ("test".equalsIgnoreCase(urlString) || "debug".equalsIgnoreCase(urlString)) {
+            runTestDemo();
+            return;
+        }
+
         File apkFile = new File(getExternalFilesDir(null), "pizza_update.apk");
         if (apkFile.exists()) {
             apkFile.delete();
@@ -230,6 +243,34 @@ public class LiveUpdateService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "Failed to start installation", e);
             showErrorNotification(e.getMessage());
+        }
+    }
+
+    private void runTestDemo() {
+        try {
+            int progress = 0;
+            while (progress <= 100) {
+                notificationManager.notify(NOTIFICATION_ID, buildProgressNotification(progress));
+                Thread.sleep(500); // 0.5s interval
+                progress += 10;
+            }
+            // Success Notification Demo
+            Notification.Builder builder;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                builder = new Notification.Builder(this, CHANNEL_ID);
+            } else {
+                builder = new Notification.Builder(this);
+            }
+            builder.setContentTitle("GV Portal Update Test")
+                .setContentText("Test update download completed successfully!")
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setAutoCancel(true);
+            notificationManager.notify(NOTIFICATION_ID + 2, builder.build());
+        } catch (InterruptedException e) {
+            Log.d(TAG, "Test demo interrupted");
+        } finally {
+            notificationManager.cancel(NOTIFICATION_ID);
+            stopSelf();
         }
     }
 

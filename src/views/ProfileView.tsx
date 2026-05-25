@@ -1,7 +1,7 @@
 import React from 'react';
 import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info } from 'lucide-react';
 import { triggerHaptic, scheduleLocalNotification, isNative } from '../utils/native';
-import { CURRENT_VERSION } from '../utils/updater';
+import { CURRENT_VERSION, getLiveUpdate } from '../utils/updater';
 
 interface ProfileViewProps {
   currentUser: any;
@@ -225,6 +225,28 @@ export const ProfileView = ({
                     👑 運営向け「新規申請」通知をシミュレート
                   </button>
                 </div>
+
+                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '20px', marginBottom: '8px' }}>Android 16 ライブアップデート通知のテスト</h5>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.4 }}>
+                  ※Android 16+で追加された ProgressStyle 通知のテスト表示です。タップするとダミーのダウンロード進捗（0%〜100%）がステータスバーや通知エリアに表示されます。
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      triggerHaptic('medium');
+                      const liveUpdate = getLiveUpdate();
+                      await liveUpdate.startDownload({ url: 'test' });
+                    } catch (e: any) {
+                      console.error('Failed to start LiveUpdate test:', e);
+                      alert('テスト起動に失敗しました: ' + (e.message || e));
+                    }
+                  }}
+                  className="btn btn-primary"
+                  style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', width: '100%', cursor: 'pointer', gap: '8px', fontWeight: 'bold' }}
+                >
+                  ⚡ Live Update 通知（テスト）を起動
+                </button>
               </div>
             </div>
           </div>
