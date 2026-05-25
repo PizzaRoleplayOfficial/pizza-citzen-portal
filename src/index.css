@@ -603,6 +603,12 @@ h1 {
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .animate-spin { animation: spin 1s linear infinite; }
 
+/* FAB Speed Dial item spring-in animation */
+@keyframes fabItemIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
 /* Admin Sidebar Layout */
 .admin-layout-wrapper {
   background: var(--bg-dark);

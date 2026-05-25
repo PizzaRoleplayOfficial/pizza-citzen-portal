@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
@@ -54,6 +54,24 @@ export const MyGarageView = ({
 }: MyGarageViewProps) => {
   const [garageSearchTerm, setGarageSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'temp'>('all');
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabRef = useRef<HTMLDivElement>(null);
+
+  // FAB外タップで閉じる
+  useEffect(() => {
+    if (!fabOpen) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (fabRef.current && !fabRef.current.contains(e.target as Node)) {
+        setFabOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [fabOpen]);
 
   return (
     <div className="animate-fade">
@@ -87,8 +105,8 @@ export const MyGarageView = ({
               <button className="btn btn-secondary" onClick={() => { triggerHaptic('medium'); handleManualRefresh(); }} style={{ padding: '10px 16px' }} disabled={isLoading}>
                 <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
               </button>
-              {/* Auto-fill beta button: always shown in header */}
-              {garageTab === 'car' && (
+              {/* Auto-fill beta button: desktop only, in header */}
+              {garageTab === 'car' && !isMobile && (
                 <button className="btn btn-secondary" onClick={() => {
                   triggerHaptic('light');
                   if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
@@ -327,46 +345,126 @@ export const MyGarageView = ({
         </>
       )}
 
-      {/* ====== Mobile FAB (Floating Action Button) ====== */}
+      {/* ====== Mobile FAB Speed Dial ====== */}
       {isMobile && myApplication?.status === 'approved' && (
-        <button
-          onClick={() => {
-            triggerHaptic('medium');
-            if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-            if (garageTab === 'car') {
-              setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
-              setEditingVehicleId(null);
-              setShowAddModal(true);
-            } else {
-              setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
-              setShowTrailerModal(true);
-            }
-          }}
-          style={{
-            position: 'fixed',
-            bottom: '90px', /* above the mobile nav bar */
-            right: '20px',
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
-            color: '#000',
-            border: 'none',
-            boxShadow: '0 4px 20px rgba(0,255,136,0.45), 0 2px 8px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 500,
-            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-          }}
-          onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.92)')}
-          onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
-          title={garageTab === 'car' ? '車両を追加' : 'トレーラーを追加'}
-          aria-label={garageTab === 'car' ? '車両を追加' : 'トレーラーを追加'}
-        >
-          <Plus size={28} strokeWidth={2.5} />
-        </button>
+        <div ref={fabRef} style={{ position: 'fixed', bottom: '88px', right: '16px', zIndex: 500, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+
+          {/* Speed Dial Items */}
+          {fabOpen && (
+            <>
+              {/* 画像から自動登録 (Beta) — only for cars */}
+              {garageTab === 'car' && (
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    animation: 'fabItemIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
+                    animationDelay: '0.04s',
+                  }}
+                >
+                  <span style={{
+                    background: 'var(--panel-bg)', border: '1px solid var(--glass-border)',
+                    color: 'var(--text-main)', padding: '7px 14px', borderRadius: '20px',
+                    fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(12px)',
+                  }}>✨ 画像から自動登録 (Beta)</span>
+                  <button
+                    onClick={() => {
+                      setFabOpen(false);
+                      triggerHaptic('light');
+                      if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                      setShowBetaAutoFillModal(true);
+                    }}
+                    style={{
+                      width: '48px', height: '48px', borderRadius: '50%',
+                      background: 'rgba(0,255,136,0.15)', border: '1.5px dashed var(--primary)',
+                      color: 'var(--primary)', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', cursor: 'pointer', fontSize: '1.2rem',
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.3)', flexShrink: 0,
+                    }}
+                    aria-label="画像から自動登録"
+                  >✨</button>
+                </div>
+              )}
+
+              {/* 手動登録 */}
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  animation: 'fabItemIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
+                }}
+              >
+                <span style={{
+                  background: 'var(--panel-bg)', border: '1px solid var(--glass-border)',
+                  color: 'var(--text-main)', padding: '7px 14px', borderRadius: '20px',
+                  fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                  backdropFilter: 'blur(12px)',
+                }}>{garageTab === 'car' ? '🚗 手動登録' : '🚛 手動登録'}</span>
+                <button
+                  onClick={() => {
+                    setFabOpen(false);
+                    triggerHaptic('medium');
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    if (garageTab === 'car') {
+                      setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setEditingVehicleId(null);
+                      setShowAddModal(true);
+                    } else {
+                      setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setShowTrailerModal(true);
+                    }
+                  }}
+                  style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+                    color: '#000', border: 'none', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', cursor: 'pointer',
+                    boxShadow: '0 2px 12px rgba(0,255,136,0.3)', flexShrink: 0,
+                    fontSize: '1.3rem',
+                  }}
+                  aria-label={garageTab === 'car' ? '車両を手動登録' : 'トレーラーを手動登録'}
+                >✏️</button>
+              </div>
+            </>
+          )}
+
+          {/* Main FAB button */}
+          <button
+            onClick={() => {
+              triggerHaptic('medium');
+              if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+              setFabOpen(prev => !prev);
+            }}
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: fabOpen
+                ? 'rgba(255,255,255,0.12)'
+                : 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+              color: fabOpen ? 'var(--text-main)' : '#000',
+              border: fabOpen ? '1.5px solid var(--glass-border)' : 'none',
+              boxShadow: fabOpen
+                ? '0 2px 16px rgba(0,0,0,0.4)'
+                : '0 4px 20px rgba(0,255,136,0.45), 0 2px 8px rgba(0,0,0,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+              transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
+              flexShrink: 0,
+            }}
+            onTouchStart={e => { if (!fabOpen) e.currentTarget.style.transform = 'scale(0.91)'; }}
+            onTouchEnd={e => { if (!fabOpen) e.currentTarget.style.transform = 'scale(1)'; }}
+            title={garageTab === 'car' ? '車両を追加' : 'トレーラーを追加'}
+            aria-label={fabOpen ? 'メニューを閉じる' : (garageTab === 'car' ? '車両を追加' : 'トレーラーを追加')}
+            aria-expanded={fabOpen}
+          >
+            <Plus size={24} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+          </button>
+        </div>
       )}
     </div>
   );
