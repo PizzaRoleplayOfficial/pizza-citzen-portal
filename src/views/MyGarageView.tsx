@@ -74,8 +74,9 @@ export const MyGarageView = ({
   }, [fabOpen]);
 
   return (
-    <div className="animate-fade">
-      {myApplication?.status !== 'approved' ? (
+    <>
+      <div className="animate-fade">
+        {myApplication?.status !== 'approved' ? (
         <div style={{ textAlign: 'center', padding: '80px 24px' }}>
           <Lock size={64} style={{ color: 'var(--text-muted)', marginBottom: '24px', opacity: 0.5 }} />
           <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-main)' }}>マイガレージはロック中</h2>
@@ -344,6 +345,7 @@ export const MyGarageView = ({
           )}
         </>
       )}
+      </div>
 
       {/* ====== Mobile FAB Speed Dial ====== */}
       {isMobile && myApplication?.status === 'approved' && (
@@ -466,6 +468,6 @@ export const MyGarageView = ({
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 };

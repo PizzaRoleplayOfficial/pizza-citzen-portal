@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.7.7'; // 1.7.7 (モバイルFABをスピードダイヤルメニューに変更: 手動登録・画像から自動登録を＋から展開)
+export const CURRENT_VERSION = '1.7.8'; // 1.7.8 (モバイルFABを修正: containing block の制約を解消し、画面右端での見切れを修正)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
