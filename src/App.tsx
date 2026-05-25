@@ -406,9 +406,9 @@ export default function App() {
         // Edge-to-edge: web content renders behind system bars
         StatusBar.setOverlaysWebView({ overlay: true });
         if (theme === 'dark') {
-          StatusBar.setStyle({ style: Style.Light }); // Light (white) icons on dark background
+          StatusBar.setStyle({ style: Style.Dark }); // Dark = white icons for dark background
         } else {
-          StatusBar.setStyle({ style: Style.Dark }); // Dark (black) icons on light background
+          StatusBar.setStyle({ style: Style.Light }); // Light = dark icons for light background
         }
       } catch (err) {
         console.warn('Capacitor StatusBar action failed:', err);

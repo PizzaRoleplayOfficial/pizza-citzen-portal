@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.6.6'; // 1.6.6 (エッジトゥエッジ全画面表示: ステータスバー・ナビゲーションバーまで透過)
+export const CURRENT_VERSION = '1.6.7'; // 1.6.7 (ステータスバーアイコン色修正: ダークモード=白アイコン, ライトモード=黒アイコン)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
