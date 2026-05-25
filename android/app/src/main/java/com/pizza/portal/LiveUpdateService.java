@@ -94,21 +94,23 @@ public class LiveUpdateService extends Service {
         // Apply Android 16 ProgressStyle safely if supported
         if (Build.VERSION.SDK_INT >= 36) {
             try {
-                Android16Helper.applyProgressStyle(builder);
+                Android16Helper.applyProgressStyle(builder, progress, this);
             } catch (Throwable t) {
                 Log.e(TAG, "Failed to apply Android 16 ProgressStyle", t);
+                // Fallback to standard progress bar on exception
+                builder.setProgress(100, progress, false);
             }
+        } else {
+            // Under Android 16, set standard progress bar
+            builder.setProgress(100, progress, false);
         }
-
-        // Under Android 16 or as fallback, set standard progress bar
-        builder.setProgress(100, progress, false);
 
         return builder.build();
     }
 
     // Inner class helper using reflection to prevent compilation and runtime errors on environments without Android 16 SDK
     private static class Android16Helper {
-        static void applyProgressStyle(Notification.Builder builder) {
+        static void applyProgressStyle(Notification.Builder builder, int progress, Context context) {
             try {
                 // Call builder.setRequestPromotedOngoing(true) via reflection
                 java.lang.reflect.Method setRequestPromotedOngoingMethod = 
@@ -122,6 +124,31 @@ public class LiveUpdateService extends Service {
                 java.lang.reflect.Method setStyledByProgressMethod = 
                     progressStyleClass.getMethod("setStyledByProgress", boolean.class);
                 setStyledByProgressMethod.invoke(progressStyle, true);
+
+                // Set progress inside ProgressStyle
+                try {
+                    java.lang.reflect.Method setProgressMethod = 
+                        progressStyleClass.getMethod("setProgress", int.class, int.class);
+                    setProgressMethod.invoke(progressStyle, progress, 100);
+                } catch (NoSuchMethodException e) {
+                    java.lang.reflect.Method setProgressMethod = 
+                        progressStyleClass.getMethod("setProgress", int.class);
+                    setProgressMethod.invoke(progressStyle, progress);
+                }
+
+                // Set tracker icon inside ProgressStyle
+                try {
+                    android.graphics.drawable.Icon trackerIcon = 
+                        android.graphics.drawable.Icon.createWithResource(
+                            context,
+                            android.R.drawable.stat_sys_download
+                        );
+                    java.lang.reflect.Method setTrackerIconMethod = 
+                        progressStyleClass.getMethod("setTrackerIcon", android.graphics.drawable.Icon.class);
+                    setTrackerIconMethod.invoke(progressStyle, trackerIcon);
+                } catch (Throwable t) {
+                    Log.w(TAG, "Failed to set tracker icon", t);
+                }
 
                 // Call builder.setStyle(progressStyle) via reflection
                 java.lang.reflect.Method setStyleMethod = 
