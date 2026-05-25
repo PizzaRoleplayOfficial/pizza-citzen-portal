@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.7.2'; // 1.7.2 (プロフィール更新時のポップアップモーダル化、デザイン統一)
+export const CURRENT_VERSION = '1.7.3'; // 1.7.3 (Android 16 ライブアップデート通知 Xiaomi互換性向上: チャネル重要度アップ)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

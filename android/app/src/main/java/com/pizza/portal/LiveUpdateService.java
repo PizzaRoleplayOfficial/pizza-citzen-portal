@@ -71,7 +71,7 @@ public class LiveUpdateService extends Service {
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "App Updates",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH // Raise importance to HIGH for Xiaomi/MIUI compatibility
             );
             channel.setDescription("Shows download progress for application updates");
             notificationManager.createNotificationChannel(channel);
@@ -89,12 +89,13 @@ public class LiveUpdateService extends Service {
         builder.setContentTitle("GV Portal Update")
             .setContentText("Downloading update... " + progress + "%")
             .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setCategory(Notification.CATEGORY_PROGRESS) // Help OS classify it correctly for Live Update promotion
             .setOngoing(true);
 
         // Apply Android 16 ProgressStyle safely if supported
         if (Build.VERSION.SDK_INT >= 36) {
             try {
-                Android16Helper.applyProgressStyle(builder, progress, this);
+                Android16Helper.applyProgressStyle(builder, progress, this, notificationManager);
             } catch (Throwable t) {
                 Log.e(TAG, "Failed to apply Android 16 ProgressStyle", t);
                 // Fallback to standard progress bar on exception
@@ -110,8 +111,18 @@ public class LiveUpdateService extends Service {
 
     // Inner class helper using reflection to prevent compilation and runtime errors on environments without Android 16 SDK
     private static class Android16Helper {
-        static void applyProgressStyle(Notification.Builder builder, int progress, Context context) {
+        static void applyProgressStyle(Notification.Builder builder, int progress, Context context, NotificationManager notificationManager) {
             try {
+                // Log promoted notification permission state on Android 16 for debugging
+                try {
+                    java.lang.reflect.Method canPostMethod = 
+                        NotificationManager.class.getMethod("canPostPromotedNotifications");
+                    boolean canPost = (boolean) canPostMethod.invoke(notificationManager);
+                    Log.d(TAG, "Android 16 canPostPromotedNotifications: " + canPost);
+                } catch (Throwable t) {
+                    Log.w(TAG, "Failed to check canPostPromotedNotifications via reflection: " + t.getMessage());
+                }
+
                 // Call builder.setRequestPromotedOngoing(true) via reflection
                 java.lang.reflect.Method setRequestPromotedOngoingMethod = 
                     Notification.Builder.class.getMethod("setRequestPromotedOngoing", boolean.class);
