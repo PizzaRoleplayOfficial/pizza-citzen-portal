@@ -403,13 +403,11 @@ export default function App() {
 
     if (Capacitor.isNativePlatform()) {
       try {
-        // Non-overlay: status bar takes its own space (like a normal app)
-        StatusBar.setOverlaysWebView({ overlay: false });
+        // Edge-to-edge: web content renders behind system bars
+        StatusBar.setOverlaysWebView({ overlay: true });
         if (theme === 'dark') {
-          StatusBar.setBackgroundColor({ color: '#0a0c10' });
           StatusBar.setStyle({ style: Style.Light }); // Light (white) icons on dark background
         } else {
-          StatusBar.setBackgroundColor({ color: '#f8fafc' });
           StatusBar.setStyle({ style: Style.Dark }); // Dark (black) icons on light background
         }
       } catch (err) {
@@ -1767,7 +1765,7 @@ export default function App() {
       )}
 
       {isMobile && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--nav-bg)', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--nav-bg)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             {view === 'admin' && (
               <button 

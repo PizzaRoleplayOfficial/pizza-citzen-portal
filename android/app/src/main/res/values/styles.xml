@@ -13,9 +13,12 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- Solid dark default; Capacitor StatusBar API sets the exact color at runtime -->
-        <item name="android:statusBarColor">#FF0A0C10</item>
-        <!-- false = white icons (for dark background). Capacitor StatusBar API overrides this at runtime. -->
+        <!-- Edge-to-edge: both status bar and nav bar are transparent -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Handle display cutouts (notch) -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <!-- false = white icons (for dark background). Capacitor StatusBar API overrides at runtime. -->
         <item name="android:windowLightStatusBar">false</item>
     </style>
 

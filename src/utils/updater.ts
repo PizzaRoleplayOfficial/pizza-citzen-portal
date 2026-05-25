@@ -2,7 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.6.5'; // 1.6.5 (ステータスバーをオーバーレイから非オーバーレイに変更しアプリを普通のネイティブアプリのように表示)
+export const CURRENT_VERSION = '1.6.6'; // 1.6.6 (エッジトゥエッジ全画面表示: ステータスバー・ナビゲーションバーまで透過)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
