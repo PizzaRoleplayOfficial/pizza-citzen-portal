@@ -1,8 +1,8 @@
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.6.7'; // 1.6.7 (ステータスバーアイコン色修正: ダークモード=白アイコン, ライトモード=黒アイコン)
+export const CURRENT_VERSION = '1.6.8'; // 1.6.8 (Android 16 ライブアップデート対応: バックグラウンドダウンロード + ProgressStyle通知)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
@@ -12,8 +12,13 @@ export interface ApkInstallerPlugin {
   installApk(options: { filePath: string }): Promise<{ success: boolean }>;
 }
 
+export interface LiveUpdatePlugin {
+  startDownload(options: { url: string }): Promise<{ success: boolean }>;
+}
+
 // 読み込みタイミングの Race Condition を避けるため、使用時に動的取得する getter を定義します
 export const getApkInstaller = () => registerPlugin<ApkInstallerPlugin>('ApkInstaller');
+export const getLiveUpdate = () => registerPlugin<LiveUpdatePlugin>('LiveUpdate');
 
 export interface GitHubRelease {
   version: string;
@@ -89,7 +94,20 @@ export async function checkLatestRelease(): Promise<GitHubRelease | null> {
 export async function downloadAndInstallApk(
   downloadUrl: string,
   onProgress: (percentage: number) => void
-): Promise<void> {
+): Promise<{ isBackground: boolean }> {
+  // 0. Use LiveUpdate Service on Android native platform for Android 16 Live Updates
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+    try {
+      const liveUpdate = getLiveUpdate();
+      await liveUpdate.startDownload({ url: downloadUrl });
+      // Notify calling UI that download is queued/started in background
+      onProgress(100);
+      return { isBackground: true };
+    } catch (e) {
+      console.warn('Failed to start LiveUpdate service, falling back to Filesystem download:', e);
+    }
+  }
+
   let progressListener: any = null;
   try {
     // 1. ダウンロード進捗の監視
@@ -123,6 +141,7 @@ export async function downloadAndInstallApk(
     // 5. 自作ネイティブプラグインの動的取得と呼び出し
     const apkInstaller = getApkInstaller();
     await apkInstaller.installApk({ filePath: result.path });
+    return { isBackground: false };
   } catch (err) {
     if (progressListener) {
       await progressListener.remove();

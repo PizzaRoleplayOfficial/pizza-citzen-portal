@@ -1112,17 +1112,31 @@ export default function App() {
     triggerHaptic('medium');
 
     try {
-      await downloadAndInstallApk(updateState.apkUrl, (progress) => {
+      const result = await downloadAndInstallApk(updateState.apkUrl, (progress) => {
         setUpdateState(prev => ({
           ...prev,
           downloadProgress: progress
         }));
       });
-      setUpdateState(prev => ({
-        ...prev,
-        status: 'success'
-      }));
-      triggerHaptic('success');
+
+      if (result && result.isBackground) {
+        setUpdateState(prev => ({
+          ...prev,
+          status: 'background_started'
+        }));
+        triggerHaptic('success');
+
+        // Close after 4 seconds automatically
+        setTimeout(() => {
+          setUpdateState(prev => ({ ...prev, isOpen: false }));
+        }, 4000);
+      } else {
+        setUpdateState(prev => ({
+          ...prev,
+          status: 'success'
+        }));
+        triggerHaptic('success');
+      }
     } catch (err: any) {
       console.error('Download/Install failed:', err);
       let errorMsg = err.message || '不明なエラーが発生しました。';
@@ -2833,10 +2847,14 @@ export default function App() {
               <div style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', color: '#10b981', fontSize: '0.85rem', lineHeight: 1.5, textAlign: 'center' }}>
                 ダウンロードが完了しました！インストーラーが起動します。
               </div>
+            ) : updateState.status === 'background_started' ? (
+              <div style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', color: '#10b981', fontSize: '0.85rem', lineHeight: 1.5, textAlign: 'center' }}>
+                バックグラウンドでダウンロードを開始しました。<br />通知領域で進捗を確認できます。
+              </div>
             ) : null}
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-              {updateState.status !== 'downloading' && updateState.status !== 'success' && (
+              {updateState.status !== 'downloading' && updateState.status !== 'success' && updateState.status !== 'background_started' && (
                 <button
                   type="button"
                   onClick={() => {
@@ -2849,7 +2867,7 @@ export default function App() {
                   今はしない
                 </button>
               )}
-              {updateState.status !== 'success' && (
+              {updateState.status !== 'success' && updateState.status !== 'background_started' && (
                 <button
                   type="button"
                   disabled={updateState.status === 'downloading'}
@@ -2858,6 +2876,19 @@ export default function App() {
                   style={{ flex: 1.5, padding: '14px', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 600, justifyContent: 'center', opacity: updateState.status === 'downloading' ? 0.7 : 1 }}
                 >
                   {updateState.status === 'downloading' ? 'ダウンロード中...' : updateState.status === 'error' ? '再試行する' : '今すぐ更新する'}
+                </button>
+              )}
+              {updateState.status === 'background_started' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUpdateState(prev => ({ ...prev, isOpen: false }));
+                    triggerHaptic('light');
+                  }}
+                  className="btn btn-primary"
+                  style={{ flex: 1, padding: '14px', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 600, justifyContent: 'center' }}
+                >
+                  閉じる
                 </button>
               )}
             </div>

@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
         // Register custom native plugins
         registerPlugin(ApkInstallerPlugin.class);
         registerPlugin(PixelHapticsPlugin.class);
+        registerPlugin(LiveUpdatePlugin.class);
 
         super.onCreate(savedInstanceState);
     }
