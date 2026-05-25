@@ -403,6 +403,8 @@ export default function App() {
 
     if (Capacitor.isNativePlatform()) {
       try {
+        // Non-overlay: status bar takes its own space (like a normal app)
+        StatusBar.setOverlaysWebView({ overlay: false });
         if (theme === 'dark') {
           StatusBar.setBackgroundColor({ color: '#0a0c10' });
           StatusBar.setStyle({ style: Style.Light }); // Light (white) icons on dark background
