@@ -349,7 +349,7 @@ export const MyGarageView = ({
 
       {/* ====== Mobile FAB Speed Dial ====== */}
       {isMobile && myApplication?.status === 'approved' && (
-        <div ref={fabRef} style={{ position: 'fixed', bottom: '88px', right: '24px', zIndex: 500, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+        <div ref={fabRef} style={{ position: 'fixed', bottom: '108px', right: '24px', zIndex: 500, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
 
           {/* Speed Dial Items */}
           {fabOpen && (
