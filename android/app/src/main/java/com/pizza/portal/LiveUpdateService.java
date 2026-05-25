@@ -109,6 +109,36 @@ public class LiveUpdateService extends Service {
         return builder.build();
     }
 
+    private Notification buildIndeterminateNotification(int kbDownloaded) {
+        Notification.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(this, CHANNEL_ID);
+        } else {
+            builder = new Notification.Builder(this);
+        }
+
+        String downloadedText = String.format("Downloading... %.1f MB", kbDownloaded / 1024.0);
+        builder.setContentTitle("GV Portal Update")
+            .setContentText(downloadedText)
+            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setCategory(Notification.CATEGORY_PROGRESS)
+            .setOngoing(true);
+
+        // Under Android 16, set indeterminate progress style
+        if (Build.VERSION.SDK_INT >= 36) {
+            try {
+                Android16Helper.applyIndeterminateStyle(builder, this, notificationManager);
+            } catch (Throwable t) {
+                Log.e(TAG, "Failed to apply Android 16 Indeterminate Style", t);
+                builder.setProgress(0, 0, true);
+            }
+        } else {
+            builder.setProgress(0, 0, true);
+        }
+
+        return builder.build();
+    }
+
     // Inner class helper using reflection to prevent compilation and runtime errors on environments without Android 16 SDK
     private static class Android16Helper {
         static void applyProgressStyle(Notification.Builder builder, int progress, Context context, NotificationManager notificationManager) {
@@ -171,6 +201,34 @@ public class LiveUpdateService extends Service {
                 Log.w(TAG, "Android 16 Live Updates API is not available on this device or SDK: " + t.getMessage());
             }
         }
+
+        static void applyIndeterminateStyle(Notification.Builder builder, Context context, NotificationManager notificationManager) {
+            try {
+                // Call builder.setRequestPromotedOngoing(true) via reflection
+                java.lang.reflect.Method setRequestPromotedOngoingMethod = 
+                    Notification.Builder.class.getMethod("setRequestPromotedOngoing", boolean.class);
+                setRequestPromotedOngoingMethod.invoke(builder, true);
+
+                // Instantiate and configure Notification.ProgressStyle via reflection
+                Class<?> progressStyleClass = Class.forName("android.app.Notification$ProgressStyle");
+                Object progressStyle = progressStyleClass.getDeclaredConstructor().newInstance();
+
+                java.lang.reflect.Method setStyledByProgressMethod = 
+                    progressStyleClass.getMethod("setStyledByProgress", boolean.class);
+                setStyledByProgressMethod.invoke(progressStyle, true);
+
+                // Call builder.setStyle(progressStyle) via reflection
+                java.lang.reflect.Method setStyleMethod = 
+                    Notification.Builder.class.getMethod("setStyle", Class.forName("android.app.Notification$Style"));
+                setStyleMethod.invoke(builder, progressStyle);
+
+                builder.setProgress(0, 0, true);
+                Log.d(TAG, "Successfully applied Android 16 Indeterminate ProgressStyle and RequestPromotedOngoing via reflection");
+            } catch (Throwable t) {
+                Log.w(TAG, "Android 16 Indeterminate Live Updates API is not available: " + t.getMessage());
+                builder.setProgress(0, 0, true);
+            }
+        }
     }
 
     private void downloadAndInstall(String urlString) {
@@ -190,11 +248,35 @@ public class LiveUpdateService extends Service {
 
         try {
             URL url = new URL(urlString);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.connect();
+            int redirectCount = 0;
+            int status = -1;
 
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                throw new Exception("Server returned HTTP " + connection.getResponseCode());
+            while (true) {
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setInstanceFollowRedirects(true);
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36");
+                connection.setRequestProperty("Accept", "*/*");
+                connection.connect();
+
+                status = connection.getResponseCode();
+                if (status == HttpURLConnection.HTTP_MOVED_TEMP || 
+                    status == HttpURLConnection.HTTP_MOVED_PERM || 
+                    status == 307 || status == 308) {
+                    
+                    if (redirectCount > 8) {
+                        throw new Exception("Too many redirects");
+                    }
+                    String newUrl = connection.getHeaderField("Location");
+                    connection.disconnect();
+                    url = new URL(newUrl);
+                    redirectCount++;
+                } else {
+                    break;
+                }
+            }
+
+            if (status != HttpURLConnection.HTTP_OK) {
+                throw new Exception("Server returned HTTP " + status);
             }
 
             int fileLength = connection.getContentLength();
@@ -204,7 +286,7 @@ public class LiveUpdateService extends Service {
             byte[] data = new byte[4096];
             long total = 0;
             int count;
-            int lastProgress = 0;
+            int lastProgress = -1;
 
             while ((count = input.read(data)) != -1) {
                 total += count;
@@ -215,6 +297,13 @@ public class LiveUpdateService extends Service {
                     if (progress != lastProgress) {
                         lastProgress = progress;
                         notificationManager.notify(NOTIFICATION_ID, buildProgressNotification(progress));
+                    }
+                } else {
+                    int kbDownloaded = (int) (total / 1024);
+                    int currentMarker = kbDownloaded / 512; // Update every 512KB
+                    if (currentMarker != lastProgress) {
+                        lastProgress = currentMarker;
+                        notificationManager.notify(NOTIFICATION_ID, buildIndeterminateNotification(kbDownloaded));
                     }
                 }
             }
