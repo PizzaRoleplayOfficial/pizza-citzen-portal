@@ -13,9 +13,10 @@ const sendWebhook = async (url: string, content: any) => {
   }
 };
 
-const fetchWikiImageUrl = async (title: string): Promise<string | null> => {
+const fetchWikiImageUrl = async (title: string, gameType: string = 'gv'): Promise<string | null> => {
   try {
-    const fandomUrl = new URL('https://greenville-wisconsin.fandom.com/api.php');
+    const domain = gameType === 'rc' ? 'rensselaer-county.fandom.com' : 'greenville-wisconsin.fandom.com';
+    const fandomUrl = new URL(`https://${domain}/api.php`);
     fandomUrl.searchParams.set('action', 'query');
     fandomUrl.searchParams.set('prop', 'pageimages');
     fandomUrl.searchParams.set('titles', title);
@@ -73,7 +74,7 @@ const ensureTable = async (db: any) => {
   try {
     // Check vehicles table
     const { results: vCols } = await db.prepare("PRAGMA table_info(vehicles)").all();
-    const vColsToAdd = ['plate_region', 'roblox_username', 'image_data', 'reject_reason', 'vehicle_type', 'trailer_type', 'temp_plate', 'temp_expires_at', 'is_temp_registration', 'reviewed_at'];
+    const vColsToAdd = ['plate_region', 'roblox_username', 'image_data', 'reject_reason', 'vehicle_type', 'trailer_type', 'temp_plate', 'temp_expires_at', 'is_temp_registration', 'reviewed_at', 'game_type'];
     for (const colName of vColsToAdd) {
       if (!(vCols as any[]).some((col: any) => col.name === colName)) {
         console.log(`Migration: Adding missing column '${colName}' to 'vehicles' table...`);
@@ -104,7 +105,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     if (isAdmin) {
       console.log("Admin list requested");
       const query = `
-        SELECT v.id, v.owner_id, v.maker, v.model, v.year, v.trim, v.color, v.plate, v.plate_region, v.status, v.reject_reason, v.vehicle_type, v.trailer_type, v.temp_plate, v.temp_expires_at, v.is_temp_registration, v.reviewed_at, v.created_at, v.roblox_username, v.image_data,
+        SELECT v.id, v.owner_id, v.maker, v.model, v.year, v.trim, v.color, v.plate, v.plate_region, v.status, v.reject_reason, v.vehicle_type, v.trailer_type, v.temp_plate, v.temp_expires_at, v.is_temp_registration, v.reviewed_at, v.created_at, v.roblox_username, v.image_data, v.game_type,
                u.username as discord_username, u.avatar as discord_avatar
         FROM vehicles v
         LEFT JOIN users u ON v.owner_id = u.id
@@ -120,7 +121,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     } else {
       console.log(`User vehicle list requested for: ${userId}`);
       const query = `
-        SELECT v.id, v.owner_id, v.maker, v.model, v.year, v.trim, v.color, v.plate, v.plate_region, v.status, v.reject_reason, v.vehicle_type, v.trailer_type, v.temp_plate, v.temp_expires_at, v.is_temp_registration, v.reviewed_at, v.created_at, v.roblox_username, v.image_data,
+        SELECT v.id, v.owner_id, v.maker, v.model, v.year, v.trim, v.color, v.plate, v.plate_region, v.status, v.reject_reason, v.vehicle_type, v.trailer_type, v.temp_plate, v.temp_expires_at, v.is_temp_registration, v.reviewed_at, v.created_at, v.roblox_username, v.image_data, v.game_type,
                u.username as discord_username, u.avatar as discord_avatar
         FROM vehicles v
         LEFT JOIN users u ON v.owner_id = u.id
@@ -145,7 +146,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   const body = await request.json() as any;
-  const { maker, model, year, trim, color, plate, plate_region, roblox_username, owner_id, image_data, vehicle_type, trailer_type, is_temp_registration } = body;
+  const { maker, model, year, trim, color, plate, plate_region, roblox_username, owner_id, image_data, vehicle_type, trailer_type, is_temp_registration, game_type } = body;
   const isTrailer = vehicle_type === 'trailer';
 
   // Guard: check citizenship approval
@@ -168,16 +169,18 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     await ensureTable(env.D1_DB);
     
     await env.D1_DB.prepare(
-      "INSERT INTO vehicles (id, owner_id, maker, model, year, trim, color, plate, plate_region, roblox_username, image_data, vehicle_type, trailer_type, is_temp_registration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    ).bind(id, owner_id, maker || '', model, year || 2024, trim, color, plate, plate_region, roblox_username, image_data || null, vehicle_type || 'car', trailer_type || null, is_temp_registration || 0).run();
+      "INSERT INTO vehicles (id, owner_id, maker, model, year, trim, color, plate, plate_region, roblox_username, image_data, vehicle_type, trailer_type, is_temp_registration, game_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, owner_id, maker || '', model, year || 2024, trim, color, plate, plate_region, roblox_username, image_data || null, vehicle_type || 'car', trailer_type || null, is_temp_registration || 0, game_type || 'gv').run();
 
     console.log("Insert success!");
 
     // Discord Webhook Notification
     if (env.DISCORD_WEBHOOK_APPLICATIONS) {
+      const isRc = game_type === 'rc';
+      const gameLabel = isRc ? "Rensselaer County" : "Greenville";
       const embedPayload: any = isTrailer ? {
-        title: "🚛 新規トレーラー登録の申請",
-        color: 0x3A8BCC,
+        title: `🚛 [${gameLabel}] 新規トレーラー登録の申請`,
+        color: isRc ? 0x00A0CC : 0x3A8BCC,
         fields: [
           { name: "Roblox ID", value: roblox_username || "未設定", inline: true },
           { name: "トレーラー", value: `${maker ? maker + ' ' : ''}${model}`, inline: false },
@@ -187,8 +190,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
         ],
         timestamp: new Date().toISOString(),
       } : {
-        title: "🚗 新規車両登録の申請",
-        color: 0xFF9E00,
+        title: `🚗 [${gameLabel}] 新規車両登録の申請`,
+        color: isRc ? 0x00E166 : 0xFF9E00,
         fields: [
           { name: "Roblox ID", value: roblox_username || "未設定", inline: true },
           { name: "車両モデル", value: `${year} ${maker} ${model}`, inline: false },
@@ -217,10 +220,10 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
         } else {
           // No user image, try to fetch Wiki image
           const query = `${year} ${maker} ${model}`;
-          let wikiUrl = await fetchWikiImageUrl(query);
+          let wikiUrl = await fetchWikiImageUrl(query, game_type || 'gv');
           if (!wikiUrl) {
             // Fallback without year
-            wikiUrl = await fetchWikiImageUrl(`${maker} ${model}`);
+            wikiUrl = await fetchWikiImageUrl(`${maker} ${model}`, game_type || 'gv');
           }
           
           if (wikiUrl) {
@@ -250,21 +253,24 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 
 export const onRequestPut = async ({ env, request }: { env: any, request: Request }) => {
   const body = await request.json() as any;
-  const { id, maker, model, year, trim, color, plate, plate_region, image_data } = body;
-
+  const { id, maker, model, year, trim, color, plate, plate_region, image_data, game_type } = body;
+ 
   try {
     await ensureTable(env.D1_DB);
     const existing = await env.D1_DB.prepare("SELECT * FROM vehicles WHERE id = ?").bind(id).first() as any;
-
+ 
     await env.D1_DB.prepare(
-      "UPDATE vehicles SET maker = ?, model = ?, year = ?, trim = ?, color = ?, plate = ?, plate_region = ?, image_data = ?, status = 'pending' WHERE id = ?"
-    ).bind(maker, model, year, trim, color, plate, plate_region, image_data || null, id).run();
+      "UPDATE vehicles SET maker = ?, model = ?, year = ?, trim = ?, color = ?, plate = ?, plate_region = ?, image_data = ?, game_type = ?, status = 'pending' WHERE id = ?"
+    ).bind(maker, model, year, trim, color, plate, plate_region, image_data || null, game_type || 'gv', id).run();
 
     if (existing && env.DISCORD_WEBHOOK_APPLICATIONS) {
+      const activeGame = game_type || existing.game_type || 'gv';
+      const isRc = activeGame === 'rc';
+      const gameLabel = isRc ? "Rensselaer County" : "Greenville";
       const isTrailer = existing.vehicle_type === 'trailer';
       const embedPayload: any = isTrailer ? {
-        title: "🚛 車両情報の編集（再承認待ち）",
-        color: 0x3A8BCC,
+        title: `🚛 [${gameLabel}] 車両情報の編集（再承認待ち）`,
+        color: isRc ? 0x00A0CC : 0x3A8BCC,
         fields: [
           { name: "Roblox ID", value: existing.roblox_username || "未設定", inline: true },
           { name: "トレーラー", value: `${maker ? maker + ' ' : ''}${model}`, inline: false },
@@ -274,8 +280,8 @@ export const onRequestPut = async ({ env, request }: { env: any, request: Reques
         ],
         timestamp: new Date().toISOString(),
       } : {
-        title: "🚗 車両情報の編集（再承認待ち）",
-        color: 0xFF9E00,
+        title: `🚗 [${gameLabel}] 車両情報の編集（再承認待ち）`,
+        color: isRc ? 0x00E166 : 0xFF9E00,
         fields: [
           { name: "Roblox ID", value: existing.roblox_username || "未設定", inline: true },
           { name: "更新後車両モデル", value: `${year} ${maker} ${model}`, inline: false },
@@ -302,8 +308,8 @@ export const onRequestPut = async ({ env, request }: { env: any, request: Reques
           await sendWebhook(env.DISCORD_WEBHOOK_APPLICATIONS, form);
         } else {
           const query = `${year} ${maker} ${model}`;
-          let wikiUrl = await fetchWikiImageUrl(query);
-          if (!wikiUrl) wikiUrl = await fetchWikiImageUrl(`${maker} ${model}`);
+          let wikiUrl = await fetchWikiImageUrl(query, activeGame);
+          if (!wikiUrl) wikiUrl = await fetchWikiImageUrl(`${maker} ${model}`, activeGame);
           
           if (wikiUrl) {
             embedPayload.image = { url: wikiUrl };
@@ -388,6 +394,8 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
     // Fetch vehicle info for notification
     const v = await env.D1_DB.prepare("SELECT * FROM vehicles WHERE id = ?").bind(id).first() as any;
     if (v && env.DISCORD_WEBHOOK_RESULTS) {
+      const isRc = v.game_type === 'rc';
+      const gameLabel = isRc ? "Rensselaer County" : "Greenville";
       const color = status === 'approved' ? 3066993 : (status === 'approved_warning' ? 16752660 : (status === 'temp_approved' ? 16752660 : 15158332)); // green, yellow/orange, or red
       const statusText = status === 'approved' ? '✅ 承認' : (status === 'approved_warning' ? '⚠️ 承認 (非推奨)' : (status === 'temp_approved' ? `🅿️ 仮ナンバー承認 (${body.days || 15}日間)` : '❌ 却下'));
       
@@ -403,7 +411,7 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
       const vehicleIcon = v.vehicle_type === 'trailer' ? '🚛' : '🚗';
       await sendWebhook(env.DISCORD_WEBHOOK_RESULTS, {
         embeds: [{
-          title: `${vehicleIcon} 車両登録申請 結果: ${statusText}`,
+          title: `${vehicleIcon} [${gameLabel}] 車両登録申請 結果: ${statusText}`,
           color: color,
           fields: fields,
           timestamp: new Date().toISOString()

@@ -1,10 +1,12 @@
 import { CatalogData } from "../types";
 
 export const fetchWikiCatalog = async (
+  gameType: "gv" | "rc",
   onProgress: (msg: string) => void
 ): Promise<CatalogData> => {
   // 1. Fetch all pages in Category:Vehicles
-  const baseUrl = "https://greenville-wisconsin.fandom.com/api.php";
+  const domain = gameType === "rc" ? "rensselaer-county.fandom.com" : "greenville-wisconsin.fandom.com";
+  const baseUrl = `https://${domain}/api.php`;
   const listUrl = `${baseUrl}?action=query&list=categorymembers&cmtitle=Category:Vehicles&cmlimit=500&format=json&origin=*`;
   const listRes = await fetch(listUrl);
   const listData = await listRes.json();
@@ -101,8 +103,11 @@ export const fetchWikiCatalog = async (
   return newCatalog;
 };
 
-export const saveCatalogToDatabase = async (catalog: CatalogData): Promise<boolean> => {
-  const saveRes = await fetch("/api/catalog", {
+export const saveCatalogToDatabase = async (
+  catalog: CatalogData,
+  gameType: "gv" | "rc"
+): Promise<boolean> => {
+  const saveRes = await fetch(`/api/catalog?gameType=${gameType}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(catalog),

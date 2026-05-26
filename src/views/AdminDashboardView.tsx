@@ -50,7 +50,7 @@ interface AdminDashboardViewProps {
   handleDeleteVehicle: (id: string) => void;
   handleUpdateRole: (id: string, role: string) => void;
   handleReviewApplication: (userId: string, status: string, reason?: string) => void;
-  handleWikiSync: () => void;
+  handleWikiSync: (gameType: 'gv' | 'rc') => void;
   handleSaveQuestion: (q: any) => void;
   handleToggleQuestion: (id: string, active: number) => void;
   currentUser: any;
@@ -755,6 +755,19 @@ export const AdminDashboardView = ({
                       <div style={{ padding: isMobile ? '12px' : '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                              <span style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                background: v.game_type === 'rc' ? 'rgba(0, 160, 204, 0.15)' : 'rgba(0, 193, 102, 0.15)',
+                                color: v.game_type === 'rc' ? 'var(--secondary)' : 'var(--primary)',
+                                border: v.game_type === 'rc' ? '1px solid rgba(0, 160, 204, 0.3)' : '1px solid rgba(0, 193, 102, 0.3)'
+                              }}>
+                                {v.game_type === 'rc' ? '🔵 RC' : '🟢 Greenville'}
+                              </span>
+                            </div>
                             <div style={{ color: 'var(--primary)', fontSize: isMobile ? '0.75rem' : '0.85rem', fontWeight: 600, marginBottom: '2px' }}>{v.year} {v.maker}</div>
                             <div style={{ fontWeight: 800, fontSize: isMobile ? '1rem' : '1.4rem', color: 'var(--text-main)', letterSpacing: '0.02em', lineHeight: 1.2 }}>{v.model}</div>
                             <div 
@@ -1030,6 +1043,19 @@ export const AdminDashboardView = ({
                       </div>
                       <div style={{ padding: isMobile ? '12px' : '24px', flex: 1, display: 'flex', flexDirection: lookupViewMode === 'grid' ? 'column' : 'row', gap: isMobile ? '10px' : '16px', alignItems: lookupViewMode === 'grid' ? 'stretch' : 'center' }}>
                         <div style={{ flex: 2 }}>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: v.game_type === 'rc' ? 'rgba(0, 160, 204, 0.15)' : 'rgba(0, 193, 102, 0.15)',
+                              color: v.game_type === 'rc' ? 'var(--secondary)' : 'var(--primary)',
+                              border: v.game_type === 'rc' ? '1px solid rgba(0, 160, 204, 0.3)' : '1px solid rgba(0, 193, 102, 0.3)'
+                            }}>
+                              {v.game_type === 'rc' ? '🔵 RC' : '🟢 Greenville'}
+                            </span>
+                          </div>
                           <div style={{ fontWeight: 800, fontSize: isMobile ? '0.95rem' : '1.25rem', color: 'var(--text-main)', marginBottom: '4px', letterSpacing: '0.02em', lineHeight: 1.2 }}>{v.year} {v.maker} {v.model}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: isMobile ? '8px' : '16px' }}>
                             <div 
@@ -1343,11 +1369,21 @@ export const AdminDashboardView = ({
         )}
 
         {adminTab === 'catalog' && (
-          <div className="animate-fade">
-             <div className="glass card" style={{ padding: '32px', borderRadius: '20px' }}>
-               <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '16px' }}>カタログ同期</h3>
-               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Wikiから最新の車両データを取得し、システムを更新します。</p>
-               <button className="btn btn-primary" onClick={handleWikiSync} style={{ padding: '12px 24px' }}><RefreshCw size={18} /> Wikiから同期実行</button>
+          <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+             <div className="glass card" style={{ padding: '32px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+               <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-main)' }}>🟢 Greenville (Gv) カタログ同期</h3>
+               <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '0.9rem' }}>Greenville Wiki から最新の車両データを取得し、Gv用の車両カタログデータベースを同期・更新します。</p>
+               <button className="btn btn-primary" onClick={() => handleWikiSync('gv')} style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)', border: 'none' }}>
+                 <RefreshCw size={18} /> WikiからGvカタログを同期
+               </button>
+             </div>
+
+             <div className="glass card" style={{ padding: '32px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+               <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-main)' }}>🔵 Rensselaer County (RC) カタログ同期</h3>
+               <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '0.9rem' }}>Rensselaer County Wiki から最新の車両データを取得し、RC用の車両カタログデータベースを同期・更新します。</p>
+               <button className="btn btn-primary" onClick={() => handleWikiSync('rc')} style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, var(--secondary) 0%, #0099bb 100%)', border: 'none' }}>
+                 <RefreshCw size={18} /> WikiからRCカタログを同期
+               </button>
              </div>
           </div>
         )}

@@ -67,9 +67,10 @@ const extractColors = (content: string): string[] => {
   return Array.from(colors);
 };
 
-const resolveFileUrl = async (fileName: string): Promise<string | null> => {
+const resolveFileUrl = async (fileName: string, gameType: 'gv' | 'rc'): Promise<string | null> => {
   try {
-    const url = new URL('https://greenville-wisconsin.fandom.com/api.php');
+    const host = gameType === 'rc' ? 'rensselaer-county.fandom.com' : 'greenville-wisconsin.fandom.com';
+    const url = new URL(`https://${host}/api.php`);
     url.searchParams.set('action', 'query');
     url.searchParams.set('titles', `File:${fileName.trim()}`);
     url.searchParams.set('prop', 'imageinfo');
@@ -90,8 +91,9 @@ const resolveFileUrl = async (fileName: string): Promise<string | null> => {
   }
 };
 
-const fetchWikiData = async (title: string, targetTrim?: string | null): Promise<WikiResult> => {
-  const fandomUrl = new URL('https://greenville-wisconsin.fandom.com/api.php');
+const fetchWikiData = async (title: string, targetTrim?: string | null, gameType: 'gv' | 'rc' = 'gv'): Promise<WikiResult> => {
+  const host = gameType === 'rc' ? 'rensselaer-county.fandom.com' : 'greenville-wisconsin.fandom.com';
+  const fandomUrl = new URL(`https://${host}/api.php`);
   fandomUrl.searchParams.set('action', 'query');
   fandomUrl.searchParams.set('prop', 'pageimages|revisions');
   fandomUrl.searchParams.set('titles', title);
@@ -138,7 +140,7 @@ const fetchWikiData = async (title: string, targetTrim?: string | null): Promise
             let filePart = parts[0].trim();
             // If the label matches the requested trim (case-insensitive substring)
             if (trimMatch.toLowerCase().includes(targetTrim.toLowerCase())) {
-              const specificUrl = await resolveFileUrl(filePart);
+              const specificUrl = await resolveFileUrl(filePart, gameType);
               if (specificUrl) {
                 imageUrl = specificUrl;
                 break;
@@ -162,6 +164,7 @@ export const onRequestGet = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
   const query = url.searchParams.get('q');
   const targetTrim = url.searchParams.get('trim');
+  const gameType = (url.searchParams.get('gameType') || 'gv') as 'gv' | 'rc';
 
   if (!query) {
     return new Response(JSON.stringify({ imageUrl: null, trims: [], colors: [] }), { status: 200, headers: JSON_HEADERS });
@@ -169,13 +172,13 @@ export const onRequestGet = async ({ request }: { request: Request }) => {
 
   try {
     // Try 1: Full query
-    let result = await fetchWikiData(query, targetTrim);
+    let result = await fetchWikiData(query, targetTrim, gameType);
 
     // Try 2: Fallback without leading year
     if (!result.imageUrl && result.trims.length === 0 && result.colors.length === 0) {
       const withoutYear = query.replace(/^\d{4}\s+/, '');
       if (withoutYear !== query) {
-        const fallbackResult = await fetchWikiData(withoutYear, targetTrim);
+        const fallbackResult = await fetchWikiData(withoutYear, targetTrim, gameType);
         if (fallbackResult.imageUrl || fallbackResult.trims.length > 0 || fallbackResult.colors.length > 0) {
           result = fallbackResult;
         }

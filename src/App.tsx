@@ -120,6 +120,33 @@ const VEHICLE_WARNING_TEMPLATES = [
 
 export default function App() {
   const [carModels, setCarModels] = useState<Record<string, string[]>>({});
+  const loadCatalog = async (gameType: 'gv' | 'rc') => {
+    try {
+      const res = await fetch(`/api/catalog?gameType=${gameType}`);
+      if (res.ok) {
+        const data = await res.json() as any;
+        if (data && data.catalog) {
+          setCarModels(data.catalog);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(`Failed to load ${gameType} dynamic catalog, falling back:`, e);
+    }
+    if (gameType === 'gv') {
+      fetch('/data/car_models.json')
+        .then(r => r.json())
+        .then(data => setCarModels(data as Record<string, string[]>))
+        .catch(e => console.error("Failed to load car models catalog:", e));
+    } else {
+      setCarModels({
+        "Chevrolet": ["Caprice", "Tahoe", "Impala", "Silverado"],
+        "Ford": ["Crown Victoria", "Explorer", "F-150", "Taurus"],
+        "Dodge": ["Charger", "Durango", "Ram"],
+        "Toyota": ["Camry", "Prius", "RAV4"]
+      });
+    }
+  };
   const [currentUser, setCurrentUser] = useState<User>(INITIAL_USER);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [theme, setTheme] = useState<'dark'|'light'>(
@@ -280,6 +307,7 @@ export default function App() {
   const [adminStats, setAdminStats] = useState({ pendingVehicles: 0, pendingApps: 0, totalPending: 0 });
 
   const [formData, setFormData] = useState({
+    game_type: 'gv',
     maker: '',
     model: '',
     year: 2024,
@@ -295,6 +323,7 @@ export default function App() {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [trailerSubmitting, setTrailerSubmitting] = useState(false);
   const [trailerFormData, setTrailerFormData] = useState({
+    game_type: 'gv',
     model: '',
     maker: '',
     trailer_type: '',
@@ -380,7 +409,7 @@ export default function App() {
       }
       setShowTrailerModal(false);
       setEditingVehicleId(null);
-      setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+      setTrailerFormData({ game_type: 'gv', model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
       await fetchVehicles();
       const message = editingVehicleId ? 'トレーラー情報の更新申請を送信しました。再審査待ちになります。' : 'トレーラー登録申請を送信しました！審査待ちになります。';
       alert(message);
@@ -432,7 +461,7 @@ export default function App() {
     setWikiPreviewUrl(null);
     setWikiTrims([]);
     setWikiColors([]);
-    fetch(`/api/wiki-image?v=4&q=${encodeURIComponent(query)}${formData.trim ? `&trim=${encodeURIComponent(formData.trim)}` : ''}`)
+    fetch(`/api/wiki-image?v=4&q=${encodeURIComponent(query)}&gameType=${formData.game_type}${formData.trim ? `&trim=${encodeURIComponent(formData.trim)}` : ''}`)
       .then(r => r.ok ? r.json() : null)
       .then((data: any) => {
         if (cancelled) return;
@@ -443,7 +472,7 @@ export default function App() {
       .catch(() => {})
       .finally(() => { if (!cancelled) setWikiLoading(false); });
     return () => { cancelled = true; };
-  }, [formData.maker, formData.model, formData.year, formData.trim, showAddModal]);
+  }, [formData.maker, formData.model, formData.year, formData.trim, formData.game_type, showAddModal]);
 
   const fetchVehicles = async () => {
     setIsLoading(true);
@@ -648,10 +677,7 @@ export default function App() {
     }
     
     // Load external vehicle catalog
-    fetch('/data/car_models.json')
-      .then(r => r.json())
-      .then(data => setCarModels(data as Record<string, string[]>))
-      .catch(e => console.error("Failed to load car models catalog:", e));
+    loadCatalog('gv');
   }, []);
 
   // =========================================================================
@@ -980,6 +1006,7 @@ export default function App() {
     const isTrailer = (v as any).vehicle_type === 'trailer';
     if (isTrailer) {
       setTrailerFormData({
+        game_type: (v as any).game_type || 'gv',
         model: v.model, maker: v.maker, trailer_type: (v as any).trailer_type || '', color: v.color || '',
         plate: v.plate, plate_region: v.plate_region || 'WISCONSIN',
         roblox_username: v.roblox_username || '', image_data: v.image_data || ''
@@ -987,6 +1014,7 @@ export default function App() {
       setEditingVehicleId(v.id);
       setShowTrailerModal(true);
     } else {      setFormData({
+        game_type: (v as any).game_type || 'gv',
         maker: v.maker, model: v.model, year: v.year, trim: v.trim || '', color: v.color || '',
         plate: v.plate, plate_region: v.plate_region || 'WISCONSIN',
         roblox_username: v.roblox_username || '', image_data: v.image_data || ''
@@ -1525,7 +1553,7 @@ export default function App() {
         setShowAddModal(false);
         setEditingVehicleId(null);
         setRegistrationMode('normal');
-        setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+        setFormData({ game_type: 'gv', maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
         fetchVehicles();
         triggerHaptic('success');
         scheduleLocalNotification(
@@ -1608,12 +1636,14 @@ export default function App() {
     }
   };
 
-  const handleWikiSync = async () => {
-    if (!confirm('Wikiから最新の車両データを取得し、カタログを更新しますか？')) return;
+  const handleWikiSync = async (gameType: 'gv' | 'rc') => {
+    const gameName = gameType === 'rc' ? 'Rensselaer County (RC)' : 'Greenville (Gv)';
+    if (!confirm(`${gameName} のWikiから最新の車両データを取得し、カタログを更新しますか？\n（この処理には1分程度かかる場合があります）`)) return;
     try {
-      const res = await fetch('/api/catalog', { method: 'POST' });
+      const res = await fetch(`/api/catalog?gameType=${gameType}`, { method: 'POST' });
       if (res.ok) {
-        alert('カタログの同期が完了しました。');
+        alert(`${gameName} のカタログ同期が完了しました。`);
+        loadCatalog(gameType);
       } else {
         const err = await res.json() as any;
         alert(err.error || 'カタログの同期に失敗しました。');
@@ -2294,6 +2324,62 @@ export default function App() {
               </p>
             </div>
             <form onSubmit={handleSubmitVehicle} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px' }}>
+              {/* ゲーム選択トグル (Gv / RC) */}
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>対象ゲーム (Target Game)</label>
+                <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, game_type: 'gv', maker: '', model: '' }));
+                      loadCatalog('gv');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: formData.game_type === 'gv' ? 'rgba(0, 193, 102, 0.2)' : 'transparent',
+                      color: formData.game_type === 'gv' ? 'var(--primary)' : 'var(--text-muted)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: formData.game_type === 'gv' ? '0 2px 8px rgba(0, 193, 102, 0.15)' : 'none'
+                    }}
+                  >
+                    🟢 Greenville (Gv)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, game_type: 'rc', maker: '', model: '' }));
+                      loadCatalog('rc');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: formData.game_type === 'rc' ? 'rgba(0, 160, 204, 0.2)' : 'transparent',
+                      color: formData.game_type === 'rc' ? 'var(--secondary)' : 'var(--text-muted)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: formData.game_type === 'rc' ? '0 2px 8px rgba(0, 160, 204, 0.15)' : 'none'
+                    }}
+                  >
+                    🔵 Rensselaer County (RC)
+                  </button>
+                </div>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '20px' }}>
 
                  <div>
@@ -2327,7 +2413,7 @@ export default function App() {
                   {!wikiLoading && wikiPreviewUrl && (
                     <div style={{ position: 'relative' }}>
                       <img src={wikiPreviewUrl} alt="Wiki preview" style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }} />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', fontSize: '0.75rem', color: '#fff' }}>📖 Greenville Wiki より参照画像（登録にはご自身の画像をアップロードしてください）</div>
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', fontSize: '0.75rem', color: '#fff' }}>📖 {formData.game_type === 'rc' ? 'Rensselaer County' : 'Greenville'} Wiki より参照画像（登録にはご自身の画像をアップロードしてください）</div>
                     </div>
                   )}
                 </div>
@@ -2459,6 +2545,56 @@ export default function App() {
             <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '4px' }}>🚛 トレーラーを追加</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '28px', fontSize: '0.9rem' }}>被牽引車（トレーラー）の登録申請を行います。</p>
             <form onSubmit={handleSubmitTrailer} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px' }}>
+              {/* ゲーム選択トグル (Gv / RC) */}
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>対象ゲーム (Target Game)</label>
+                <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setTrailerFormData(prev => ({ ...prev, game_type: 'gv' }))}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: trailerFormData.game_type === 'gv' ? 'rgba(0, 193, 102, 0.2)' : 'transparent',
+                      color: trailerFormData.game_type === 'gv' ? 'var(--primary)' : 'var(--text-muted)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: trailerFormData.game_type === 'gv' ? '0 2px 8px rgba(0, 193, 102, 0.15)' : 'none'
+                    }}
+                  >
+                    🟢 Greenville (Gv)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTrailerFormData(prev => ({ ...prev, game_type: 'rc' }))}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: trailerFormData.game_type === 'rc' ? 'rgba(0, 160, 204, 0.2)' : 'transparent',
+                      color: trailerFormData.game_type === 'rc' ? 'var(--secondary)' : 'var(--text-muted)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: trailerFormData.game_type === 'rc' ? '0 2px 8px rgba(0, 160, 204, 0.15)' : 'none'
+                    }}
+                  >
+                    🔵 Rensselaer County (RC)
+                  </button>
+                </div>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '16px' }}>
 
                 <div>

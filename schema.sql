@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
   roblox_username TEXT NOT NULL,
   status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
   image_data TEXT, -- Base64 encoded compressed image data
+  game_type TEXT DEFAULT 'gv', -- 'gv' or 'rc'
   temp_plate TEXT, -- Temporary license plate (e.g., 仮-1234)
   temp_expires_at DATETIME, -- Expiration date for temporary plate
   reviewed_at DATETIME, -- Review date for approved/rejected/temp status

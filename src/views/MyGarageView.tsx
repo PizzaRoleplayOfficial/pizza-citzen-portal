@@ -52,6 +52,7 @@ export const MyGarageView = ({
   handleDeleteVehicle,
   isMobile = false
 }: MyGarageViewProps) => {
+  const [activeGame, setActiveGame] = useState<'gv' | 'rc'>('gv');
   const [garageSearchTerm, setGarageSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'temp'>('all');
   const [fabOpen, setFabOpen] = useState(false);
@@ -94,10 +95,10 @@ export const MyGarageView = ({
                 <p style={{ color: 'var(--text-muted)', margin: 0 }}>管理中の車両一覧です。</p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '0.8rem', fontWeight: 600 }}>
-                    🚗 {vehicles.filter((v: any) => v.vehicle_type !== 'trailer').length} 台
+                    🚗 {vehicles.filter((v: any) => v.vehicle_type !== 'trailer' && (v.game_type || 'gv') === activeGame).length} 台
                   </span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '0.8rem', fontWeight: 600 }}>
-                    🚛 {vehicles.filter((v: any) => v.vehicle_type === 'trailer').length} 台
+                    🚛 {vehicles.filter((v: any) => v.vehicle_type === 'trailer' && (v.game_type || 'gv') === activeGame).length} 台
                   </span>
                 </div>
               </div>
@@ -111,7 +112,8 @@ export const MyGarageView = ({
                 <button className="btn btn-secondary" onClick={() => {
                   triggerHaptic('light');
                   if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                  setShowBetaAutoFillModal(true);
+                      setFormData(prev => ({ ...prev, game_type: activeGame }));
+                      setShowBetaAutoFillModal(true);
                 }} style={{ padding: '10px 16px', borderRadius: '12px', border: '1px dashed var(--primary)', color: 'var(--primary)', background: 'rgba(0,193,102,0.1)' }}>
                   ✨ 画像から自動登録 (Beta)
                 </button>
@@ -122,7 +124,7 @@ export const MyGarageView = ({
                   <button className="btn btn-primary" onClick={() => {
                     triggerHaptic('light');
                     if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                    setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setFormData({ game_type: activeGame, maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
                     setEditingVehicleId(null);
                     setShowAddModal(true);
                   }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }}>
@@ -132,7 +134,7 @@ export const MyGarageView = ({
                   <button className="btn btn-primary" onClick={() => {
                     triggerHaptic('light');
                     if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                    setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setTrailerFormData({ game_type: activeGame, model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
                     setShowTrailerModal(true);
                   }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', background: 'var(--primary)', color: '#000' }}>
                     <Plus size={20} /> トレーラーを追加
@@ -154,6 +156,56 @@ export const MyGarageView = ({
                 className="glass"
                 style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: 'none', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.95rem', outline: 'none' }}
               />
+            </div>
+          </div>
+
+          {/* ゲーム専用セグメントタブ (Gv / RC) (v1.8.0) */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.02)', padding: '5px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+              <button
+                onClick={() => { triggerHaptic('light'); setActiveGame('gv'); }}
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  background: activeGame === 'gv' ? 'rgba(0, 193, 102, 0.15)' : 'transparent',
+                  color: activeGame === 'gv' ? 'var(--primary)' : 'var(--text-muted)',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderBottom: activeGame === 'gv' ? '2px solid var(--primary)' : '2px solid transparent'
+                }}
+              >
+                🎮 Greenville (Gv)
+              </button>
+              <button
+                onClick={() => { triggerHaptic('light'); setActiveGame('rc'); }}
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  background: activeGame === 'rc' ? 'rgba(0, 160, 204, 0.15)' : 'transparent',
+                  color: activeGame === 'rc' ? 'var(--secondary)' : 'var(--text-muted)',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderBottom: activeGame === 'rc' ? '2px solid var(--secondary)' : '2px solid transparent'
+                }}
+              >
+                🎮 Rensselaer County (RC)
+              </button>
             </div>
           </div>
 
@@ -251,6 +303,10 @@ export const MyGarageView = ({
                   const typeMatch = (v as any).vehicle_type === garageTab || (!(v as any).vehicle_type && garageTab === 'car');
                   if (!typeMatch) return false;
                   
+                  // Game type filter (Greenville / RC)
+                  const gameMatch = (v.game_type || 'gv') === activeGame;
+                  if (!gameMatch) return false;
+                  
                   // Status filter
                   if (statusFilter !== 'all') {
                     if (statusFilter === 'approved' && v.status !== 'approved' && v.status !== 'approved_warning') return false;
@@ -281,6 +337,19 @@ export const MyGarageView = ({
                   <div className="garage-card-body">
                     <div className="garage-card-header">
                       <div>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            background: v.game_type === 'rc' ? 'rgba(0, 160, 204, 0.15)' : 'rgba(0, 193, 102, 0.15)',
+                            color: v.game_type === 'rc' ? 'var(--secondary)' : 'var(--primary)',
+                            border: v.game_type === 'rc' ? '1px solid rgba(0, 160, 204, 0.3)' : '1px solid rgba(0, 193, 102, 0.3)'
+                          }}>
+                            {v.game_type === 'rc' ? '🔵 RC' : '🟢 Greenville'}
+                          </span>
+                        </div>
                         <div className="garage-card-meta">{(v as any).vehicle_type === 'trailer' ? '🚛 ' : ''}{v.year ? `${v.year} ` : ''}{v.maker}</div>
                         <h3 className="garage-card-title">{v.model}</h3>
                         <div className="garage-card-date">申請: {formatDate(v.created_at)}</div>
@@ -409,11 +478,11 @@ export const MyGarageView = ({
                     triggerHaptic('medium');
                     if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
                     if (garageTab === 'car') {
-                      setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setFormData({ game_type: activeGame, maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
                       setEditingVehicleId(null);
                       setShowAddModal(true);
                     } else {
-                      setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setTrailerFormData({ game_type: activeGame, model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
                       setShowTrailerModal(true);
                     }
                   }}

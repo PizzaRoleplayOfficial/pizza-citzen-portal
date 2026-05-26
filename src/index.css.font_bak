@@ -1,0 +1,1675 @@
+:root {
+  color-scheme: dark;
+  --primary: #00ff88;
+  --primary-glow: rgba(0, 255, 136, 0.4);
+  --secondary: #00d4ff;
+  --bg-dark: #0a0c10;
+  --bg-grad-1: #1a2a3a;
+  --bg-grad-2: #0d1520;
+  --bg-card: rgba(25, 30, 40, 0.7);
+  --text-main: #f0f2f5;
+  --text-muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(15, 20, 30, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --nav-bg: #12161f;
+  --panel-bg: rgba(20,25,35,0.6);
+  --admin-content-bg: transparent;
+  --input-bg: rgba(0,0,0,0.2);
+  --input-text: #fff;
+  --error: #ff4757;
+  --success: #2ed573;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.05);
+  --btn-secondary-hover: rgba(255, 255, 255, 0.1);
+  --btn-secondary-text: #fff;
+  --modal-overlay: rgba(10,12,16,0.85);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --image-bg: rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --primary: #00c166;
+  --primary-glow: rgba(0, 193, 102, 0.3);
+  --secondary: #00a0cc;
+  --bg-dark: #f0f4f8;
+  --bg-grad-1: #ffffff;
+  --bg-grad-2: #e0e7ee;
+  --bg-card: #ffffff;
+  --text-main: #2b3a4a;
+  --text-muted: #64748b;
+  --border: rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --nav-bg: #ffffff;
+  --panel-bg: #ffffff;
+  --admin-content-bg: #f8fafc;
+  --input-bg: #ffffff;
+  --input-text: #2b3a4a;
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-hover: #f1f5f9;
+  --btn-secondary-text: #2b3a4a;
+  --modal-overlay: rgba(100,116,139,0.5);
+  --image-bg: #f1f5f9;
+}
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 50% -20%, var(--bg-grad-1), transparent),
+    radial-gradient(circle at 0% 100%, var(--bg-grad-2), transparent);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px var(--primary-glow); }
+  50% { box-shadow: 0 0 20px var(--primary-glow); }
+  100% { box-shadow: 0 0 5px var(--primary-glow); }
+}
+
+.animate-fade {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Typography */
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(to right, var(--text-main), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  font-size: 0.95rem;
+}
+
+.btn svg {
+  color: inherit;
+  stroke: currentColor;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #000;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--primary-glow);
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--glass-border);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+}
+
+/* Cards */
+.card {
+  padding: 24px;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px; /* Added for horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.image-gallery::-webkit-scrollbar {
+  display: none;
+}
+.image-gallery {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Layout Utilities */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 32px;
+}
+
+@media (min-width: 769px) {
+  .list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .list-view .garage-card {
+    flex-direction: row !important;
+    align-items: stretch;
+  }
+  
+  /* Desktop list view image container sizing */
+  .list-view .garage-card-image {
+    width: 250px !important;
+    height: auto !important;
+    min-height: 200px;
+    flex-shrink: 0;
+    border-bottom: none !important;
+    border-right: 1px solid var(--glass-border);
+  }
+  .list-view .garage-card-image div {
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+  
+  .list-view .garage-card-body {
+    display: flex !important;
+    gap: 32px;
+    align-items: center;
+    padding: 24px !important;
+    flex-direction: row !important;
+    flex: 1;
+  }
+  
+  .list-view .garage-card-header {
+    flex: 2; /* Title / Status area */
+    margin-bottom: 0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+  }
+  
+  .list-view .garage-card-fields {
+    flex: 1; /* Trim / Color area */
+    margin-bottom: 0 !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .list-view .garage-card-footer {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 32px !important;
+    flex: 2 !important;
+  }
+  
+  .list-view .garage-card-plate-section {
+    flex: 1;
+    margin-bottom: 0 !important;
+  }
+  
+  .list-view .garage-card-actions {
+    flex-shrink: 0;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .list-view {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  
+  /* Horizontal compact row on mobile list view */
+  .list-view .garage-card {
+    flex-direction: row !important;
+    align-items: stretch !important;
+    padding: 12px !important;
+    gap: 16px !important;
+    border-radius: 12px !important;
+  }
+  
+  .list-view .garage-card > div:first-child {
+    display: block !important;
+    width: 100px !important;
+    height: 100px !important;
+    min-height: 100px !important;
+    flex-shrink: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border-bottom: none !important;
+  }
+  
+  .list-view .garage-card > div:first-child div {
+    height: 100% !important;
+    min-height: 100% !important;
+    border-bottom: none !important;
+  }
+  
+  .list-view .garage-card-body {
+    padding: 0 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+  
+  .list-view .garage-card-header {
+    margin-bottom: 4px !important;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  
+  .list-view .garage-card-meta {
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+  }
+  
+  .list-view .garage-card-title {
+    font-size: 1.1rem;
+    line-height: 1.2;
+  }
+  
+  .list-view .garage-card-date {
+    display: none; /* Hide date on list row to save space */
+  }
+  
+  .list-view .garage-card-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  
+  .list-view .garage-card-fields > div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .list-view .garage-card-field-title {
+    font-size: 0.6rem;
+    margin-bottom: 0;
+  }
+  
+  .list-view .garage-card-field-value {
+    font-size: 0.8rem;
+  }
+  
+  .list-view .garage-card-plate-section {
+    margin-bottom: 8px;
+  }
+  
+  .list-view .garage-card-plate-title {
+    display: none;
+  }
+  
+  .list-view .garage-card-plate {
+    transform: scale(0.8);
+    transform-origin: left top;
+    margin-bottom: -15px;
+  }
+  
+  .list-view .garage-card-actions {
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+  
+  .list-view .garage-card-actions .btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+}
+
+
+.main-nav {
+  background: var(--nav-bg);
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--glass-border);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 32px;
+  align-items: center;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 1.4rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nav-btn {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--glass-border);
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.nav-btn.active {
+  background: var(--primary);
+  color: #000;
+  border: 1px solid var(--primary);
+}
+
+.nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--error);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 12px;
+  line-height: 1;
+  min-width: 18px;
+  text-align: center;
+}
+
+.admin-nav-btn {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--glass-border);
+  padding: 12px 18px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: flex-start;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.admin-nav-btn.active {
+  background: var(--primary);
+  color: #000;
+  border: 1px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 193, 102, 0.3);
+}
+
+.admin-nav-btn .nav-badge {
+  position: static;
+  margin-left: auto;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-user-info {
+  text-align: right;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+
+.admin-tabs-container {
+  display: flex;
+  background: var(--btn-secondary-bg);
+  padding: 6px;
+  border-radius: 16px;
+  gap: 6px;
+  border: 1px solid var(--glass-border);
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+  
+  .main-nav {
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .nav-tabs-wrapper {
+    grid-column: 1 / -1;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 0;
+    margin: 0 -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .nav-tabs-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .nav-user-info {
+    display: none; /* hide on small screens to save space */
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .view-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .admin-tabs-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .admin-tabs-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  h1 { font-size: 1.8rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.3rem !important; }
+
+  .mobile-only-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mobile-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+  }
+
+  .modal-content {
+    width: 95% !important;
+    padding: 24px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+  
+  .responsive-flex-col {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Admin Sidebar Layout */
+.admin-layout-wrapper {
+  background: var(--bg-dark);
+  min-height: 100vh;
+  display: flex;
+}
+
+.admin-sidebar {
+  width: 250px;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  /* transition moved to mobile query */
+  z-index: 1050;
+}
+
+.admin-sidebar-header {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 32px;
+  padding: 0 12px;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.user-link {
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.user-link:hover {
+  text-shadow: 0 0 8px rgba(0, 193, 102, 0.4);
+  opacity: 0.8;
+}
+
+.admin-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--glass-border);
+  padding: 12px 20px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-sidebar-item:hover {
+  background: var(--btn-secondary-hover);
+  color: var(--text-main);
+}
+
+.admin-sidebar-item.active {
+  background: var(--primary);
+  color: #000;
+  border: 1px solid var(--primary);
+}
+
+.admin-sidebar-item.active svg {
+  color: #000;
+}
+
+.admin-main-area {
+  flex: 1;
+  padding: 40px;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.admin-mobile-header {
+  display: none;
+  padding: 16px;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--glass-border);
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 998;
+}
+
+/* Sidebar backdrop overlay - blocks interaction with content behind sidebar on mobile */
+.admin-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease;
+}
+.admin-sidebar-backdrop.open {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar {
+    position: fixed;
+    left: 0;
+    /* Fully opaque - no see-through on mobile */
+    background: var(--bg-dark, #0d0d0d) !important;
+    border-right: 1px solid rgba(255,255,255,0.1);
+    transform: translateX(-100%);
+    box-shadow: none;
+    z-index: 1050;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .admin-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 10px 0 40px rgba(0,0,0,0.5);
+  }
+  .admin-main-area {
+    padding: 20px 16px;
+  }
+  .admin-mobile-header {
+    display: flex;
+    margin: -20px -16px 24px -16px;
+    padding: 16px 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    top: 0;
+  }
+}
+
+/* Skeleton Loading Screens */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.09) 37%,
+    rgba(255, 255, 255, 0.03) 63%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease infinite;
+}
+
+:root[data-theme='light'] .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 25%,
+    rgba(0, 0, 0, 0.09) 37%,
+    rgba(0, 0, 0, 0.04) 63%
+  );
+  background-size: 200% 100%;
+}
+
+.skeleton-text {
+  height: 16px;
+  border-radius: 6px;
+}
+.skeleton-text.short {
+  width: 50%;
+}
+.skeleton-text.medium {
+  width: 75%;
+}
+.skeleton-title {
+  height: 28px;
+  border-radius: 8px;
+  width: 40%;
+}
+.skeleton-circle {
+  border-radius: 50%;
+}
+.skeleton-rect {
+  border-radius: 12px;
+}
+
+/* OCR Progress Loader Bar */
+.ocr-progress-container {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  height: 8px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--glass-border);
+}
+.ocr-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px var(--primary-glow);
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+
+.filter-tag-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border);
+  background: var(--btn-secondary-bg);
+  color: var(--text-muted);
+  outline: none;
+}
+
+.filter-tag-btn:hover {
+  background: var(--btn-secondary-hover);
+  color: var(--text-main);
+  border-color: var(--border);
+  transform: translateY(-1px);
+}
+
+.filter-tag-btn.active {
+  background: var(--primary);
+  color: #000;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* Status specific active colors when not standard primary */
+.filter-tag-btn.active.success {
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ed573;
+  border-color: #2ed573;
+  box-shadow: 0 4px 12px rgba(46, 213, 115, 0.25);
+}
+
+.filter-tag-btn.active.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border-color: #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+.filter-tag-btn.active.error {
+  background: rgba(255, 71, 87, 0.15);
+  color: #ff4757;
+  border-color: #ff4757;
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.25);
+}
+
+.filter-tag-btn.active.info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+/* ==========================================================================
+   Responsive & Premium UI Updates (v1.4.8)
+   ========================================================================== */
+
+/* Settings Profile & Theme Selector */
+.settings-card {
+  padding: 40px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  background: var(--panel-bg);
+  border: 1px solid var(--glass-border);
+}
+
+.theme-selector-container {
+  display: flex;
+  gap: 16px;
+}
+
+.theme-selector-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 16px;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  flex: 1;
+  color: var(--text-main);
+  font-weight: 500;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-selector-item:hover {
+  border-color: rgba(0, 193, 102, 0.4);
+  background: rgba(0, 193, 102, 0.02);
+}
+
+.theme-selector-item.active {
+  background: rgba(0, 193, 102, 0.1) !important;
+  border: 1.5px solid var(--primary) !important;
+}
+
+/* Garage Card Premium Layout */
+.garage-card {
+  padding: 0;
+  border-radius: 16px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(255,255,255,0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.garage-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+}
+
+.garage-card-image {
+  height: 200px;
+  position: relative;
+  border-bottom: 1px solid var(--glass-border);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Empty-safe hiding for card image when there's no user image and no wiki image! */
+.garage-card-image:empty {
+  display: none !important;
+}
+
+.garage-card-body {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.garage-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.garage-card-meta {
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.garage-card-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.garage-card-date {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
+.garage-card-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.garage-card-field-title {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.garage-card-field-value {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.garage-card-footer {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+}
+
+.garage-card-plate-section {
+  margin-bottom: 32px;
+}
+
+.garage-card-plate-title {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.garage-card-plate {
+  display: inline-flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+.garage-card-plate-region {
+  background: var(--plate-region-bg, #1c2e4a);
+  color: #ffffff;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.garage-card-plate-number {
+  background: #fff;
+  color: #000;
+  padding: 10px 20px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: monospace, sans-serif;
+  white-space: nowrap !important;
+}
+
+.garage-card-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.garage-card-actions .btn {
+  flex: 1;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   Mobile Responsive Adjustments for settings and cards
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Settings Page Card & Theme options spacing */
+  .settings-card {
+    padding: 24px 20px !important;
+    gap: 24px !important;
+  }
+  
+  .theme-selector-container {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .theme-selector-item {
+    padding: 14px !important;
+    font-size: 0.95rem !important;
+  }
+
+  /* Grid View - Compact scaling for 2 columns */
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  
+  .card-grid .garage-card {
+    position: relative !important;
+    border-radius: 12px !important;
+  }
+
+  /* Target the wrapped image container on mobile grid view */
+  .card-grid .garage-card-image {
+    height: 110px !important;
+    overflow: hidden !important;
+    border-bottom: 1px solid var(--glass-border) !important;
+  }
+
+  /* Target only direct and intermediate gallery wrappers to prevent matching nested absolute overlay elements */
+  .card-grid .garage-card-image > div,
+  .card-grid .garage-card-image .image-gallery,
+  .card-grid .garage-card-image .image-gallery > div,
+  .card-grid .garage-card-image .wiki-fallback-image {
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+
+  /* Enforce contain layout on mobile to prevent any cropping of wheels or bumper for varying resolutions */
+  .card-grid .garage-card-image div,
+  .card-grid .garage-card-image .image-gallery div,
+  .card-grid .garage-card-image .wiki-fallback-image,
+  .list-view .garage-card-image div,
+  .list-view .garage-card-image .image-gallery div,
+  .list-view .garage-card-image .wiki-fallback-image {
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-color: var(--image-bg) !important;
+  }
+
+  /* Floating Status Badge Pill on top of the image to save huge space! */
+  .card-grid .garage-card-status {
+    position: absolute !important;
+    top: 6px !important;
+    right: 6px !important;
+    z-index: 10 !important;
+    background: rgba(10, 12, 16, 0.8) !important;
+    border-radius: 4px !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    
+    /* Strict smaller dimensions to avoid blocking the image */
+    display: block !important;
+    width: auto !important;
+    height: 18px !important;
+    max-height: 18px !important;
+    padding: 0 6px !important;
+    overflow: hidden !important;
+  }
+
+  .card-grid .garage-card-status div {
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* If there's no image, position the status badge cleanly relative to the body content */
+  .card-grid .garage-card-image:empty ~ .garage-card-body .garage-card-status {
+    position: static !important;
+    margin-top: 4px !important;
+    background: none !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    height: auto !important;
+    max-height: none !important;
+    display: inline-flex !important;
+  }
+
+  .card-grid .garage-card-status span {
+    font-size: 0.55rem !important;
+    gap: 3px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    line-height: 1 !important;
+  }
+  
+  .card-grid .garage-card-status span svg {
+    width: 9px !important;
+    height: 9px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Compact responsive scaling for gallery badges to prevent obscuring the vehicle image */
+  .card-grid .image-count-badge {
+    bottom: 6px !important;
+    right: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 0.55rem !important;
+    border-radius: 4px !important;
+  }
+
+  .card-grid .wiki-fallback-badge {
+    bottom: 6px !important;
+    left: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 0.52rem !important;
+    border-radius: 4px !important;
+    white-space: nowrap !important;
+    max-width: 85% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+  }
+
+  .card-grid .wiki-fallback-badge svg {
+    width: 8px !important;
+    height: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Extremely compact layout for list view thumbnail badge to prevent wrapping */
+  .list-view .wiki-fallback-badge {
+    bottom: 4px !important;
+    left: 4px !important;
+    padding: 2px 4px !important;
+    font-size: 0.5rem !important;
+    border-radius: 3px !important;
+    max-width: 92px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+  }
+
+  .list-view .wiki-fallback-badge svg {
+    width: 8px !important;
+    height: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card-grid .garage-card-body {
+    padding: 12px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .card-grid .garage-card-header {
+    margin-bottom: 0 !important;
+    display: block !important;
+  }
+
+  .card-grid .garage-card-meta {
+    font-size: 0.75rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .card-grid .garage-card-title {
+    font-size: 1.05rem !important;
+    line-height: 1.2 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .card-grid .garage-card-date {
+    font-size: 0.65rem !important;
+    margin-top: 2px !important;
+  }
+
+  /* Fields stacked inside Grid View */
+  .card-grid .garage-card-fields {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .card-grid .garage-card-field-title {
+    font-size: 0.6rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .card-grid .garage-card-field-value {
+    font-size: 0.85rem !important;
+  }
+
+  /* License Plate scaling */
+  .card-grid .garage-card-plate-section {
+    margin-bottom: 8px !important;
+  }
+
+  .card-grid .garage-card-plate-title {
+    font-size: 0.6rem !important;
+    margin-bottom: 4px !important;
+  }
+
+  .card-grid .garage-card-plate {
+    display: inline-flex !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--glass-border) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card-grid .garage-card-plate-region {
+    padding: 4px 8px !important;
+    font-size: 0.65rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card-grid .garage-card-plate-number {
+    padding: 4px 10px !important;
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Stack actions vertically in 2-column grid view to prevent horizontal overflow */
+  .card-grid .garage-card-actions {
+    flex-direction: column !important;
+    gap: 6px !important;
+    margin-top: auto !important;
+  }
+
+  .card-grid .garage-card-actions .btn {
+    width: 100% !important;
+    padding: 8px !important;
+    font-size: 0.8rem !important;
+    border-radius: 8px !important;
+    justify-content: center !important;
+  }
+
+
+  /* ==========================================
+     Horizontal Compact Row on Mobile List View
+     ========================================== */
+  .list-view {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .list-view .garage-card {
+    flex-direction: row !important;
+    align-items: stretch !important;
+    padding: 10px !important;
+    gap: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Target the wrapped image container on mobile list view */
+  .list-view .garage-card-image {
+    display: block !important;
+    width: 90px !important;
+    height: 90px !important;
+    min-height: 90px !important;
+    flex-shrink: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border-bottom: none !important;
+    border-right: none !important;
+  }
+
+  .list-view .garage-card-image div {
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+
+  .list-view .garage-card-body {
+    padding: 0 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-width: 0 !important; /* Allow flex children to truncate/wrap safely */
+  }
+
+  .list-view .garage-card-header {
+    margin-bottom: 2px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .list-view .garage-card-meta {
+    font-size: 0.75rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .list-view .garage-card-title {
+    font-size: 1.1rem !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 120px !important; /* Safely constrain model name width to prevent overlaps */
+  }
+
+  .list-view .garage-card-status {
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+  }
+
+  .list-view .garage-card-status span {
+    font-size: 0.7rem !important;
+    gap: 4px !important;
+  }
+  
+  .list-view .garage-card-status span svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .list-view .garage-card-date {
+    display: none; /* Hide date on compact list row to keep it sleek */
+  }
+
+  /* Display Grade/Trim & Color in a single extremely elegant line! */
+  .list-view .garage-card-fields {
+    display: block !important;
+    margin-bottom: 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .list-view .garage-card-fields > div {
+    display: inline-block !important;
+  }
+
+  .list-view .garage-card-fields > div:not(:last-child)::after {
+    content: " • ";
+    color: var(--text-muted);
+    margin: 0 6px;
+  }
+
+  .list-view .garage-card-field-title {
+    display: none !important; /* Hide labels on mobile list row to gain massive spacing */
+  }
+
+  .list-view .garage-card-field-value {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    color: var(--text-muted) !important;
+  }
+
+  /* Compact License Plate and Actions horizontal alignment inside Footer! */
+  .list-view .garage-card-footer {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-top: auto !important;
+  }
+
+  .list-view .garage-card-plate-section {
+    margin-bottom: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  .list-view .garage-card-plate-title {
+    display: none !important;
+  }
+
+  .list-view .garage-card-plate {
+    display: inline-flex !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--glass-border) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .list-view .garage-card-plate-region {
+    padding: 4px 8px !important;
+    font-size: 0.65rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .list-view .garage-card-plate-number {
+    padding: 4px 10px !important;
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .list-view .garage-card-actions {
+    gap: 6px !important;
+    justify-content: flex-end !important;
+    flex: none !important;
+  }
+
+  .list-view .garage-card-actions .btn {
+    padding: 6px 10px !important;
+    font-size: 0.75rem !important;
+    border-radius: 6px !important;
+    flex: none !important; /* Prevent button stretching */
+  }
+}
+
+/* ==========================================================================
+   ユーザー管理レスポンシブカードレイアウト (v1.5.8)
+   ========================================================================== */
+.user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* モバイル表示（768px以下）ではリスト表示も自動的に縦積みの美しいカードに最適化 */
+@media (max-width: 768px) {
+  .user-list .glass.card.user-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    text-align: center !important;
+    gap: 16px !important;
+    padding: 20px !important;
+  }
+
+  .user-list .glass.card.user-card > div {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+
+  .user-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+/* ==========================================
+   Boot Splash / Launch Animation (v1.5.24)
+   ========================================== */
+.boot-splash {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 50% 30%, var(--bg-grad-1), transparent),
+    radial-gradient(circle at 50% 70%, var(--bg-grad-2), transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999; /* Ensure it is above everything, including modal overlays */
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s;
+  overflow: hidden;
+}
+
+.boot-splash.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Glowing logo container */
+.boot-logo-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;
+  height: 150px;
+  margin-bottom: 24px;
+}
+
+.boot-logo-glow {
+  position: absolute;
+  inset: -15px;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  animation: bootLogoPulse 2.5s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+.boot-logo {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  animation: bootLogoFloat 3s ease-in-out infinite;
+  z-index: 10;
+  filter: drop-shadow(0 0 15px var(--primary-glow));
+}
+
+.boot-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  background: linear-gradient(135deg, var(--text-main) 0%, var(--primary) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+  animation: bootTextFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.boot-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  animation: bootTextFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.boot-loader {
+  margin-top: 40px;
+  width: 160px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.boot-loader-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+  border-radius: 2px;
+  animation: bootLoading 2.0s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes bootLogoFloat {
+  0% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-12px) scale(1.04); }
+  100% { transform: translateY(0px) scale(1); }
+}
+
+@keyframes bootLogoPulse {
+  0% { transform: scale(0.85); opacity: 0.3; }
+  50% { transform: scale(1.1); opacity: 0.7; }
+  100% { transform: scale(0.85); opacity: 0.3; }
+}
+
+@keyframes bootTextFadeIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bootLoading {
+  0% { width: 0%; }
+  30% { width: 45%; }
+  75% { width: 90%; }
+  100% { width: 100%; }
+}
+

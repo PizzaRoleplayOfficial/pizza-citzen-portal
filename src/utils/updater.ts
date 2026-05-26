@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.8.1'; // 1.8.1 (モバイルFABのbottom位置を108pxに引き上げ、ボトムバーとの干渉による下部の見切れを解消)
+export const CURRENT_VERSION = '1.8.2'; // 1.8.1 (モバイルFABのbottom位置を108pxに引き上げ、ボトムバーとの干渉による下部の見切れを解消)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

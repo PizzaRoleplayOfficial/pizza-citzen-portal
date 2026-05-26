@@ -4,13 +4,16 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.D1_DB;
+  const url = new URL(context.request.url);
+  const gameType = url.searchParams.get('gameType') || 'gv';
+  const catalogId = gameType === 'rc' ? 'latest_rc' : 'latest';
 
   try {
-    const stmt = db.prepare('SELECT data, updated_at FROM vehicle_catalog WHERE id = ?').bind('latest');
+    const stmt = db.prepare('SELECT data, updated_at FROM vehicle_catalog WHERE id = ?').bind(catalogId);
     const row = await stmt.first<{ data: string; updated_at: string }>();
 
     if (!row) {
-      return new Response(JSON.stringify({ error: 'Catalog not found', carModels: {}, carTrims: {}, carColors: {} }), {
+      return new Response(JSON.stringify({ error: 'Catalog not found', carModels: {}, carTrims: [], carColors: [] }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -20,7 +23,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       },
     });
   } catch (err: any) {
@@ -30,6 +33,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const db = context.env.D1_DB;
+  const url = new URL(context.request.url);
+  const gameType = url.searchParams.get('gameType') || 'gv';
+  const catalogId = gameType === 'rc' ? 'latest_rc' : 'latest';
 
   try {
     const cookieHeader = context.request.headers.get('Cookie');
@@ -59,9 +65,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const stmt = db.prepare(`
       INSERT INTO vehicle_catalog (id, data, updated_at) 
-      VALUES ('latest', ?, CURRENT_TIMESTAMP)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=CURRENT_TIMESTAMP
-    `).bind(stringified);
+    `).bind(catalogId, stringified);
 
     await stmt.run();
 
