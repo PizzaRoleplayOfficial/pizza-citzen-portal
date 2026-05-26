@@ -127,129 +127,131 @@ export const ProfileView = ({
           </div>
 
           {/* Device Features Test (Beta) Section */}
-          <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
-                <Smartphone size={24} style={{ color: 'var(--primary)' }} />
+          {currentUser?.role === 'admin' && (
+            <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
+                  <Smartphone size={24} style={{ color: 'var(--primary)' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>デバイス機能テスト (Beta)</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Capacitorネイティブプラグインの動作検証用テストツールです。</p>
+                </div>
               </div>
-              <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>デバイス機能テスト (Beta)</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Capacitorネイティブプラグインの動作検証用テストツールです。</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Haptics Column */}
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Vibrate size={18} style={{ color: 'var(--primary)' }} /> 触覚フィードバック (Haptics)
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+                    <button
+                      onClick={() => triggerHaptic('light')}
+                      className="btn glass"
+                      style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
+                    >
+                      軽めのコツン (Light)
+                    </button>
+                    <button
+                      onClick={() => triggerHaptic('heavy')}
+                      className="btn glass"
+                      style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
+                    >
+                      強めの衝撃 (Heavy)
+                    </button>
+                    <button
+                      onClick={() => triggerHaptic('success')}
+                      className="btn glass"
+                      style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', border: '1px solid rgba(16, 185, 129, 0.2)', background: 'rgba(16, 185, 129, 0.05)', cursor: 'pointer', color: '#10b981' }}
+                    >
+                      成功 (Success)
+                    </button>
+                    <button
+                      onClick={() => triggerHaptic('error')}
+                      className="btn glass"
+                      style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', border: '1px solid rgba(239, 68, 68, 0.2)', background: 'rgba(239, 68, 68, 0.05)', cursor: 'pointer', color: '#ef4444' }}
+                    >
+                      エラー (Error)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Local Notifications Column */}
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Bell size={18} style={{ color: 'var(--primary)' }} /> ローカル通知 (Notifications)
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                    <button
+                      onClick={() => scheduleLocalNotification('テスト通知', 'これは即時テスト通知です。ぴっざぁ市民ポータルより。', 0, 'application_results_channel')}
+                      className="btn glass"
+                      style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', gap: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
+                    >
+                      今すぐ通知をテスト
+                    </button>
+                    <button
+                      onClick={() => scheduleLocalNotification('テスト通知 (ディレイ)', '3秒前に予約された通知です！', 3000, 'application_results_channel')}
+                      className="btn glass"
+                      style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', gap: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
+                    >
+                      3秒後に通知をテスト
+                    </button>
+                  </div>
+                  
+                  <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>バックグラウンド通知のシミュレーター (3秒後)</h5>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.4 }}>
+                    ※ボタンを押したあと、すぐにスマホのホーム画面に戻り（またはスリープにし）、3秒後にバックグラウンドで通知が届くか確認できます。
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <button
+                      onClick={() => scheduleLocalNotification('車両登録申請の結果', '車両「2024年式 トヨタ プリウス」（ナンバー: WIS-1234）の申請が承認されました。', 3000, 'application_results_channel')}
+                      className="btn glass"
+                      style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(0,193,102,0.03)', cursor: 'pointer', color: 'var(--text-main)' }}
+                    >
+                      🚗 車両「承認」通知をシミュレート
+                    </button>
+                    <button
+                      onClick={() => scheduleLocalNotification('市民申請の結果', '市民登録申請が却下されました。理由: 写真のナンバープレート文字が不鮮明です。', 3000, 'application_results_channel')}
+                      className="btn glass"
+                      style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(239,68,68,0.03)', cursor: 'pointer', color: 'var(--text-main)' }}
+                    >
+                      🪪 市民申請「却下」通知をシミュレート
+                    </button>
+                    <button
+                      onClick={() => scheduleLocalNotification('新規の車両登録申請', '新規の登録申請が届きました: Keabu_Robloxさんの「日産 スカイライン」', 3000, 'admin_notifications_channel')}
+                      className="btn glass"
+                      style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
+                    >
+                      👑 運営向け「新規申請」通知をシミュレート
+                    </button>
+                  </div>
+
+                  <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '20px', marginBottom: '8px' }}>Android 16 ライブアップデート通知のテスト</h5>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.4 }}>
+                    ※Android 16+で追加された ProgressStyle 通知のテスト表示です。タップするとダミーのダウンロード進捗（0%〜100%）がステータスバーや通知エリアに表示されます。
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        triggerHaptic('medium');
+                        const liveUpdate = getLiveUpdate();
+                        await liveUpdate.startDownload({ url: 'test' });
+                      } catch (e: any) {
+                        console.error('Failed to start LiveUpdate test:', e);
+                        alert('テスト起動に失敗しました: ' + (e.message || e));
+                      }
+                    }}
+                    className="btn btn-primary"
+                    style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', width: '100%', cursor: 'pointer', gap: '8px', fontWeight: 'bold' }}
+                  >
+                    ⚡ Live Update 通知（テスト）を起動
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Haptics Column */}
-              <div>
-                <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                  <Vibrate size={18} style={{ color: 'var(--primary)' }} /> 触覚フィードバック (Haptics)
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
-                  <button
-                    onClick={() => triggerHaptic('light')}
-                    className="btn glass"
-                    style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
-                  >
-                    軽めのコツン (Light)
-                  </button>
-                  <button
-                    onClick={() => triggerHaptic('heavy')}
-                    className="btn glass"
-                    style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
-                  >
-                    強めの衝撃 (Heavy)
-                  </button>
-                  <button
-                    onClick={() => triggerHaptic('success')}
-                    className="btn glass"
-                    style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', border: '1px solid rgba(16, 185, 129, 0.2)', background: 'rgba(16, 185, 129, 0.05)', cursor: 'pointer', color: '#10b981' }}
-                  >
-                    成功 (Success)
-                  </button>
-                  <button
-                    onClick={() => triggerHaptic('error')}
-                    className="btn glass"
-                    style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', border: '1px solid rgba(239, 68, 68, 0.2)', background: 'rgba(239, 68, 68, 0.05)', cursor: 'pointer', color: '#ef4444' }}
-                  >
-                    エラー (Error)
-                  </button>
-                </div>
-              </div>
-
-              {/* Local Notifications Column */}
-              <div>
-                <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                  <Bell size={18} style={{ color: 'var(--primary)' }} /> ローカル通知 (Notifications)
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                  <button
-                    onClick={() => scheduleLocalNotification('テスト通知', 'これは即時テスト通知です。ぴっざぁ市民ポータルより。', 0, 'application_results_channel')}
-                    className="btn glass"
-                    style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', gap: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
-                  >
-                    今すぐ通知をテスト
-                  </button>
-                  <button
-                    onClick={() => scheduleLocalNotification('テスト通知 (ディレイ)', '3秒前に予約された通知です！', 3000, 'application_results_channel')}
-                    className="btn glass"
-                    style={{ padding: '12px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', gap: '8px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
-                  >
-                    3秒後に通知をテスト
-                  </button>
-                </div>
-                
-                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>バックグラウンド通知のシミュレーター (3秒後)</h5>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.4 }}>
-                  ※ボタンを押したあと、すぐにスマホのホーム画面に戻り（またはスリープにし）、3秒後にバックグラウンドで通知が届くか確認できます。
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <button
-                    onClick={() => scheduleLocalNotification('車両登録申請の結果', '車両「2024年式 トヨタ プリウス」（ナンバー: WIS-1234）の申請が承認されました。', 3000, 'application_results_channel')}
-                    className="btn glass"
-                    style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(0,193,102,0.03)', cursor: 'pointer', color: 'var(--text-main)' }}
-                  >
-                    🚗 車両「承認」通知をシミュレート
-                  </button>
-                  <button
-                    onClick={() => scheduleLocalNotification('市民申請の結果', '市民登録申請が却下されました。理由: 写真のナンバープレート文字が不鮮明です。', 3000, 'application_results_channel')}
-                    className="btn glass"
-                    style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(239,68,68,0.03)', cursor: 'pointer', color: 'var(--text-main)' }}
-                  >
-                    🪪 市民申請「却下」通知をシミュレート
-                  </button>
-                  <button
-                    onClick={() => scheduleLocalNotification('新規の車両登録申請', '新規の登録申請が届きました: Keabu_Robloxさんの「日産 スカイライン」', 3000, 'admin_notifications_channel')}
-                    className="btn glass"
-                    style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', color: 'var(--text-main)' }}
-                  >
-                    👑 運営向け「新規申請」通知をシミュレート
-                  </button>
-                </div>
-
-                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '20px', marginBottom: '8px' }}>Android 16 ライブアップデート通知のテスト</h5>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.4 }}>
-                  ※Android 16+で追加された ProgressStyle 通知のテスト表示です。タップするとダミーのダウンロード進捗（0%〜100%）がステータスバーや通知エリアに表示されます。
-                </p>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      triggerHaptic('medium');
-                      const liveUpdate = getLiveUpdate();
-                      await liveUpdate.startDownload({ url: 'test' });
-                    } catch (e: any) {
-                      console.error('Failed to start LiveUpdate test:', e);
-                      alert('テスト起動に失敗しました: ' + (e.message || e));
-                    }
-                  }}
-                  className="btn btn-primary"
-                  style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', width: '100%', cursor: 'pointer', gap: '8px', fontWeight: 'bold' }}
-                >
-                  ⚡ Live Update 通知（テスト）を起動
-                </button>
-              </div>
-            </div>
-          </div>
+          )}
         </>
       ) : (
         /* App Download Banner ONLY in Web Browser */
