@@ -689,6 +689,13 @@ export default function App() {
   // ネイティブ「戻る」操作（ジェスチャー・ハードウェアボタン）および履歴の同期処理
   // =========================================================================
 
+  // 車両登録モーダルが開いた瞬間に、選択中のゲームタイプのカタログを自動ロードする
+  useEffect(() => {
+    if (showAddModal && formData.game_type) {
+      loadCatalog(formData.game_type);
+    }
+  }, [showAddModal]);
+
   // 各モーダルの開閉状態を window.history と同期
   useEffect(() => {
     if (showAddModal) {

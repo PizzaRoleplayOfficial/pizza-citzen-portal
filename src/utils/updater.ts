@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.8.9'; // 1.8.9 (RC トリーム名の抽出ロジックを修正して不要な価格・無効データを排除)
+export const CURRENT_VERSION = '1.9.0'; // 1.9.0 (車両登録モーダルの初期表示時に選択中ゲームのカタログを自動ロードするよう修正)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
