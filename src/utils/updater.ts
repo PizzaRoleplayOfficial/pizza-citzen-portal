@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.9.1'; // 1.9.1 (RC トリーム名から FWD/AWD などの重複駆動方式表記を除去するクレンジングロジックを実装)
+export const CURRENT_VERSION = '1.9.2'; // 1.9.2 (RC のスマホ車両詳細画面スクリーンショットからの OCR 自動登録機能に対応)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

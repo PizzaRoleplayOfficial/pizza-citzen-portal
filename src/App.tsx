@@ -1339,158 +1339,243 @@ export default function App() {
       let parsedRegion = 'WISCONSIN';
 
       // -------------------------------------------------------------
-      // Anchor-based Smart Parsing
+      // Anchor-based Smart Parsing (Differentiated by game type)
       // -------------------------------------------------------------
-      let lockIndex = -1;
-      let startStopIndex = -1;
+      if (formData.game_type === 'rc') {
+        let rcTitleLine = '';
+        let overviewIndex = -1;
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (lockIndex === -1 && (line.match(/Lock/i) || line.match(/Unlock/i))) {
-          lockIndex = i;
-        }
-        if (startStopIndex === -1 && (line.match(/Start/i) || line.match(/Stop/i))) {
-          startStopIndex = i;
-        }
-      }
-
-      console.log(`Lock index: ${lockIndex}, Start/Stop index: ${startStopIndex}`);
-
-      // Parse Header fields if lockIndex is found
-      if (lockIndex !== -1) {
-        // Look for the Year/Maker/Model line above lockIndex
-        let yearLineIndex = -1;
-        for (let i = 0; i < lockIndex; i++) {
-          if (lines[i].match(/(?:^|\s)(19\d{2}|20\d{2})(?:\s|$)/)) {
-            yearLineIndex = i;
+        // 1. Find anchor text 'OVERVIEW' or 'POWER' in RC screen
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (line.match(/^OVERVIEW$/i) || line.match(/^POWER$/i)) {
+            overviewIndex = i;
             break;
           }
         }
 
-        if (yearLineIndex !== -1) {
-          const yearLine = lines[yearLineIndex];
-          const yearMatch = yearLine.match(/(?:^|\s)(19\d{2}|20\d{2})(?:\s|$)/);
+        // The line above 'OVERVIEW' is the car title
+        if (overviewIndex > 0) {
+          rcTitleLine = lines[overviewIndex - 1].trim();
+        } else if (lines.length > 0) {
+          // Fallback: search for first non-numeric/non-system line
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.length > 3 && 
+                !trimmed.match(/^\d{1,2}:\d{2}$/) && // Skip time like 10:49
+                !trimmed.match(/^Overview$/i) && 
+                !trimmed.match(/^Details$/i)
+            ) {
+              rcTitleLine = trimmed;
+              break;
+            }
+          }
+        }
+
+        console.log("RC Detected Title Line:", rcTitleLine);
+
+        if (rcTitleLine) {
+          // 2. Identify Model & Maker using catalog database (carModels)
+          let foundMaker = '';
+          let foundModel = '';
+
+          // Look for year in text
+          const yearMatch = text.match(/(?:^|\s)(19\d{2}|20\d{2})(?:\s|$)/);
           if (yearMatch) {
             parsedYear = parseInt(yearMatch[1]);
-            // Extract the rest of the string
-            const rest = yearLine.replace(yearMatch[0], '').trim();
-            // Split into maker and model (the first word is Maker, the rest is Model)
-            const parts = rest.split(/\s+/);
-            if (parts.length > 0) {
-              parsedMaker = parts[0];
-              parsedModel = parts.slice(1).join(' ');
-            }
+          } else {
+            // Default to 2024
+            parsedYear = 2024;
           }
 
-          // Trim is the line immediately after the yearLineIndex, but before lockIndex
-          if (yearLineIndex + 1 < lockIndex) {
-            parsedTrim = lines[yearLineIndex + 1].replace(/^[^a-zA-Z0-9]+/, '').trim();
-          }
-        }
-      }
-
-      // Parse Color field if startStopIndex is found
-      if (startStopIndex !== -1 && startStopIndex + 1 < lines.length) {
-        // Strip out weird icons/symbols. E.g. palette icon.
-        // We also strip single leading characters if they are followed by a space (common OCR noise for small icons)
-        let colorLine = lines[startStopIndex + 1];
-        colorLine = colorLine.replace(/^[^a-zA-Z0-9]+/, '').trim();
-        colorLine = colorLine.replace(/^[a-zA-Z0-9]\s+/, '').trim();
-        parsedColor = colorLine;
-      }
-
-      // Parse Plate & Region if startStopIndex + 2 exists
-      if (startStopIndex !== -1 && startStopIndex + 2 < lines.length) {
-        let plateLine = lines[startStopIndex + 2];
-        // Clean up leading non-alphanumeric characters (noise)
-        let cleanedPlateLine = plateLine.replace(/^[^a-zA-Z0-9]+/, '').trim();
-        // Remove "123" prefix (commonly recognized from the number icon) with or without trailing spaces/symbols
-        cleanedPlateLine = cleanedPlateLine.replace(/^123\s*/, '').trim();
-        
-        // Search for plate pattern (letters/digits - letters/digits) anywhere in the line.
-        // We make the second part lenient {1,6} to handle misrecognitions like 'XQT-1M'.
-        const plateMatch = cleanedPlateLine.match(/([a-zA-Z0-9]{2,6}-[a-zA-Z0-9]{1,6})/);
-        if (plateMatch) {
-          parsedPlate = plateMatch[1].toUpperCase();
-          // Region is the text AFTER the plate match (ignoring any pre-plate garbage like 'BE')
-          const plateIndex = cleanedPlateLine.indexOf(plateMatch[1]);
-          const afterPlate = cleanedPlateLine.slice(plateIndex + plateMatch[1].length);
-          const regionText = afterPlate.replace(/^[\s,]+/, '').trim();
-          if (regionText) {
-            parsedRegion = regionText.toUpperCase();
-          }
-        } else {
-          // Fallback: split by comma or spaces
-          const parts = cleanedPlateLine.split(/[\s,]+/);
-          if (parts.length > 0) {
-            // If the first part is very short (1-3 chars) and we have multiple parts,
-            // the first part might be the "123" icon (e.g. recognized as "BE" or "la"), so skip it!
-            if (parts.length >= 3 && parts[0].length <= 3) {
-              parsedPlate = parts[1].toUpperCase();
-              parsedRegion = parts.slice(2).join(' ').toUpperCase();
-            } else {
-              parsedPlate = parts[0].toUpperCase();
-              if (parts.length > 1) {
-                parsedRegion = parts.slice(1).join(' ').toUpperCase();
-              }
-            }
-          }
-        }
-      }
-
-      // -------------------------------------------------------------
-      // Fallback: Robust original-style pattern matching if fields are missing
-      // -------------------------------------------------------------
-      const uiPattern = /Lock|Unlock|Alarm|Start|Stop|Hold/i;
-
-      if (!parsedMaker || !parsedModel) {
-        for (const line of lines) {
-          const carMatch = line.match(/^(\d{4})\s+([a-zA-Z][a-zA-Z0-9-]*)\s+(.+)$/);
-          if (carMatch) {
-            parsedYear = parseInt(carMatch[1]);
-            parsedMaker = carMatch[2];
-            parsedModel = carMatch[3].trim();
-            break;
-          }
-        }
-      }
-
-      if (!parsedTrim && lockIndex === -1) {
-        for (let i = 0; i < lines.length - 1; i++) {
-          if (lines[i].match(/^\d{4}\s+[a-zA-Z]/)) {
-            const next = lines[i + 1];
-            if (next && !uiPattern.test(next)) {
-              parsedTrim = next.replace(/^[^a-zA-Z0-9]+/, '').trim();
-            }
-            break;
-          }
-        }
-      }
-
-      if (!parsedPlate) {
-        for (const line of lines) {
-          const plateMatch = line.match(/([a-zA-Z0-9]{2,6}-[a-zA-Z0-9]{1,6})/);
-          if (plateMatch) {
-            parsedPlate = plateMatch[1].toUpperCase();
-            const afterPlate = line.slice(line.indexOf(plateMatch[1]) + plateMatch[1].length);
-            const regionMatch = afterPlate.match(/[,\s]+([A-Za-z][A-Za-z\s]+)$/);
-            if (regionMatch) parsedRegion = regionMatch[1].trim().toUpperCase();
-            break;
-          }
-        }
-      }
-
-      if (!parsedColor) {
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].match(/Start\s*\/\s*Stop/i)) {
-            for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
-              const stripped = lines[j].replace(/^[^a-zA-Z]+/, '').trim();
-              if (stripped && !uiPattern.test(stripped) && !stripped.match(/\d{2,}/) && !stripped.match(/[A-Z]{2,4}-\d+/)) {
-                parsedColor = stripped;
+          // Scan all makers and models in catalog
+          for (const [maker, models] of Object.entries(carModels)) {
+            for (const model of models) {
+              // Substring match in the title line
+              const escapedModel = model.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+              const regex = new RegExp(`(?:^|\\s)${escapModel}(?:\\s|$)`, 'i');
+              if (rcTitleLine.match(regex)) {
+                foundMaker = maker;
+                foundModel = model;
                 break;
               }
             }
-            break;
+            if (foundMaker) break;
+          }
+
+          if (foundModel) {
+            parsedMaker = foundMaker;
+            parsedModel = foundModel;
+
+            // Extract Trim from remaining parts of the title line
+            let restOfTitle = rcTitleLine;
+            // Remove Year if present
+            if (yearMatch) {
+              restOfTitle = restOfTitle.replace(yearMatch[0], '');
+            }
+            // Remove Maker if present
+            const makerRegex = new RegExp(`(?:^|\\s)${foundMaker}(?:\\s|$)`, 'i');
+            restOfTitle = restOfTitle.replace(makerRegex, '');
+
+            // Remove Model
+            const modelRegex = new RegExp(`(?:^|\\s)${foundModel}(?:\\s|$)`, 'i');
+            restOfTitle = restOfTitle.replace(modelRegex, '');
+
+            // Strip drivetrain FWD/AWD/RWD/4WD/4x4 from the rest to get clean Trim
+            parsedTrim = restOfTitle
+              .replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*/gi, '')
+              .replace(/^[^a-zA-Z0-9]+/, '')
+              .trim();
+          } else {
+            // Ultimate fallback: Split title line
+            const parts = rcTitleLine.split(/\s+/);
+            if (parts.length >= 2) {
+              parsedModel = parts[0];
+              parsedTrim = parts.slice(1).join(' ').replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*/gi, '').trim();
+            }
+          }
+        }
+
+        // Set default region to WISCONSIN but plate blank (as it's not on details page)
+        parsedRegion = 'WISCONSIN';
+        parsedPlate = '';
+      } else {
+        // Greenville (Gv) Original Smart Parsing
+        let lockIndex = -1;
+        let startStopIndex = -1;
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (lockIndex === -1 && (line.match(/Lock/i) || line.match(/Unlock/i))) {
+            lockIndex = i;
+          }
+          if (startStopIndex === -1 && (line.match(/Start/i) || line.match(/Stop/i))) {
+            startStopIndex = i;
+          }
+        }
+
+        console.log(`Lock index: ${lockIndex}, Start/Stop index: ${startStopIndex}`);
+
+        // Parse Header fields if lockIndex is found
+        if (lockIndex !== -1) {
+          let yearLineIndex = -1;
+          for (let i = 0; i < lockIndex; i++) {
+            if (lines[i].match(/(?:^|\s)(19\d{2}|20\d{2})(?:\s|$)/)) {
+              yearLineIndex = i;
+              break;
+            }
+          }
+
+          if (yearLineIndex !== -1) {
+            const yearLine = lines[yearLineIndex];
+            const yearMatch = yearLine.match(/(?:^|\s)(19\d{2}|20\d{2})(?:\s|$)/);
+            if (yearMatch) {
+              parsedYear = parseInt(yearMatch[1]);
+              const rest = yearLine.replace(yearMatch[0], '').trim();
+              const parts = rest.split(/\s+/);
+              if (parts.length > 0) {
+                parsedMaker = parts[0];
+                parsedModel = parts.slice(1).join(' ');
+              }
+            }
+
+            if (yearLineIndex + 1 < lockIndex) {
+              parsedTrim = lines[yearLineIndex + 1].replace(/^[^a-zA-Z0-9]+/, '').trim();
+            }
+          }
+        }
+
+        // Parse Color field if startStopIndex is found
+        if (startStopIndex !== -1 && startStopIndex + 1 < lines.length) {
+          let colorLine = lines[startStopIndex + 1];
+          colorLine = colorLine.replace(/^[^a-zA-Z0-9]+/, '').trim();
+          colorLine = colorLine.replace(/^[a-zA-Z0-9]\s+/, '').trim();
+          parsedColor = colorLine;
+        }
+
+        // Parse Plate & Region if startStopIndex + 2 exists
+        if (startStopIndex !== -1 && startStopIndex + 2 < lines.length) {
+          let plateLine = lines[startStopIndex + 2];
+          let cleanedPlateLine = plateLine.replace(/^[^a-zA-Z0-9]+/, '').trim();
+          cleanedPlateLine = cleanedPlateLine.replace(/^123\s*/, '').trim();
+          
+          const plateMatch = cleanedPlateLine.match(/([a-zA-Z0-9]{2,6}-[a-zA-Z0-9]{1,6})/);
+          if (plateMatch) {
+            parsedPlate = plateMatch[1].toUpperCase();
+            const plateIndex = cleanedPlateLine.indexOf(plateMatch[1]);
+            const afterPlate = cleanedPlateLine.slice(plateIndex + plateMatch[1].length);
+            const regionText = afterPlate.replace(/^[\s,]+/, '').trim();
+            if (regionText) {
+              parsedRegion = regionText.toUpperCase();
+            }
+          } else {
+            const parts = cleanedPlateLine.split(/[\s,]+/);
+            if (parts.length > 0) {
+              if (parts.length >= 3 && parts[0].length <= 3) {
+                parsedPlate = parts[1].toUpperCase();
+                parsedRegion = parts.slice(2).join(' ').toUpperCase();
+              } else {
+                parsedPlate = parts[0].toUpperCase();
+                if (parts.length > 1) {
+                  parsedRegion = parts.slice(1).join(' ').toUpperCase();
+                }
+              }
+            }
+          }
+        }
+
+        // Fallbacks
+        const uiPattern = /Lock|Unlock|Alarm|Start|Stop|Hold/i;
+
+        if (!parsedMaker || !parsedModel) {
+          for (const line of lines) {
+            const carMatch = line.match(/^(\d{4})\s+([a-zA-Z][a-zA-Z0-9-]*)\s+(.+)$/);
+            if (carMatch) {
+              parsedYear = parseInt(carMatch[1]);
+              parsedMaker = carMatch[2];
+              parsedModel = carMatch[3].trim();
+              break;
+            }
+          }
+        }
+
+        if (!parsedTrim && lockIndex === -1) {
+          for (let i = 0; i < lines.length - 1; i++) {
+            if (lines[i].match(/^\d{4}\s+[a-zA-Z]/)) {
+              const next = lines[i + 1];
+              if (next && !uiPattern.test(next)) {
+                parsedTrim = next.replace(/^[^a-zA-Z0-9]+/, '').trim();
+              }
+              break;
+            }
+          }
+        }
+
+        if (!parsedPlate) {
+          for (const line of lines) {
+            const plateMatch = line.match(/([a-zA-Z0-9]{2,6}-[a-zA-Z0-9]{1,6})/);
+            if (plateMatch) {
+              parsedPlate = plateMatch[1].toUpperCase();
+              const afterPlate = line.slice(line.indexOf(plateMatch[1]) + plateMatch[1].length);
+              const regionMatch = afterPlate.match(/[,\s]+([A-Za-z][A-Za-z\s]+)$/);
+              if (regionMatch) parsedRegion = regionMatch[1].trim().toUpperCase();
+              break;
+            }
+          }
+        }
+
+        if (!parsedColor) {
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].match(/Start\s*\/\s*Stop/i)) {
+              for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+                const stripped = lines[j].replace(/^[^a-zA-Z]+/, '').trim();
+                if (stripped && !uiPattern.test(stripped) && !stripped.match(/\d{2,}/) && !stripped.match(/[A-Z]{2,4}-\d+/)) {
+                  parsedColor = stripped;
+                  break;
+                }
+              }
+              break;
+            }
           }
         }
       }
