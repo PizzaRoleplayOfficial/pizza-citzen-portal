@@ -99,6 +99,9 @@ export const fetchWikiCatalog = async (
                .replace(/^\d+px\]?\]?/g, "")
                .trim();
                
+             // 末尾の駆動方式（FWD/AWD/RWD/4WDなど）を除去してゲーム内での重複表示を防止する
+             trimName = trimName.replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*$/i, '').trim();
+               
              if (trimName && 
                  trimName.length > 1 && 
                  trimName.length < 30 && 
