@@ -43,6 +43,7 @@ import {
   isNewerVersion, 
   CURRENT_VERSION 
 } from './utils/updater';
+import { fetchWikiCatalog, saveCatalogToDatabase } from './utils/wikiSync';
 
 // carModels is now loaded dynamically via useEffect
 
@@ -191,6 +192,7 @@ export default function App() {
     }
   };
   const [wikiPreviewUrl, setWikiPreviewUrl] = useState<string | null>(null);
+  const [wikiSyncProgress, setWikiSyncProgress] = useState<string | null>(null);
   const [wikiTrims, setWikiTrims] = useState<string[]>([]);
   const [wikiColors, setWikiColors] = useState<string[]>([]);
   const [wikiLoading, setWikiLoading] = useState(false);
@@ -1639,18 +1641,29 @@ export default function App() {
   const handleWikiSync = async (gameType: 'gv' | 'rc') => {
     const gameName = gameType === 'rc' ? 'Rensselaer County (RC)' : 'Greenville (Gv)';
     if (!confirm(`${gameName} のWikiから最新の車両データを取得し、カタログを更新しますか？\n（この処理には1分程度かかる場合があります）`)) return;
+    
+    setWikiSyncProgress("Wikiから車両リストを取得中...");
     try {
-      const res = await fetch(`/api/catalog?gameType=${gameType}`, { method: 'POST' });
-      if (res.ok) {
+      // 1. Crawl Wiki in the client
+      const newCatalog = await fetchWikiCatalog(gameType, (progressMsg) => {
+        setWikiSyncProgress(progressMsg);
+      });
+      
+      // 2. Save Catalog to DB
+      setWikiSyncProgress("データベースに同期・保存中...");
+      const success = await saveCatalogToDatabase(newCatalog, gameType);
+      
+      if (success) {
         alert(`${gameName} のカタログ同期が完了しました。`);
         loadCatalog(gameType);
       } else {
-        const err = await res.json() as any;
-        alert(err.error || 'カタログの同期に失敗しました。');
+        throw new Error('Failed to save updated catalog to database.');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Catalog sync failed:', e);
-      alert('カタログの同期に失敗しました。');
+      alert(`カタログの同期に失敗しました。\n詳細: ${e.message || e}`);
+    } finally {
+      setWikiSyncProgress(null);
     }
   };
 
@@ -3107,8 +3120,68 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* ====== Wiki Sync Loading Overlay ====== */}
+      {wikiSyncProgress !== null && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'var(--modal-overlay, rgba(10,12,16,0.85))',
+            backdropFilter: 'blur(20px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 4000,
+            padding: '24px'
+          }}
+        >
+          <div
+            className="glass card animate-fade"
+            style={{
+              width: '100%',
+              maxWidth: '400px',
+              padding: '40px 32px',
+              borderRadius: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '24px',
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{ color: 'var(--primary)' }}>
+              <RefreshCw size={56} className="animate-spin" />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+                Wiki カタログ同期中
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
+                Wikiから最新の車両・トリム・カラーデータを自動抽出しています。これには数十秒かかる場合があります。ブラウザを閉じずにお待ちください。
+              </p>
+            </div>
+            <div
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: 'rgba(255,255,255,0.03)',
+                borderRadius: '12px',
+                border: '1px solid var(--glass-border)',
+                fontSize: '0.9rem',
+                color: 'var(--primary)',
+                fontWeight: 600,
+                wordBreak: 'break-all'
+              }}
+            >
+              {wikiSyncProgress}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
 }
-

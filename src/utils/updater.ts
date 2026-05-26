@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.8.3'; // 1.8.3 (アプリ版のデバイス機能テストを管理者権限を持つユーザーのみに表示制限)
+export const CURRENT_VERSION = '1.8.4'; // 1.8.4 (WikiSync カタログ同期がクライアント側で実行されない不具合の解消)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
