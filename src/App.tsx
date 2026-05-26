@@ -126,7 +126,10 @@ export default function App() {
       const res = await fetch(`/api/catalog?gameType=${gameType}`);
       if (res.ok) {
         const data = await res.json() as any;
-        if (data && data.catalog) {
+        if (data && data.carModels) {
+          setCarModels(data.carModels);
+          return;
+        } else if (data && data.catalog) {
           setCarModels(data.catalog);
           return;
         }
