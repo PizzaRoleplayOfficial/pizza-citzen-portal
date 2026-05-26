@@ -73,15 +73,19 @@ const extractTrims = (content: string): string[] => {
            .trim();
            
          if (trimName && 
-             trimName.length > 1 && 
-             trimName.length < 30 && 
-             !/^(trim|purchase|sell|price|prices|colspan|rowspan)$/i.test(trimName) &&
-             !/^\d+$/.test(trimName) && 
-             !trimName.includes('{') && 
-             !trimName.includes('}')
-         ) {
-           trims.add(trimName);
-         }
+              trimName.length > 1 && 
+              trimName.length < 30 && 
+              !trimName.includes('$') &&
+              !trimName.startsWith('!') &&
+              !/^(trim|purchase|sell|price|prices|colspan|rowspan|discord|leak|leaks|msrp|n\/a|—|-)$/i.test(trimName) &&
+              !/(?:price|leak|sell|purchase|\$|discord)/i.test(trimName) &&
+              !/^\d+(?:,\d+)*$/.test(trimName) &&
+              !/^\d+$/.test(trimName) && 
+              !trimName.includes('{') && 
+              !trimName.includes('}')
+          ) {
+            trims.add(trimName);
+          }
       }
     });
   }
