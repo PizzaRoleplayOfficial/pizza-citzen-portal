@@ -2428,7 +2428,7 @@ export default function App() {
                   )}
                   {!wikiLoading && wikiPreviewUrl && (
                     <div style={{ position: 'relative' }}>
-                      <img src={wikiPreviewUrl} alt="Wiki preview" style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }} />
+                      <img src={wikiPreviewUrl} alt="Wiki preview" style={{ width: '100%', height: '180px', objectFit: 'contain', display: 'block', background: 'rgba(0,0,0,0.3)' }} />
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', fontSize: '0.75rem', color: '#fff' }}>📖 {formData.game_type === 'rc' ? 'Rensselaer County' : 'Greenville'} Wiki より参照画像（登録にはご自身の画像をアップロードしてください）</div>
                     </div>
                   )}

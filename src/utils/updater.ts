@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.8.6'; // 1.8.6 (loadCatalog 呼び出し時のレスポンススキーマ判定の不具合修正によるカタログモデル反映の解消)
+export const CURRENT_VERSION = '1.8.7'; // 1.8.7 (Wiki 参照画像の object-fit を contain に変更して見切れを解消)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
