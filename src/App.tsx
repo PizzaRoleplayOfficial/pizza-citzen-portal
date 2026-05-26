@@ -2910,7 +2910,10 @@ export default function App() {
           <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '500px', padding: '40px', borderRadius: '24px', textAlign: 'center' }}>
             <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>✨ 自動入力 (Beta)</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
-              Greenville内のスマホ車両画面スクリーンショットから、<br />
+              {formData.game_type === 'rc' 
+                ? 'Rensselaer County内のスマホ詳細画面スクリーンショットから、' 
+                : 'Greenville内のスマホ車両画面スクリーンショットから、'}
+              <br />
               情報を読み取って自動入力します。
             </p>
 
