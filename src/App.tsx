@@ -90,7 +90,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';
 import { VehicleImageGallery } from './components/VehicleImageGallery';
 import { formatDate } from './utils/helpers';
-import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission } from './utils/native';
+import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache } from './utils/native';
 import { Capacitor } from '@capacitor/core';
 import { handleAvatarError } from './utils/avatarFallback';
 import { App as CapApp } from '@capacitor/app';
@@ -536,6 +536,7 @@ export default function App() {
           localStorage.setItem(`gvvr_vehicle_statuses_${currentUser.id}`, JSON.stringify(newCache));
           setVehicles(list);
         }
+        updateBackgroundPollCache(list);
       }
     } catch (e) {
       console.error("Fetch vehicles failed:", e);
@@ -684,6 +685,19 @@ export default function App() {
     // Load external vehicle catalog
     loadCatalog('gv');
   }, []);
+
+  // ログイン状態に応じてバックグラウンドポーリングを開始・停止 (v1.9.8)
+  useEffect(() => {
+    if (isLoggedIn && currentUser && currentUser.id) {
+      startBackgroundPoll(
+        currentUser.id,
+        currentUser.role || 'user',
+        window.location.origin
+      );
+    } else if (!isLoggedIn && !isLoading) {
+      stopBackgroundPoll();
+    }
+  }, [isLoggedIn, currentUser, isLoading]);
 
   // =========================================================================
   // ネイティブ「戻る」操作（ジェスチャー・ハードウェアボタン）および履歴の同期処理

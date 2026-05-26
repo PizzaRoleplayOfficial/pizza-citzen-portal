@@ -192,3 +192,45 @@ export const requestNotificationPermission = async () => {
     console.error('Request notification permission and channels failed:', err);
   }
 };
+
+export interface BackgroundPollPlugin {
+  setupPoll(options: { userId: string; role: string; domain: string }): Promise<{ success: boolean }>;
+  stopPoll(): Promise<{ success: boolean }>;
+  updateCache(options: { vehiclesJson: string }): Promise<{ success: boolean }>;
+}
+const BackgroundPoll = registerPlugin<BackgroundPollPlugin>('BackgroundPoll');
+
+export const startBackgroundPoll = async (userId: string, role: string, domain: string) => {
+  if (!isNative) return;
+  try {
+    await BackgroundPoll.setupPoll({ userId, role, domain });
+    console.log('Background polling started.');
+  } catch (err) {
+    console.error('Failed to start background polling:', err);
+  }
+};
+
+export const stopBackgroundPoll = async () => {
+  if (!isNative) return;
+  try {
+    await BackgroundPoll.stopPoll();
+    console.log('Background polling stopped.');
+  } catch (err) {
+    console.error('Failed to stop background polling:', err);
+  }
+};
+
+export const updateBackgroundPollCache = async (vehicles: any[]) => {
+  if (!isNative || !Array.isArray(vehicles)) return;
+  try {
+    const map: Record<string, string> = {};
+    vehicles.forEach(v => {
+      if (v && v.id) {
+        map[v.id] = v.status || 'pending';
+      }
+    });
+    await BackgroundPoll.updateCache({ vehiclesJson: JSON.stringify(map) });
+  } catch (err) {
+    console.error('Failed to update background polling cache:', err);
+  }
+};
