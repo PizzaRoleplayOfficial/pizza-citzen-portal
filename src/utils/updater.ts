@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.9.3'; // 1.9.3 (OCR 自動入力モーダルの説明文をゲームタイプに応じて動的表示するように修正)
+export const CURRENT_VERSION = '1.9.4'; // 1.9.4 (RC スマホ画面 OCR 自動登録の解析アルゴリズムを大幅に堅牢化)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

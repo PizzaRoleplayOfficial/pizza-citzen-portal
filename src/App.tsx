@@ -1342,98 +1342,127 @@ export default function App() {
       // Anchor-based Smart Parsing (Differentiated by game type)
       // -------------------------------------------------------------
       if (formData.game_type === 'rc') {
-        let rcTitleLine = '';
-        let overviewIndex = -1;
+        try {
+          let rcTitleLine = '';
+          let anchorIndex = -1;
 
-        // 1. Find anchor text 'OVERVIEW' or 'POWER' in RC screen
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          if (line.match(/^OVERVIEW$/i) || line.match(/^POWER$/i)) {
-            overviewIndex = i;
-            break;
-          }
-        }
-
-        // The line above 'OVERVIEW' is the car title
-        if (overviewIndex > 0) {
-          rcTitleLine = lines[overviewIndex - 1].trim();
-        } else if (lines.length > 0) {
-          // Fallback: search for first non-numeric/non-system line
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.length > 3 && 
-                !trimmed.match(/^\d{1,2}:\d{2}$/) && // Skip time like 10:49
-                !trimmed.match(/^Overview$/i) && 
-                !trimmed.match(/^Details$/i)
+          // 1. Find any key anchor text anywhere in the line (flexible case-insensitive includes)
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].toLowerCase();
+            if (line.includes('overview') || 
+                line.includes('power') || 
+                line.includes('capacity') || 
+                line.includes('details') || 
+                line.includes('transmission') || 
+                line.includes('drivetrain')
             ) {
-              rcTitleLine = trimmed;
+              anchorIndex = i;
               break;
             }
           }
-        }
 
-        console.log("RC Detected Title Line:", rcTitleLine);
-
-        if (rcTitleLine) {
-          // 2. Identify Model & Maker using catalog database (carModels)
-          let foundMaker = '';
-          let foundModel = '';
-
-          // Look for year in text
-          const yearMatch = text.match(/(?:^|\s)(19\d{2}|20\d{2})(?:\s|$)/);
-          if (yearMatch) {
-            parsedYear = parseInt(yearMatch[1]);
-          } else {
-            // Default to 2024
-            parsedYear = 2024;
-          }
-
-          // Scan all makers and models in catalog
-          for (const [maker, models] of Object.entries(carModels)) {
-            for (const model of models) {
-              // Substring match in the title line
-              const escapedModel = model.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-              const regex = new RegExp(`(?:^|\\s)${escapModel}(?:\\s|$)`, 'i');
-              if (rcTitleLine.match(regex)) {
-                foundMaker = maker;
-                foundModel = model;
+          // The line above the first anchor is very likely the car title (Year + Maker + Model + Trim)
+          if (anchorIndex > 0) {
+            // Scan upwards from anchor index to find the first substantial text line
+            for (let j = anchorIndex - 1; j >= 0; j--) {
+              const trimmed = lines[j].trim();
+              if (trimmed.length > 2 && 
+                  !trimmed.match(/^\d{1,2}:\d{2}$/) && // Skip clock time like 10:49
+                  !trimmed.match(/^[0-9\s%\/]+$/) // Skip lines that are just numbers/symbols
+              ) {
+                rcTitleLine = trimmed;
                 break;
               }
             }
-            if (foundMaker) break;
           }
 
-          if (foundModel) {
-            parsedMaker = foundMaker;
-            parsedModel = foundModel;
+          // Fallback: If no anchor was found or no text above it, search top-down
+          if (!rcTitleLine && lines.length > 0) {
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.length > 3 && 
+                  !trimmed.match(/^\d{1,2}:\d{2}$/) && 
+                  !trimmed.toLowerCase().includes('overview') && 
+                  !trimmed.toLowerCase().includes('details') &&
+                  !trimmed.toLowerCase().includes('capacity') &&
+                  !trimmed.toLowerCase().includes('transmission') &&
+                  !trimmed.toLowerCase().includes('drivetrain')
+              ) {
+                rcTitleLine = trimmed;
+                break;
+              }
+            }
+          }
 
-            // Extract Trim from remaining parts of the title line
-            let restOfTitle = rcTitleLine;
-            // Remove Year if present
+          console.log("RC Robust OCR Title Line:", rcTitleLine);
+
+          if (rcTitleLine) {
+            let foundMaker = '';
+            let foundModel = '';
+
+            // Look for year in the whole text or title line
+            const yearMatch = text.match(/(?:^|\s)(19\d{2}|20\d{2})(?:\s|$)/);
             if (yearMatch) {
-              restOfTitle = restOfTitle.replace(yearMatch[0], '');
+              parsedYear = parseInt(yearMatch[1]);
+            } else {
+              parsedYear = 2024;
             }
-            // Remove Maker if present
-            const makerRegex = new RegExp(`(?:^|\\s)${foundMaker}(?:\\s|$)`, 'i');
-            restOfTitle = restOfTitle.replace(makerRegex, '');
 
-            // Remove Model
-            const modelRegex = new RegExp(`(?:^|\\s)${foundModel}(?:\\s|$)`, 'i');
-            restOfTitle = restOfTitle.replace(modelRegex, '');
+            // Scan all makers and models in catalog with dynamic safe fallback
+            const safeCatalog = carModels || {};
+            for (const [maker, models] of Object.entries(safeCatalog)) {
+              if (Array.isArray(models)) {
+                for (const model of models) {
+                  if (model && rcTitleLine.toLowerCase().includes(model.toLowerCase())) {
+                    foundMaker = maker;
+                    foundModel = model;
+                    break;
+                  }
+                }
+              }
+              if (foundMaker) break;
+            }
 
-            // Strip drivetrain FWD/AWD/RWD/4WD/4x4 from the rest to get clean Trim
-            parsedTrim = restOfTitle
-              .replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*/gi, '')
-              .replace(/^[^a-zA-Z0-9]+/, '')
-              .trim();
-          } else {
-            // Ultimate fallback: Split title line
-            const parts = rcTitleLine.split(/\s+/);
-            if (parts.length >= 2) {
-              parsedModel = parts[0];
-              parsedTrim = parts.slice(1).join(' ').replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*/gi, '').trim();
+            if (foundModel) {
+              parsedMaker = foundMaker;
+              parsedModel = foundModel;
+
+              // Extract Trim cleanly by replacing Maker and Model from the title line (case-insensitive substring replacement)
+              let restOfTitle = rcTitleLine;
+              
+              // Remove Year if present
+              if (yearMatch) {
+                restOfTitle = restOfTitle.replace(new RegExp(yearMatch[0], 'i'), '');
+              }
+              
+              // Remove Maker if present
+              if (foundMaker) {
+                restOfTitle = restOfTitle.replace(new RegExp(foundMaker, 'gi'), '');
+              }
+
+              // Remove Model if present
+              if (foundModel) {
+                restOfTitle = restOfTitle.replace(new RegExp(foundModel, 'gi'), '');
+              }
+
+              // Strip drivetrain (FWD/AWD/RWD/4WD/4x4) and non-alphanumeric noise to get clean Trim
+              parsedTrim = restOfTitle
+                .replace(/\b(?:FWD|AWD|RWD|4WD|4x4)\b/gi, '')
+                .replace(/[^a-zA-Z0-9\s-\/]/g, '') // Remove weird OCR symbols/icons but keep spaces, dashes and slashes
+                .trim();
+                
+              console.log(`RC OCR Parsed: Maker=${parsedMaker}, Model=${parsedModel}, Trim=${parsedTrim}`);
+            } else {
+              // Ultimate fallback: Split title line into model and trim
+              const parts = rcTitleLine.split(/\s+/);
+              if (parts.length >= 2) {
+                parsedModel = parts[0];
+                parsedTrim = parts.slice(1).join(' ').replace(/\b(?:FWD|AWD|RWD|4WD|4x4)\b/gi, '').trim();
+              }
             }
           }
+        } catch (e: any) {
+          console.error("RC OCR Parsing inner error:", e.message);
         }
 
         // Set default region to WISCONSIN but plate blank (as it's not on details page)
