@@ -46,24 +46,84 @@ const extractTrims = (content: string): string[] => {
     });
   }
 
+  // 3. Fallback: Parse table rows in the ==Trims== section (robust for RC wiki)
+  const trimsMatch = content.match(/==[^=]*(?:Trims|Trim Choices|Trim Options)[^=]*==[\s\S]*?(?=\n==|$)/i);
+  if (trimsMatch) {
+    const trimsSection = trimsMatch[0];
+    const trimLines = trimsSection.split('\n');
+    trimLines.forEach(line => {
+      const trimmed = line.trim();
+      if ((trimmed.startsWith('!') || trimmed.startsWith('|')) && 
+          !trimmed.startsWith('|-') && 
+          !trimmed.startsWith('|}') && 
+          !trimmed.startsWith('{|')
+      ) {
+         let cleanedLine = trimmed
+           .replace(/\[\[File:[^\]]+\]\]/gi, '')
+           .replace(/\[\[Category:[^\]]+\]\]/gi, '');
+           
+         const parts = cleanedLine.split('|');
+         let trimName = parts[parts.length - 1].trim();
+         
+         trimName = trimName
+           .replace(/'''+/g, '')
+           .replace(/\[\[|\]\]/g, '')
+           .replace(/<\/?[^>]+(>|$)/g, "")
+           .replace(/^\d+px\]?\]?/g, "")
+           .trim();
+           
+         if (trimName && 
+             trimName.length > 1 && 
+             trimName.length < 30 && 
+             !/^(trim|purchase|sell|price|prices|colspan|rowspan)$/i.test(trimName) &&
+             !/^\d+$/.test(trimName) && 
+             !trimName.includes('{') && 
+             !trimName.includes('}')
+         ) {
+           trims.add(trimName);
+         }
+      }
+    });
+  }
+
   return Array.from(trims);
 };
 
 const extractColors = (content: string): string[] => {
   const colors = new Set<string>();
-  const colorMatch = content.match(/==Stock Colors==[\s\S]*?(?=\n==|$)/i) || content.match(/==Colors==[\s\S]*?(?=\n==|$)/i);
-  if (colorMatch) {
-    const colorTable = colorMatch[0];
-    const colorLines = colorTable.split('\n');
+  
+  // Try 1: General match for color section
+  const colorsMatch = content.match(/==[^=]*(?:Colors|Color Choices|Color Options|Stock Colors)[^=]*==[\s\S]*?(?=\n==|$)/i);
+  if (colorsMatch) {
+    const colorsSection = colorsMatch[0];
+    const colorLines = colorsSection.split('\n');
     colorLines.forEach(line => {
-       if (line.startsWith('|') && !line.startsWith('|-') && !line.startsWith('|}')) {
-           let color = line.substring(1).trim();
-           if (color && color.length < 40 && !color.includes('{') && !color.includes('}')) {
+       const trimmed = line.trim();
+       if ((trimmed.startsWith('|') || trimmed.startsWith('!')) && 
+           !trimmed.startsWith('|-') && 
+           !trimmed.startsWith('|}') && 
+           !trimmed.startsWith('{|')
+       ) {
+           let color = trimmed.substring(1).trim();
+           color = color
+             .replace(/'''+/g, '') 
+             .replace(/\[\[|\]\]/g, '') 
+             .replace(/<\/?[^>]+(>|$)/g, "") 
+             .trim();
+             
+           if (color && 
+               color.length > 1 && 
+               color.length < 40 && 
+               !color.toLowerCase().includes('color') && 
+               !color.includes('{') && 
+               !color.includes('}')
+           ) {
                colors.add(color);
            }
        }
     });
   }
+  
   return Array.from(colors);
 };
 

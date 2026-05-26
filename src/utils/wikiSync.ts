@@ -61,29 +61,99 @@ export const fetchWikiCatalog = async (
         }
       }
 
-      // Extract Trims
-      const trimsPart = content.match(/===?\s*Trims\s*===?([\s\S]*?)(?:==|$)/i);
-      if (trimsPart) {
-        const bulletTrims = trimsPart[1].match(/\*\s*\[?\[?([^\]\n|]+)\]?\]?/g);
-        bulletTrims?.forEach((t: string) => {
-          const cleaned = t
-            .replace(/^\*\s*\[?\[?/, "")
-            .replace(/\]?\]?$/, "")
-            .trim();
-          if (cleaned && cleaned.length < 30) trimSet.add(cleaned);
+      // Extract Trims (Robust support for bullets + table columns)
+      const trimsMatch = content.match(/==[^=]*(?:Trims|Trim Choices|Trim Options)[^=]*==[\s\S]*?(?=\n==|$)/i);
+      if (trimsMatch) {
+        const trimsSection = trimsMatch[0];
+        // 1. Try bullet points
+        const bulletTrims = trimsSection.match(/\*\s*\[?\[?([^\]\n|]+)\]?\]?/g);
+        if (bulletTrims) {
+          bulletTrims.forEach((t: string) => {
+            const cleaned = t
+              .replace(/^\*\s*\[?\[?/, "")
+              .replace(/\]?\]?$/, "")
+              .trim();
+            if (cleaned && cleaned.length < 30) trimSet.add(cleaned);
+          });
+        }
+        // 2. Try table rows (Rensselaer County Wiki format)
+        const trimLines = trimsSection.split('\n');
+        trimLines.forEach(line => {
+          const trimmed = line.trim();
+          if ((trimmed.startsWith('!') || trimmed.startsWith('|')) && 
+              !trimmed.startsWith('|-') && 
+              !trimmed.startsWith('|}') && 
+              !trimmed.startsWith('{|')
+          ) {
+             let cleanedLine = trimmed
+               .replace(/\[\[File:[^\]]+\]\]/gi, '')
+               .replace(/\[\[Category:[^\]]+\]\]/gi, '');
+               
+             const parts = cleanedLine.split('|');
+             let trimName = parts[parts.length - 1].trim();
+             
+             trimName = trimName
+               .replace(/'''+/g, '')
+               .replace(/\[\[|\]\]/g, '')
+               .replace(/<\/?[^>]+(>|$)/g, "")
+               .replace(/^\d+px\]?\]?/g, "")
+               .trim();
+               
+             if (trimName && 
+                 trimName.length > 1 && 
+                 trimName.length < 30 && 
+                 !/^(trim|purchase|sell|price|prices|colspan|rowspan)$/i.test(trimName) &&
+                 !/^\d+$/.test(trimName) && 
+                 !trimName.includes('{') && 
+                 !trimName.includes('}')
+             ) {
+               trimSet.add(trimName);
+             }
+          }
         });
       }
 
-      // Extract Colors
-      const colorsPart = content.match(/===?\s*Colors\s*===?([\s\S]*?)(?:==|$)/i);
-      if (colorsPart) {
-        const bulletColors = colorsPart[1].match(/\*\s*\[?\[?([^\]\n|]+)\]?\]?/g);
-        bulletColors?.forEach((c: string) => {
-          const cleaned = c
-            .replace(/^\*\s*\[?\[?/, "")
-            .replace(/\]?\]?$/, "")
-            .trim();
-          if (cleaned && cleaned.length < 40) colorSet.add(cleaned);
+      // Extract Colors (Robust support for bullets + table columns)
+      const colorsMatch = content.match(/==[^=]*(?:Colors|Color Choices|Color Options|Stock Colors)[^=]*==[\s\S]*?(?=\n==|$)/i);
+      if (colorsMatch) {
+        const colorsSection = colorsMatch[0];
+        // 1. Try bullet points
+        const bulletColors = colorsSection.match(/\*\s*\[?\[?([^\]\n|]+)\]?\]?/g);
+        if (bulletColors) {
+          bulletColors.forEach((c: string) => {
+            const cleaned = c
+              .replace(/^\*\s*\[?\[?/, "")
+              .replace(/\]?\]?$/, "")
+              .trim();
+            if (cleaned && cleaned.length < 40) colorSet.add(cleaned);
+          });
+        }
+        // 2. Try table rows (Rensselaer County Wiki format)
+        const colorLines = colorsSection.split('\n');
+        colorLines.forEach(line => {
+          const trimmed = line.trim();
+          if ((trimmed.startsWith('!') || trimmed.startsWith('|')) && 
+              !trimmed.startsWith('|-') && 
+              !trimmed.startsWith('|}') && 
+              !trimmed.startsWith('{|')
+          ) {
+             let colorName = trimmed.substring(1).trim();
+             colorName = colorName
+               .replace(/'''+/g, '')
+               .replace(/\[\[|\]\]/g, '')
+               .replace(/<\/?[^>]+(>|$)/g, "")
+               .trim();
+               
+             if (colorName && 
+                 colorName.length > 1 && 
+                 colorName.length < 40 && 
+                 !colorName.toLowerCase().includes('color') && 
+                 !colorName.includes('{') && 
+                 !colorName.includes('}')
+             ) {
+               colorSet.add(colorName);
+             }
+          }
         });
       }
     });
