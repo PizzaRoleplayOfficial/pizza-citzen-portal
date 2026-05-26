@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.9.5'; // 1.9.5 (デバイスのセーフエリア（底面）に応じた FAB の位置調整を行い、被り/埋もれを解消)
+export const CURRENT_VERSION = '1.9.6'; // 1.9.6 (管理パネルをゲーム別 (Greenville / RC) で分けれるように対応)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
