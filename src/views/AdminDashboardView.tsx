@@ -280,7 +280,7 @@ export const AdminDashboardView = ({
       {isMobile && showMobileMenu && (
         <div 
           onClick={() => setShowMobileMenu(false)} 
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1999, backdropFilter: 'blur(2px)' }} 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9998, backdropFilter: 'blur(2px)' }} 
         />
       )}
 
@@ -293,11 +293,11 @@ export const AdminDashboardView = ({
           overflow: 'hidden',
           ...(isMobile ? {
             width: '260px',
-            padding: '24px 12px',
+            padding: 'calc(24px + env(safe-area-inset-top)) 12px 24px 12px',
             borderRight: '1px solid var(--glass-border)',
             position: 'fixed',
             top: 0, bottom: 0, left: 0,
-            zIndex: 2000,
+            zIndex: 9999,
             boxShadow: showMobileMenu ? '4px 0 24px rgba(0,0,0,0.5)' : 'none',
             transform: showMobileMenu ? 'translateX(0)' : 'translateX(-100%)',
             transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
