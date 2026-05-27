@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "275805662597",
+    "project_id": "pizzaportal-229ee",
+    "storage_bucket": "pizzaportal-229ee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:275805662597:android:875c625c621e3c12f0a8ec",
+        "android_client_info": {
+          "package_name": "com.pizza.portal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5CVL77uRw0feoYu7yJAOvm-ec07cGBoI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

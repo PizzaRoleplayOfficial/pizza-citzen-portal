@@ -1033,12 +1033,27 @@ export const AdminDashboardView = ({
                <div className={lookupViewMode === 'grid' ? "card-grid" : "list-view"}>
                   {isLoading ?
                     [1, 2, 3].map(i => (
-                      <div key={i} className="glass card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '380px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-                        <div className="skeleton" style={{ height: '200px', width: '100%' }} />
-                        <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                          <div className="skeleton skeleton-text" style={{ width: '40%' }} />
-                          <div className="skeleton skeleton-title" style={{ width: '75%' }} />
-                          <div className="skeleton skeleton-text short" style={{ width: '30%', marginTop: 'auto' }} />
+                      <div key={i} className="glass card animate-fade" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: lookupViewMode === 'grid' ? 'column' : 'row', height: lookupViewMode === 'grid' ? (isMobile ? '280px' : '380px') : 'auto', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+                        <div style={{ height: (isMobile && lookupViewMode === 'grid') ? '130px' : (lookupViewMode === 'grid' ? '220px' : '200px'), width: lookupViewMode === 'grid' ? '100%' : (isMobile ? '100px' : '250px'), minHeight: lookupViewMode === 'grid' ? 'auto' : (isMobile ? '100px' : '200px'), position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                          <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+                        </div>
+                        <div style={{ padding: isMobile ? '12px' : '24px', flex: 1, display: 'flex', flexDirection: lookupViewMode === 'grid' ? 'column' : 'row', gap: isMobile ? '10px' : '16px', alignItems: lookupViewMode === 'grid' ? 'stretch' : 'center', justifyContent: 'space-between' }}>
+                          <div style={{ flex: 2 }}>
+                            <div className="skeleton skeleton-text" style={{ width: '30%', marginBottom: '8px' }} />
+                            <div className="skeleton skeleton-title" style={{ width: '60%', marginBottom: '12px' }} />
+                            <div className="skeleton skeleton-text short" style={{ width: '40%', marginBottom: '12px' }} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', width: '120px' }}>
+                              <div className="skeleton skeleton-text" style={{ width: '100%', height: '12px' }} />
+                              <div className="skeleton skeleton-text" style={{ width: '100%', height: '12px' }} />
+                            </div>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div className="skeleton skeleton-rect" style={{ width: '120px', height: '36px', borderRadius: '6px' }} />
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', marginTop: lookupViewMode === 'grid' ? '12px' : '0' }}>
+                            <div className="skeleton skeleton-rect" style={{ width: '70px', height: '32px', borderRadius: '8px' }} />
+                            <div className="skeleton skeleton-rect" style={{ width: '70px', height: '32px', borderRadius: '8px' }} />
+                          </div>
                         </div>
                       </div>
                     ))

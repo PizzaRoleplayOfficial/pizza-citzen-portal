@@ -1,7 +1,7 @@
 {
   "name": "gv-vehicle-registry",
   "private": true,
-  "version": "1.9.8",
+  "version": "2.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,7 +19,9 @@
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/local-notifications": "^8.2.0",
+    "@capacitor/push-notifications": "^8.1.1",
     "@capacitor/status-bar": "^8.0.2",
+    "jose": "^6.2.3",
     "lucide-react": "^0.363.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

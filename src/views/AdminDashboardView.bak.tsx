@@ -109,7 +109,6 @@ export const AdminDashboardView = ({
 }: AdminDashboardViewProps) => {
   const [lookupSortOpen, setLookupSortOpen] = useState(false);
   const [lookupStatusFilter, setLookupStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'temp'>('all');
-  const [adminGameFilter, setAdminGameFilter] = useState<'all' | 'gv' | 'rc'>('all');
   const [lookupTypeFilter, setLookupTypeFilter] = useState<'all' | 'car' | 'trailer'>('all');
   const [showAllActivities, setShowAllActivities] = useState(false);
 
@@ -172,9 +171,7 @@ export const AdminDashboardView = ({
 
     // 1. 車両データからの抽出
     if (Array.isArray(allSearchVehicles)) {
-      allSearchVehicles
-        .filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter)
-        .forEach(v => {
+      allSearchVehicles.forEach(v => {
         const submitTime = v.created_at ? parseUTCDate(v.created_at) : new Date();
         const reviewTime = v.reviewed_at ? parseUTCDate(v.reviewed_at) : (v.created_at ? parseUTCDate(v.created_at) : new Date());
         const makerModel = `${v.year} ${v.maker} ${v.model}`;
@@ -271,7 +268,7 @@ export const AdminDashboardView = ({
 
     // 時間順にソート (新しい順)
     return list.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 8);
-  }, [allSearchVehicles, allApplications, adminGameFilter]);
+  }, [allSearchVehicles, allApplications]);
 
   return (
     <div className="animate-fade" style={{ display: 'flex', minHeight: 'calc(100vh - 120px)', gap: '2px', background: 'var(--panel-bg)', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--glass-border)', position: 'relative' }}>
@@ -280,7 +277,7 @@ export const AdminDashboardView = ({
       {isMobile && showMobileMenu && (
         <div 
           onClick={() => setShowMobileMenu(false)} 
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9998, backdropFilter: 'blur(2px)' }} 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1999, backdropFilter: 'blur(2px)' }} 
         />
       )}
 
@@ -293,11 +290,11 @@ export const AdminDashboardView = ({
           overflow: 'hidden',
           ...(isMobile ? {
             width: '260px',
-            padding: 'calc(24px + env(safe-area-inset-top)) 12px 24px 12px',
+            padding: '24px 12px',
             borderRight: '1px solid var(--glass-border)',
             position: 'fixed',
             top: 0, bottom: 0, left: 0,
-            zIndex: 9999,
+            zIndex: 2000,
             boxShadow: showMobileMenu ? '4px 0 24px rgba(0,0,0,0.5)' : 'none',
             transform: showMobileMenu ? 'translateX(0)' : 'translateX(-100%)',
             transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -425,45 +422,6 @@ export const AdminDashboardView = ({
           </button>
         </div>
 
-        {/* ゲームフィルター (dashboard, vehicles, lookup タブでのみ表示) */}
-        {(adminTab === 'dashboard' || adminTab === 'vehicles' || adminTab === 'lookup') && (
-          <div style={{ marginBottom: isMobile ? '16px' : '24px' }}>
-            <div style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.02)', padding: '5px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-              {[
-                { id: 'all', label: '🎮 すべて', activeColor: 'var(--text-main)', bg: 'rgba(255,255,255,0.08)' },
-                { id: 'gv', label: '🟢 Greenville', activeColor: 'var(--primary)', bg: 'rgba(0, 193, 102, 0.12)' },
-                { id: 'rc', label: '🔵 RC', activeColor: 'var(--secondary)', bg: 'rgba(0, 160, 204, 0.12)' }
-              ].map(opt => {
-                const active = adminGameFilter === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => setAdminGameFilter(opt.id as any)}
-                    style={{
-                      flex: 1,
-                      padding: isMobile ? '8px 12px' : '12px 24px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                      background: active ? opt.bg : 'transparent',
-                      color: active ? opt.activeColor : 'var(--text-muted)',
-                      fontSize: isMobile ? '0.85rem' : '1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {adminTab === 'dashboard' && (
           <div className="animate-fade">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '12px' : '24px' }}>
@@ -506,7 +464,7 @@ export const AdminDashboardView = ({
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0' }}>
                       <div style={{ fontSize: isMobile ? '1.4rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
-                        {vehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter).length} <span style={{ fontSize: isMobile ? '0.75rem' : '1.2rem', fontWeight: 500 }}>件</span>
+                        {vehicles.length} <span style={{ fontSize: isMobile ? '0.75rem' : '1.2rem', fontWeight: 500 }}>件</span>
                       </div>
                       {isMobile ? (
                         <ChevronRight size={16} style={{ color: 'var(--primary)', opacity: 0.8 }} />
@@ -575,7 +533,7 @@ export const AdminDashboardView = ({
             {!isLoading && (
               <>
                 <DashboardCharts 
-                  vehicles={allSearchVehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter)} 
+                  vehicles={allSearchVehicles} 
                   isMobile={isMobile}
                   onMakerClick={(maker) => {
                     if (maker === 'その他') return;
@@ -774,11 +732,11 @@ export const AdminDashboardView = ({
                    </div>
                  ))}
                </div>
-             ) : vehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter).length === 0 ? (
+             ) : vehicles.length === 0 ? (
                <div className="glass" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>待機中の申請はありません。</div>
              ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(360px, 420px))', gap: isMobile ? '12px' : '24px' }}>
-                  {vehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter).map(v => (
+                  {vehicles.map(v => (
                     <div key={v.id} className="glass card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
                       <div style={{ height: isMobile ? '130px' : '240px', width: '100%', position: 'relative' }}>
                         <VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
@@ -1046,9 +1004,6 @@ export const AdminDashboardView = ({
                     allSearchVehicles.filter(v => {
                     // Filter by selected user id if exists
                     if (selectedUserForVehicles && v.owner_id !== selectedUserForVehicles.id) return false;
-
-                    // Filter by game type
-                    if (adminGameFilter !== 'all' && v.game_type !== adminGameFilter) return false;
 
                     // Filter by status tag
                     if (lookupStatusFilter !== 'all') {

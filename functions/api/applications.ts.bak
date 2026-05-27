@@ -1,6 +1,6 @@
 // functions/api/applications.ts
 // Citizen application submission, auto-scoring and Discord webhook notifications
-import { sendFcmNotificationToUser, sendFcmNotificationToAdmins } from '../utils/fcm';
+import { sendFcmNotificationToUser } from '../utils/fcm';
 
 const getUserSession = (request: Request) => {
   const cookieHeader = request.headers.get('Cookie');
@@ -138,13 +138,6 @@ export const onRequestPost = async ({ env, request }: { env: any; request: Reque
         }],
       });
     }
-
-    // Send Real-time Push Notification to Admins (FCM)
-    await sendFcmNotificationToAdmins(env, {
-      title: '📋 新規市民申請到着',
-      body: `Discord: @${discord_username} / Roblox: ${roblox_username} から新規の市民申請が届きました。`,
-      channelId: 'admin_notifications_channel'
-    }).catch(err => console.error('FCM admin notification failed:', err));
 
     return new Response(JSON.stringify({ ok: true, score, max }), { headers: NO_CACHE });
   } catch (e: any) {

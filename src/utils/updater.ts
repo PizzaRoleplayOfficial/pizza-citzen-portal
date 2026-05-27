@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '1.9.8'; // 1.9.8 (WorkManagerによる完全バックグラウンドポーリング・ローカル通知対応)
+export const CURRENT_VERSION = '2.0.1'; // 2.0.1 (自動アップデート堅牢化＆運営管理者プッシュ通知対応)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
@@ -95,18 +95,8 @@ export async function downloadAndInstallApk(
   downloadUrl: string,
   onProgress: (percentage: number) => void
 ): Promise<{ isBackground: boolean }> {
-  // 0. Use LiveUpdate Service on Android native platform for Android 16 Live Updates
-  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
-    try {
-      const liveUpdate = getLiveUpdate();
-      await liveUpdate.startDownload({ url: downloadUrl });
-      // Notify calling UI that download is queued/started in background
-      onProgress(100);
-      return { isBackground: true };
-    } catch (e) {
-      console.warn('Failed to start LiveUpdate service, falling back to Filesystem download:', e);
-    }
-  }
+  // 実験的で動かない可能性のある LiveUpdate バックグラウンドサービスをバイパスし、
+  // 確実なフォアグラウンドダウンロード（進捗表示）＋フォアグラウンドインストールに統一します。
 
   let progressListener: any = null;
   try {
@@ -118,12 +108,12 @@ export async function downloadAndInstallApk(
       }
     });
 
-    // 2. 外部ストレージ領域にダウンロード (内部キャッシュだと一部のAndroid端末のセキュリティ制限でインストーラーが読み込めないことがあるため、安全な外部ストレージ領域を使用)
+    // 2. アプリのキャッシュ領域にダウンロード (パーミッション不要、FileProviderでの共有に対応)
     const filename = 'pizza_update.apk';
     const result = await Filesystem.downloadFile({
       url: downloadUrl,
       path: filename,
-      directory: Directory.External,
+      directory: Directory.Cache,
       progress: true
     });
 
@@ -138,7 +128,7 @@ export async function downloadAndInstallApk(
       progressListener = null;
     }
 
-    // 5. 自作ネイティブプラグインの動的取得と呼び出し
+    // 5. 自作ネイティブプラグインの呼び出し
     const apkInstaller = getApkInstaller();
     await apkInstaller.installApk({ filePath: result.path });
     return { isBackground: false };

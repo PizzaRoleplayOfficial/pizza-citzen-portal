@@ -1,4 +1,5 @@
 // API for user and vehicle management
+import { sendFcmNotificationToUser, sendFcmNotificationToAdmins } from '../utils/fcm';
 
 const sendWebhook = async (url: string, content: any) => {
   try {
@@ -239,6 +240,17 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       }
     }
 
+    // Send Real-time Push Notification to Admins (FCM)
+    const isTrailer = vehicle_type === 'trailer';
+    const notifyTitle = isTrailer ? '🚛 新規トレーラー登録申請' : '🚗 新規車両登録申請';
+    const notifyBody = `Roblox: ${roblox_username || '不明'} から新規登録申請: ${year || 2024} ${maker || ''} ${model} (ナンバー: ${plate}) が届きました。`;
+
+    await sendFcmNotificationToAdmins(env, {
+      title: notifyTitle,
+      body: notifyBody,
+      channelId: 'admin_notifications_channel'
+    }).catch(err => console.error('FCM admin notification failed:', err));
+
     return new Response(JSON.stringify({ success: true, id }), {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -417,6 +429,36 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
           timestamp: new Date().toISOString()
         }]
       });
+    }
+
+    // Send Real-time Push Notification (FCM)
+    if (v && v.owner_id) {
+      const isRc = v.game_type === 'rc';
+      const gameLabel = isRc ? "Rensselaer County" : "Greenville";
+      let title = '';
+      let bodyText = '';
+
+      if (status === 'approved') {
+        title = `🚗 車両登録承認 [${gameLabel}]`;
+        bodyText = `申請された車両 ${v.year} ${v.maker} ${v.model} （ナンバー: ${v.plate}）が承認されました！`;
+      } else if (status === 'approved_warning') {
+        title = `⚠️ 車両登録承認 (注意あり) [${gameLabel}]`;
+        bodyText = `申請された車両 ${v.year} ${v.maker} ${v.model} が承認されました（注意項目あり: ${reject_reason || ''}）。`;
+      } else if (status === 'temp_approved') {
+        title = `🅿️ 車両仮登録承認 [${gameLabel}]`;
+        bodyText = `申請された車両 ${v.year} ${v.maker} ${v.model} が仮登録（期限付き）で承認されました。`;
+      } else if (status === 'rejected') {
+        title = `❌ 車両登録却下 [${gameLabel}]`;
+        bodyText = `申請された車両 ${v.year} ${v.maker} ${v.model} の登録が却下されました。理由: ${reject_reason || 'なし'}`;
+      }
+
+      if (title && bodyText) {
+        await sendFcmNotificationToUser(env, v.owner_id, {
+          title,
+          body: bodyText,
+          channelId: 'application_results_channel'
+        }).catch(err => console.error('FCM send failure:', err));
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {

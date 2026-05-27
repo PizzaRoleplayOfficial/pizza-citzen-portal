@@ -282,20 +282,55 @@ export const MyGarageView = ({
           <div className={garageViewMode === 'grid' ? "card-grid" : "list-view"}>
             {isLoading ? (
               [1, 2, 3].map((i) => (
-                <div key={i} className="glass card" style={{ padding: '0', borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '400px' }}>
-                  <div className="skeleton" style={{ height: '200px', width: '100%' }} />
-                  <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
-                    <div>
-                      <div className="skeleton skeleton-text" style={{ width: '40%', marginBottom: '8px' }} />
-                      <div className="skeleton skeleton-title" style={{ width: '70%', marginBottom: '12px' }} />
-                      <div className="skeleton skeleton-text short" style={{ width: '30%' }} />
-                    </div>
-                    <div style={{ marginTop: 'auto', display: 'flex', gap: '16px' }}>
-                      <div className="skeleton skeleton-rect" style={{ flex: 1, height: '44px', borderRadius: '12px' }} />
-                      <div className="skeleton skeleton-rect" style={{ flex: 1, height: '44px', borderRadius: '12px' }} />
+                garageViewMode === 'grid' ? (
+                  <div key={i} className="glass card" style={{ padding: '0', borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '400px' }}>
+                    <div className="skeleton" style={{ height: '200px', width: '100%' }} />
+                    <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+                      <div>
+                        <div className="skeleton skeleton-text" style={{ width: '40%', marginBottom: '8px' }} />
+                        <div className="skeleton skeleton-title" style={{ width: '70%', marginBottom: '12px' }} />
+                        <div className="skeleton skeleton-text short" style={{ width: '30%' }} />
+                      </div>
+                      <div style={{ marginTop: 'auto', display: 'flex', gap: '16px' }}>
+                        <div className="skeleton skeleton-rect" style={{ flex: 1, height: '44px', borderRadius: '12px' }} />
+                        <div className="skeleton skeleton-rect" style={{ flex: 1, height: '44px', borderRadius: '12px' }} />
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div key={i} className="glass card garage-card animate-fade" style={{ background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="garage-card-image">
+                      <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+                    </div>
+                    <div className="garage-card-body">
+                      <div className="garage-card-header">
+                        <div style={{ flex: 1 }}>
+                          <div className="skeleton skeleton-text" style={{ width: '30%', marginBottom: '8px' }} />
+                          <div className="skeleton skeleton-title" style={{ width: '60%', marginBottom: '8px' }} />
+                          <div className="skeleton skeleton-text short" style={{ width: '20%' }} />
+                        </div>
+                        <div className="skeleton skeleton-rect" style={{ width: '80px', height: '24px', borderRadius: '8px' }} />
+                      </div>
+                      <div className="garage-card-fields">
+                        <div>
+                          <div className="skeleton skeleton-text" style={{ width: '50px', height: '12px' }} />
+                        </div>
+                        <div>
+                          <div className="skeleton skeleton-text" style={{ width: '50px', height: '12px' }} />
+                        </div>
+                      </div>
+                      <div className="garage-card-footer">
+                        <div className="garage-card-plate-section">
+                          <div className="skeleton skeleton-rect" style={{ width: '120px', height: '36px', borderRadius: '6px' }} />
+                        </div>
+                        <div className="garage-card-actions">
+                          <div className="skeleton skeleton-rect" style={{ width: '70px', height: '36px', borderRadius: '8px' }} />
+                          <div className="skeleton skeleton-rect" style={{ width: '70px', height: '36px', borderRadius: '8px' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
               ))
             ) : (
               vehicles

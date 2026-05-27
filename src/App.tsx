@@ -90,7 +90,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';
 import { VehicleImageGallery } from './components/VehicleImageGallery';
 import { formatDate } from './utils/helpers';
-import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache } from './utils/native';
+import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications } from './utils/native';
 import { Capacitor } from '@capacitor/core';
 import { handleAvatarError } from './utils/avatarFallback';
 import { App as CapApp } from '@capacitor/app';
@@ -686,7 +686,7 @@ export default function App() {
     loadCatalog('gv');
   }, []);
 
-  // ログイン状態に応じてバックグラウンドポーリングを開始・停止 (v1.9.8)
+  // ログイン状態に応じてバックグラウンドポーリングを開始・停止、およびFCMリアルタイムプッシュ通知の登録・解除 (v1.9.10)
   useEffect(() => {
     if (isLoggedIn && currentUser && currentUser.id) {
       startBackgroundPoll(
@@ -694,8 +694,12 @@ export default function App() {
         currentUser.role || 'user',
         window.location.origin
       );
+      registerPushNotifications(currentUser.id);
     } else if (!isLoggedIn && !isLoading) {
       stopBackgroundPoll();
+      if (currentUser && currentUser.id) {
+        unregisterPushNotifications(currentUser.id);
+      }
     }
   }, [isLoggedIn, currentUser, isLoading]);
 

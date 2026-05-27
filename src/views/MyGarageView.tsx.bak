@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
-import { formatDate } from '../utils/helpers';
+import { formatDate, parseUTCDate } from '../utils/helpers';
+import { triggerHaptic } from '../utils/native';
 
 interface MyGarageViewProps {
   myApplication: any;
@@ -25,6 +26,7 @@ interface MyGarageViewProps {
   setShowTrailerModal: (b: boolean) => void;
   handleStartEdit: (v: any) => void;
   handleDeleteVehicle: (id: string) => void;
+  isMobile?: boolean;
 }
 
 export const MyGarageView = ({
@@ -47,13 +49,35 @@ export const MyGarageView = ({
   setTrailerFormData,
   setShowTrailerModal,
   handleStartEdit,
-  handleDeleteVehicle
+  handleDeleteVehicle,
+  isMobile = false
 }: MyGarageViewProps) => {
+  const [activeGame, setActiveGame] = useState<'gv' | 'rc'>('gv');
   const [garageSearchTerm, setGarageSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'temp'>('all');
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabRef = useRef<HTMLDivElement>(null);
+
+  // FAB外タップで閉じる
+  useEffect(() => {
+    if (!fabOpen) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (fabRef.current && !fabRef.current.contains(e.target as Node)) {
+        setFabOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [fabOpen]);
 
   return (
-    <div className="animate-fade">
-      {myApplication?.status !== 'approved' ? (
+    <>
+      <div className="animate-fade">
+        {myApplication?.status !== 'approved' ? (
         <div style={{ textAlign: 'center', padding: '80px 24px' }}>
           <Lock size={64} style={{ color: 'var(--text-muted)', marginBottom: '24px', opacity: 0.5 }} />
           <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-main)' }}>マイガレージはロック中</h2>
@@ -66,48 +90,56 @@ export const MyGarageView = ({
         <>
           <div className="view-header">
             <div>
-              <h2 style={{ fontSize: '2.4rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>My Garage</h2>
+              <h2 style={{ fontSize: '2.4rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>ガレージ</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <p style={{ color: 'var(--text-muted)', margin: 0 }}>管理中の車両一覧です。</p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '0.8rem', fontWeight: 600 }}>
-                    🚗 {vehicles.filter((v: any) => v.vehicle_type !== 'trailer').length} 台
+                    🚗 {vehicles.filter((v: any) => v.vehicle_type !== 'trailer' && (v.game_type || 'gv') === activeGame).length} 台
                   </span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontSize: '0.8rem', fontWeight: 600 }}>
-                    🚛 {vehicles.filter((v: any) => v.vehicle_type === 'trailer').length} 台
+                    🚛 {vehicles.filter((v: any) => v.vehicle_type === 'trailer' && (v.game_type || 'gv') === activeGame).length} 台
                   </span>
                 </div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn btn-secondary" onClick={handleManualRefresh} style={{ padding: '10px 16px' }} disabled={isLoading}>
+              <button className="btn btn-secondary" onClick={() => { triggerHaptic('medium'); handleManualRefresh(); }} style={{ padding: '10px 16px' }} disabled={isLoading}>
                 <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
               </button>
-              {garageTab === 'car' && (
+              {/* Auto-fill beta button: desktop only, in header */}
+              {garageTab === 'car' && !isMobile && (
                 <button className="btn btn-secondary" onClick={() => {
+                  triggerHaptic('light');
                   if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                  setShowBetaAutoFillModal(true);
+                      setFormData(prev => ({ ...prev, game_type: activeGame }));
+                      setShowBetaAutoFillModal(true);
                 }} style={{ padding: '10px 16px', borderRadius: '12px', border: '1px dashed var(--primary)', color: 'var(--primary)', background: 'rgba(0,193,102,0.1)' }}>
                   ✨ 画像から自動登録 (Beta)
                 </button>
               )}
-              {garageTab === 'car' ? (
-                <button className="btn btn-primary" onClick={() => {
-                  if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                  setFormData({ maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
-                  setEditingVehicleId(null);
-                  setShowAddModal(true);
-                }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }}>
-                  <Plus size={20} /> 車両を追加
-                </button>
-              ) : (
-                <button className="btn btn-primary" onClick={() => {
-                  if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                  setTrailerFormData({ model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
-                  setShowTrailerModal(true);
-                }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', background: 'var(--primary)', color: '#000' }}>
-                  <Plus size={20} /> トレーラーを追加
-                </button>
+              {/* Add button: desktop only — mobile uses FAB */}
+              {!isMobile && (
+                garageTab === 'car' ? (
+                  <button className="btn btn-primary" onClick={() => {
+                    triggerHaptic('light');
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    setFormData({ game_type: activeGame, maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setEditingVehicleId(null);
+                    setShowAddModal(true);
+                  }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }}>
+                    <Plus size={20} /> 車両を追加
+                  </button>
+                ) : (
+                  <button className="btn btn-primary" onClick={() => {
+                    triggerHaptic('light');
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    setTrailerFormData({ game_type: activeGame, model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setShowTrailerModal(true);
+                  }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', background: 'var(--primary)', color: '#000' }}>
+                    <Plus size={20} /> トレーラーを追加
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -127,13 +159,90 @@ export const MyGarageView = ({
             </div>
           </div>
 
+          {/* ゲーム専用セグメントタブ (Gv / RC) (v1.8.0) */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.02)', padding: '5px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+              <button
+                onClick={() => { triggerHaptic('light'); setActiveGame('gv'); }}
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  background: activeGame === 'gv' ? 'rgba(0, 193, 102, 0.15)' : 'transparent',
+                  color: activeGame === 'gv' ? 'var(--primary)' : 'var(--text-muted)',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderBottom: activeGame === 'gv' ? '2px solid var(--primary)' : '2px solid transparent'
+                }}
+              >
+                🎮 Greenville (Gv)
+              </button>
+              <button
+                onClick={() => { triggerHaptic('light'); setActiveGame('rc'); }}
+                style={{
+                  flex: 1,
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  background: activeGame === 'rc' ? 'rgba(0, 160, 204, 0.15)' : 'transparent',
+                  color: activeGame === 'rc' ? 'var(--secondary)' : 'var(--text-muted)',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderBottom: activeGame === 'rc' ? '2px solid var(--secondary)' : '2px solid transparent'
+                }}
+              >
+                🎮 Rensselaer County (RC)
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Tags */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700, minWidth: '80px' }}>ステータス:</span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  { id: 'all', label: 'すべて', className: '' },
+                  { id: 'approved', label: '承認済み', className: 'success' },
+                  { id: 'pending', label: '審査中', className: 'warning' },
+                  { id: 'rejected', label: '却下', className: 'error' },
+                  { id: 'temp', label: '仮承認', className: 'info' }
+                ].map(tag => {
+                  const active = statusFilter === tag.id;
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => { triggerHaptic('light'); setStatusFilter(tag.id as any); }}
+                      className={`filter-tag-btn ${active ? `active ${tag.className}` : ''}`}
+                    >
+                      {tag.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Tab switcher and Controls */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '24px', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: '8px', background: 'var(--panel-bg)', padding: '6px', borderRadius: '14px', width: 'fit-content', border: '1px solid var(--glass-border)' }}>
               {([['car', '🚗 マイカー'], ['trailer', '🚛 トレーラー']] as const).map(([tab, label]) => (
                 <button
                   key={tab}
-                  onClick={() => setGarageTab(tab)}
+                  onClick={() => { triggerHaptic('light'); setGarageTab(tab); }}
                   style={{
                     padding: '10px 20px',
                     borderRadius: '10px',
@@ -150,16 +259,16 @@ export const MyGarageView = ({
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{ display: 'flex', background: 'var(--panel-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--glass-border)', height: '42px' }}>
-                 <button onClick={() => setGarageViewMode('grid')} className="btn" style={{ padding: '8px', background: garageViewMode === 'grid' ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: '8px', color: garageViewMode === 'grid' ? 'var(--text-main)' : 'var(--text-muted)' }} title="グリッド表示">
+                 <button onClick={() => { triggerHaptic('light'); setGarageViewMode('grid'); }} className="btn" style={{ padding: '8px', background: garageViewMode === 'grid' ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: '8px', color: garageViewMode === 'grid' ? 'var(--text-main)' : 'var(--text-muted)' }} title="グリッド表示">
                    <LayoutGrid size={20} />
                  </button>
-                 <button onClick={() => setGarageViewMode('list')} className="btn" style={{ padding: '8px', background: garageViewMode === 'list' ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: '8px', color: garageViewMode === 'list' ? 'var(--text-main)' : 'var(--text-muted)' }} title="リスト表示">
+                 <button onClick={() => { triggerHaptic('light'); setGarageViewMode('list'); }} className="btn" style={{ padding: '8px', background: garageViewMode === 'list' ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: '8px', color: garageViewMode === 'list' ? 'var(--text-main)' : 'var(--text-muted)' }} title="リスト表示">
                    <List size={20} />
                  </button>
               </div>
               <CustomSortDropdown 
                 value={garageSortOrder}
-                onChange={setGarageSortOrder}
+                onChange={(val) => { triggerHaptic('light'); setGarageSortOrder(val); }}
                 options={[
                   { id: 'newest', label: '登録順 (新しい順)' },
                   { id: 'oldest', label: '登録順 (古い順)' },
@@ -193,6 +302,19 @@ export const MyGarageView = ({
                 .filter(v => {
                   const typeMatch = (v as any).vehicle_type === garageTab || (!(v as any).vehicle_type && garageTab === 'car');
                   if (!typeMatch) return false;
+                  
+                  // Game type filter (Greenville / RC)
+                  const gameMatch = (v.game_type || 'gv') === activeGame;
+                  if (!gameMatch) return false;
+                  
+                  // Status filter
+                  if (statusFilter !== 'all') {
+                    if (statusFilter === 'approved' && v.status !== 'approved' && v.status !== 'approved_warning') return false;
+                    if (statusFilter === 'pending' && v.status !== 'pending') return false;
+                    if (statusFilter === 'rejected' && v.status !== 'rejected') return false;
+                    if (statusFilter === 'temp' && v.status !== 'temp_approved') return false;
+                  }
+
                   if (!garageSearchTerm.trim()) return true;
                   const q = garageSearchTerm.toLowerCase();
                   return (
@@ -204,22 +326,37 @@ export const MyGarageView = ({
                   );
                 })
                 .sort((a, b) => {
-                  if (garageSortOrder === 'newest') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-                  if (garageSortOrder === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+                  if (garageSortOrder === 'newest') return parseUTCDate(b.created_at).getTime() - parseUTCDate(a.created_at).getTime();
+                  if (garageSortOrder === 'oldest') return parseUTCDate(a.created_at).getTime() - parseUTCDate(b.created_at).getTime();
                   if (garageSortOrder === 'maker') return (a.maker || '').localeCompare(b.maker || '');
                   return 0;
                 })
                 .map(v => (
-                <div key={v.id} className="glass card" style={{ padding: '0', borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <VehicleImageGallery imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} />
-                  <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+                <div key={v.id} className="glass card garage-card animate-fade">
+                  <div className="garage-card-image"><VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} /></div>
+                  <div className="garage-card-body">
+                    <div className="garage-card-header">
                       <div>
-                        <div style={{ color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>{(v as any).vehicle_type === 'trailer' ? '🚛 ' : ''}{v.year ? `${v.year} ` : ''}{v.maker}</div>
-                        <h3 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)' }}>{v.model}</h3>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '12px' }}>申請: {formatDate(v.created_at)}</div>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            background: v.game_type === 'rc' ? 'rgba(0, 160, 204, 0.15)' : 'rgba(0, 193, 102, 0.15)',
+                            color: v.game_type === 'rc' ? 'var(--secondary)' : 'var(--primary)',
+                            border: v.game_type === 'rc' ? '1px solid rgba(0, 160, 204, 0.3)' : '1px solid rgba(0, 193, 102, 0.3)'
+                          }}>
+                            {v.game_type === 'rc' ? '🔵 RC' : '🟢 Greenville'}
+                          </span>
+                        </div>
+                        <div className="garage-card-meta">{(v as any).vehicle_type === 'trailer' ? '🚛 ' : ''}{v.year ? `${v.year} ` : ''}{v.maker}</div>
+                        <h3 className="garage-card-title">{v.model}</h3>
+                        <div className="garage-card-date">申請: {formatDate(v.created_at)}</div>
                       </div>
-                      <StatusBadge status={v.status} reason={v.reject_reason} tempExpiresAt={v.temp_expires_at} />
+                      <div className="garage-card-status">
+                        <StatusBadge status={v.status} reason={v.reject_reason} tempExpiresAt={v.temp_expires_at} />
+                      </div>
                     </div>
                     {v.status === 'rejected' && v.reject_reason && (
                       <div style={{ padding: '16px', background: 'rgba(239,68,68,0.1)', borderLeft: '4px solid var(--error)', borderRadius: '4px', marginBottom: '24px', color: 'var(--error)' }}>
@@ -232,36 +369,38 @@ export const MyGarageView = ({
                       </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                    <div className="garage-card-fields">
                       <div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>{(v as any).vehicle_type === 'trailer' ? 'TRAILER TYPE' : 'GRADE / TRIM'}</div>
-                        <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-main)' }}>{(v as any).vehicle_type === 'trailer' ? ((v as any).trailer_type || '---') : (v.trim || '---')}</div>
+                        <div className="garage-card-field-title">{(v as any).vehicle_type === 'trailer' ? 'TRAILER TYPE' : 'GRADE / TRIM'}</div>
+                        <div className="garage-card-field-value">{(v as any).vehicle_type === 'trailer' ? ((v as any).trailer_type || '---') : (v.trim || '---')}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>COLOR</div>
-                        <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-main)' }}>{v.color || '---'}</div>
+                        <div className="garage-card-field-title">COLOR</div>
+                        <div className="garage-card-field-value">{v.color || '---'}</div>
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: '32px', flex: 1 }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '10px', letterSpacing: '0.05em' }}>LICENSE PLATE</div>
-                      <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
-                        <div style={{ background: 'var(--plate-region-bg, #1c2e4a)', color: '#ffffff', padding: '10px 16px', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                          {v.plate_region || 'WISCONSIN'}
+                    <div className="garage-card-footer">
+                      <div className="garage-card-plate-section">
+                        <div className="garage-card-plate-title">LICENSE PLATE</div>
+                        <div className="garage-card-plate">
+                          <div className="garage-card-plate-region">
+                            {v.plate_region || 'WISCONSIN'}
+                          </div>
+                          <div className="garage-card-plate-number">
+                            {v.plate || 'ABC-1234'}
+                          </div>
                         </div>
-                        <div style={{ background: '#fff', color: '#000', padding: '10px 20px', fontSize: '1.3rem', fontWeight: 700, fontFamily: 'monospace, sans-serif' }}>
-                          {v.plate || 'ABC-1234'}
-                        </div>
-                      </div>
-                     </div>
+                       </div>
 
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      <button className="btn btn-secondary" onClick={() => handleStartEdit(v)} style={{ flex: 1, justifyContent: 'center', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
-                        <Edit3 size={16} /> 編集
-                      </button>
-                      <button className="btn btn-secondary" onClick={() => handleDeleteVehicle(v.id)} style={{ flex: 1, justifyContent: 'center', background: 'rgba(255,255,255,0.05)', color: 'var(--error)', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '0.9rem' }}>
-                        <Trash2 size={16} /> 削除
-                      </button>
+                      <div className="garage-card-actions">
+                        <button className="btn btn-secondary" onClick={() => handleStartEdit(v)}>
+                          <Edit3 size={16} /> 編集
+                        </button>
+                        <button className="btn btn-secondary btn-delete" onClick={() => handleDeleteVehicle(v.id)} style={{ color: 'var(--error)' }}>
+                          <Trash2 size={16} /> 削除
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -275,6 +414,129 @@ export const MyGarageView = ({
           )}
         </>
       )}
-    </div>
+      </div>
+
+      {/* ====== Mobile FAB Speed Dial ====== */}
+      {isMobile && myApplication?.status === 'approved' && (
+        <div ref={fabRef} style={{ position: 'fixed', bottom: 'calc(92px + env(safe-area-inset-bottom))', right: '24px', zIndex: 500, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+
+          {/* Speed Dial Items */}
+          {fabOpen && (
+            <>
+              {/* 画像から自動登録 (Beta) — only for cars */}
+              {garageTab === 'car' && (
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    animation: 'fabItemIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
+                    animationDelay: '0.04s',
+                  }}
+                >
+                  <span style={{
+                    background: 'var(--panel-bg)', border: '1px solid var(--glass-border)',
+                    color: 'var(--text-main)', padding: '7px 14px', borderRadius: '20px',
+                    fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(12px)',
+                  }}>✨ 画像から自動登録 (Beta)</span>
+                  <button
+                    onClick={() => {
+                      setFabOpen(false);
+                      triggerHaptic('light');
+                      if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                      setShowBetaAutoFillModal(true);
+                    }}
+                    style={{
+                      width: '48px', height: '48px', borderRadius: '50%',
+                      background: 'rgba(0,255,136,0.15)', border: '1.5px dashed var(--primary)',
+                      color: 'var(--primary)', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', cursor: 'pointer', fontSize: '1.2rem',
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.3)', flexShrink: 0,
+                    }}
+                    aria-label="画像から自動登録"
+                  >✨</button>
+                </div>
+              )}
+
+              {/* 手動登録 */}
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  animation: 'fabItemIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
+                }}
+              >
+                <span style={{
+                  background: 'var(--panel-bg)', border: '1px solid var(--glass-border)',
+                  color: 'var(--text-main)', padding: '7px 14px', borderRadius: '20px',
+                  fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                  backdropFilter: 'blur(12px)',
+                }}>{garageTab === 'car' ? '🚗 手動登録' : '🚛 手動登録'}</span>
+                <button
+                  onClick={() => {
+                    setFabOpen(false);
+                    triggerHaptic('medium');
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    if (garageTab === 'car') {
+                      setFormData({ game_type: activeGame, maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setEditingVehicleId(null);
+                      setShowAddModal(true);
+                    } else {
+                      setTrailerFormData({ game_type: activeGame, model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setShowTrailerModal(true);
+                    }
+                  }}
+                  style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+                    color: '#000', border: 'none', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', cursor: 'pointer',
+                    boxShadow: '0 2px 12px rgba(0,255,136,0.3)', flexShrink: 0,
+                    fontSize: '1.3rem',
+                  }}
+                  aria-label={garageTab === 'car' ? '車両を手動登録' : 'トレーラーを手動登録'}
+                >✏️</button>
+              </div>
+            </>
+          )}
+
+          {/* Main FAB button */}
+          <button
+            onClick={() => {
+              triggerHaptic('medium');
+              if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+              setFabOpen(prev => !prev);
+            }}
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: fabOpen
+                ? 'rgba(255,255,255,0.12)'
+                : 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+              color: fabOpen ? 'var(--text-main)' : '#000',
+              border: fabOpen ? '1.5px solid var(--glass-border)' : 'none',
+              boxShadow: fabOpen
+                ? '0 2px 16px rgba(0,0,0,0.4)'
+                : '0 4px 20px rgba(0,255,136,0.45), 0 2px 8px rgba(0,0,0,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+              transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
+              flexShrink: 0,
+            }}
+            onTouchStart={e => { if (!fabOpen) e.currentTarget.style.transform = 'scale(0.91)'; }}
+            onTouchEnd={e => { if (!fabOpen) e.currentTarget.style.transform = 'scale(1)'; }}
+            title={garageTab === 'car' ? '車両を追加' : 'トレーラーを追加'}
+            aria-label={fabOpen ? 'メニューを閉じる' : (garageTab === 'car' ? '車両を追加' : 'トレーラーを追加')}
+            aria-expanded={fabOpen}
+          >
+            <Plus size={24} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+          </button>
+        </div>
+      )}
+    </>
   );
 };
