@@ -1264,7 +1264,7 @@ export default function App() {
   };
 
   // 起動後の自動更新チェック（設定でオンオフ可能）
-  const [hasCheckedAutoUpdate, setHasCheckedAutoUpdate] = useState(false);
+  const hasCheckedAutoUpdate = React.useRef(false);
 
   const handleToggleAutoCheck = (enabled: boolean) => {
     setAutoCheckUpdates(enabled);
@@ -1273,14 +1273,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (isNative && autoCheckUpdates && !hasCheckedAutoUpdate) {
-      setHasCheckedAutoUpdate(true);
+    if (isNative && autoCheckUpdates && !hasCheckedAutoUpdate.current) {
+      hasCheckedAutoUpdate.current = true;
       const timer = setTimeout(() => {
         handleCheckUpdate(false);
-      }, 2000);
+      }, 5000); // 起動時ロード・アニメーション競合を避けるため5秒に調整
       return () => clearTimeout(timer);
     }
-  }, [autoCheckUpdates, hasCheckedAutoUpdate]);
+  }, [autoCheckUpdates]);
 
   const handleAutoFillFromImage = async (file: File) => {
     setOcrLoading(true);
