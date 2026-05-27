@@ -63,73 +63,37 @@ export const ProfileView = ({
         <button type="submit" className="btn btn-primary" style={{ padding: '16px', borderRadius: '12px', fontSize: '1rem', justifyContent: 'center' }}>設定を保存</button>
       </form>
 
-      {/* Notification Settings Section (v2.0.2) */}
-      <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
-            <Bell size={24} style={{ color: 'var(--primary)' }} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>通知設定</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>受け取るリアルタイムプッシュ通知の種類を設定できます。</p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-            <div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>申請結果の通知</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>市民権や車両登録申請の審査結果をプッシュ通知で受け取ります。</div>
+      {/* Notification Settings Section (v2.0.2) - Only visible in native app version */}
+      {isNative && (
+        <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
+              <Bell size={24} style={{ color: 'var(--primary)' }} />
             </div>
-            <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
-              <input 
-                type="checkbox" 
-                checked={pushSettings.resultsEnabled} 
-                onChange={(e) => onTogglePushSetting('resultsEnabled', e.target.checked)} 
-                style={{ opacity: 0, width: 0, height: 0 }} 
-              />
-              <span style={{
-                position: 'absolute',
-                cursor: 'pointer',
-                inset: 0,
-                backgroundColor: pushSettings.resultsEnabled ? 'var(--primary)' : '#444',
-                transition: '0.3s',
-                borderRadius: '34px'
-              }}>
-                <span style={{
-                  position: 'absolute',
-                  content: '""',
-                  height: '20px',
-                  width: '20px',
-                  left: pushSettings.resultsEnabled ? '26px' : '4px',
-                  bottom: '4px',
-                  backgroundColor: pushSettings.resultsEnabled ? '#000' : '#fff',
-                  transition: '0.3s',
-                  borderRadius: '50%',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
-                }} />
-              </span>
-            </label>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>通知設定</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>受け取るリアルタイムプッシュ通知の種類を設定できます。</p>
+            </div>
           </div>
 
-          {currentUser?.role === 'admin' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
               <div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>新規申請の管理者向け通知</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から新しい申請が提出された際にプッシュ通知を受け取ります。</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>申請結果の通知</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>市民権や車両登録申請の審査結果をプッシュ通知で受け取ります。</div>
               </div>
               <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
                 <input 
                   type="checkbox" 
-                  checked={pushSettings.adminEnabled} 
-                  onChange={(e) => onTogglePushSetting('adminEnabled', e.target.checked)} 
+                  checked={pushSettings.resultsEnabled} 
+                  onChange={(e) => onTogglePushSetting('resultsEnabled', e.target.checked)} 
                   style={{ opacity: 0, width: 0, height: 0 }} 
                 />
                 <span style={{
                   position: 'absolute',
                   cursor: 'pointer',
                   inset: 0,
-                  backgroundColor: pushSettings.adminEnabled ? 'var(--primary)' : '#444',
+                  backgroundColor: pushSettings.resultsEnabled ? 'var(--primary)' : '#444',
                   transition: '0.3s',
                   borderRadius: '34px'
                 }}>
@@ -138,9 +102,9 @@ export const ProfileView = ({
                     content: '""',
                     height: '20px',
                     width: '20px',
-                    left: pushSettings.adminEnabled ? '26px' : '4px',
+                    left: pushSettings.resultsEnabled ? '26px' : '4px',
                     bottom: '4px',
-                    backgroundColor: pushSettings.adminEnabled ? '#000' : '#fff',
+                    backgroundColor: pushSettings.resultsEnabled ? '#000' : '#fff',
                     transition: '0.3s',
                     borderRadius: '50%',
                     boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
@@ -148,15 +112,47 @@ export const ProfileView = ({
                 </span>
               </label>
             </div>
-          )}
 
-          {!isNative && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '8px', opacity: 0.85 }}>
-              ※プッシュ通知の受信は公式Androidアプリ版のみ対応していますが、設定内容は保存されます。
-            </div>
-          )}
+            {currentUser?.role === 'admin' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>新規申請の管理者向け通知</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から新しい申請が提出された際にプッシュ通知を受け取ります。</div>
+                </div>
+                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={pushSettings.adminEnabled} 
+                    onChange={(e) => onTogglePushSetting('adminEnabled', e.target.checked)} 
+                    style={{ opacity: 0, width: 0, height: 0 }} 
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    cursor: 'pointer',
+                    inset: 0,
+                    backgroundColor: pushSettings.adminEnabled ? 'var(--primary)' : '#444',
+                    transition: '0.3s',
+                    borderRadius: '34px'
+                  }}>
+                    <span style={{
+                      position: 'absolute',
+                      content: '""',
+                      height: '20px',
+                      width: '20px',
+                      left: pushSettings.adminEnabled ? '26px' : '4px',
+                      bottom: '4px',
+                      backgroundColor: pushSettings.adminEnabled ? '#000' : '#fff',
+                      transition: '0.3s',
+                      borderRadius: '50%',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                    }} />
+                  </span>
+                </label>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* App Information Section */}
       <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
