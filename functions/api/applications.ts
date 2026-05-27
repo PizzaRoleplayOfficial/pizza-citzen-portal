@@ -143,7 +143,8 @@ export const onRequestPost = async ({ env, request }: { env: any; request: Reque
     await sendFcmNotificationToAdmins(env, {
       title: '📋 新規市民申請到着',
       body: `Discord: @${discord_username} / Roblox: ${roblox_username} から新規の市民申請が届きました。`,
-      channelId: 'admin_notifications_channel'
+      channelId: 'admin_notifications_channel',
+      data: { action: 'admin', tab: 'applications' }
     }).catch(err => console.error('FCM admin notification failed:', err));
 
     return new Response(JSON.stringify({ ok: true, score, max }), { headers: NO_CACHE });
@@ -213,7 +214,8 @@ export const onRequestPatch = async ({ env, request }: { env: any; request: Requ
       await sendFcmNotificationToUser(env, user_id, {
         title,
         body: bodyText,
-        channelId: 'application_results_channel'
+        channelId: 'application_results_channel',
+        data: { action: 'apply' }
       }).catch(err => console.error('FCM send failure for citizen application:', err));
     }
 

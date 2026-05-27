@@ -248,7 +248,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     await sendFcmNotificationToAdmins(env, {
       title: notifyTitle,
       body: notifyBody,
-      channelId: 'admin_notifications_channel'
+      channelId: 'admin_notifications_channel',
+      data: { action: 'admin', tab: 'vehicles' }
     }).catch(err => console.error('FCM admin notification failed:', err));
 
     return new Response(JSON.stringify({ success: true, id }), {
@@ -456,7 +457,8 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
         await sendFcmNotificationToUser(env, v.owner_id, {
           title,
           body: bodyText,
-          channelId: 'application_results_channel'
+          channelId: 'application_results_channel',
+          data: { action: 'garage' }
         }).catch(err => console.error('FCM send failure:', err));
       }
     }

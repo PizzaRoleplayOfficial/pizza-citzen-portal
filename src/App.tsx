@@ -198,6 +198,25 @@ export default function App() {
       }
     }
   };
+
+  const handlePushNotificationAction = (data: { action: string; tab?: string }) => {
+    console.log('Push notification redirect action:', data);
+    triggerHaptic('medium');
+
+    if (data.action === 'admin') {
+      setView('admin');
+      if (data.tab) {
+        setAdminTabPersist(data.tab as any);
+      }
+    } else if (data.action === 'garage') {
+      setView('garage');
+    } else if (data.action === 'apply') {
+      setView('apply');
+    } else if (data.action === 'home') {
+      setView('home');
+    }
+  };
+
   const [wikiPreviewUrl, setWikiPreviewUrl] = useState<string | null>(null);
   const [wikiSyncProgress, setWikiSyncProgress] = useState<string | null>(null);
   const [wikiTrims, setWikiTrims] = useState<string[]>([]);
@@ -698,7 +717,7 @@ export default function App() {
         currentUser.role || 'user',
         window.location.origin
       );
-      registerPushNotifications(currentUser.id);
+      registerPushNotifications(currentUser.id, handlePushNotificationAction);
     } else if (!isLoggedIn && !isLoading) {
       stopBackgroundPoll();
       if (currentUser && currentUser.id) {
@@ -1185,7 +1204,7 @@ export default function App() {
     triggerHaptic('light');
 
     if (isLoggedIn && currentUser && currentUser.id) {
-      registerPushNotifications(currentUser.id);
+      registerPushNotifications(currentUser.id, handlePushNotificationAction);
     }
   };
 

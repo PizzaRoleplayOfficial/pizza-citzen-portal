@@ -58,7 +58,7 @@ async function getAccessToken(serviceAccountJson: string): Promise<string> {
 export async function sendFcmNotification(
   env: any,
   token: string,
-  payload: { title: string; body: string; channelId?: string }
+  payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
 ): Promise<boolean> {
   try {
     const serviceAccountJson = env.FIREBASE_SERVICE_ACCOUNT;
@@ -82,6 +82,7 @@ export async function sendFcmNotification(
           title: payload.title,
           body: payload.body
         },
+        data: payload.data || undefined, // data属性を追加 (v2.0.3)
         android: {
           notification: {
             channel_id: payload.channelId || 'application_results_channel',
@@ -127,7 +128,7 @@ export async function sendFcmNotification(
 export async function sendFcmNotificationToUser(
   env: any,
   userId: string,
-  payload: { title: string; body: string; channelId?: string }
+  payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
 ): Promise<number> {
   try {
     if (!env.D1_DB) {
@@ -182,7 +183,7 @@ export async function sendFcmNotificationToUser(
  */
 export async function sendFcmNotificationToAdmins(
   env: any,
-  payload: { title: string; body: string; channelId?: string }
+  payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
 ): Promise<number> {
   try {
     if (!env.D1_DB) {

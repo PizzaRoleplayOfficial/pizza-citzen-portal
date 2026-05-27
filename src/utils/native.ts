@@ -239,7 +239,10 @@ export const updateBackgroundPollCache = async (vehicles: any[]) => {
 /**
  * FCMプッシュ通知の登録を行い、トークンを取得してサーバーへ登録します。
  */
-export const registerPushNotifications = async (userId: string) => {
+export const registerPushNotifications = async (
+  userId: string,
+  onAction?: (actionData: { action: string; tab?: string }) => void
+) => {
   if (!isNative) return;
 
   try {
@@ -309,6 +312,18 @@ export const registerPushNotifications = async (userId: string) => {
       'pushNotificationActionPerformed',
       (notification: ActionPerformed) => {
         console.log('Push notification action performed:', notification);
+        try {
+          const data = notification.notification?.data;
+          if (data && data.action && onAction) {
+            console.log('Push Action Hook: Routing to page...', data);
+            onAction({
+              action: String(data.action),
+              tab: data.tab ? String(data.tab) : undefined
+            });
+          }
+        } catch (err) {
+          console.error('Failed to handle push redirect action:', err);
+        }
       }
     );
 
