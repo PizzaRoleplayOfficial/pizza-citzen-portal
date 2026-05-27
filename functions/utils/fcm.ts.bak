@@ -172,3 +172,44 @@ export async function sendFcmNotificationToUser(
     return 0;
   }
 }
+
+/**
+ * データベースの role が 'admin' であるすべての管理者ユーザー宛てにプッシュ通知を一括送信します。
+ */
+export async function sendFcmNotificationToAdmins(
+  env: any,
+  payload: { title: string; body: string; channelId?: string }
+): Promise<number> {
+  try {
+    if (!env.D1_DB) {
+      console.warn('D1_DB binding not found. Cannot fetch admin push tokens.');
+      return 0;
+    }
+
+    // 1. D1から管理者ユーザーのID一覧を取得
+    const { results: admins } = await env.D1_DB.prepare(
+      "SELECT id FROM users WHERE role = 'admin'"
+    ).all();
+
+    if (!admins || admins.length === 0) {
+      console.log('No admin users found in database.');
+      return 0;
+    }
+
+    console.log(`Found ${admins.length} admin user(s). Preparing to send admin push notifications...`);
+
+    let totalNotificationCount = 0;
+    
+    // 各管理者に並行して送信
+    const promises = (admins as any[]).map(async (admin) => {
+      const count = await sendFcmNotificationToUser(env, admin.id, payload);
+      totalNotificationCount += count;
+    });
+
+    await Promise.all(promises);
+    return totalNotificationCount;
+  } catch (err) {
+    console.error('Failed to send FCM notification to admins:', err);
+    return 0;
+  }
+}

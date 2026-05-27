@@ -153,6 +153,10 @@ export default function App() {
   };
   const [currentUser, setCurrentUser] = useState<User>(INITIAL_USER);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [pushSettings, setPushSettings] = useState({
+    resultsEnabled: localStorage.getItem('gvvr_push_results') !== 'false',
+    adminEnabled: localStorage.getItem('gvvr_push_admin') !== 'false'
+  });
   const [theme, setTheme] = useState<'dark'|'light'>(
     (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
   );
@@ -1171,6 +1175,17 @@ export default function App() {
       if (isManual) {
         setIsCheckingUpdate(false);
       }
+    }
+  };
+
+  const handleTogglePushSetting = (key: 'resultsEnabled' | 'adminEnabled', enabled: boolean) => {
+    const newSettings = { ...pushSettings, [key]: enabled };
+    setPushSettings(newSettings);
+    localStorage.setItem(`gvvr_push_${key === 'resultsEnabled' ? 'results' : 'admin'}`, String(enabled));
+    triggerHaptic('light');
+
+    if (isLoggedIn && currentUser && currentUser.id) {
+      registerPushNotifications(currentUser.id);
     }
   };
 
@@ -2392,6 +2407,8 @@ export default function App() {
             appVersion={appVersion}
             autoCheckUpdates={autoCheckUpdates}
             onToggleAutoCheck={handleToggleAutoCheck}
+            pushSettings={pushSettings}
+            onTogglePushSetting={handleTogglePushSetting}
           />
         ) : (
           <AdminDashboardView

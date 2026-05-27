@@ -266,13 +266,18 @@ export const registerPushNotifications = async (userId: string) => {
 
       try {
         const platform = Capacitor.getPlatform();
+        const resultsEnabled = localStorage.getItem('gvvr_push_results') !== 'false';
+        const adminEnabled = localStorage.getItem('gvvr_push_admin') !== 'false';
+
         const res = await fetch('/api/push-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId,
             token: token.value,
-            platform
+            platform,
+            resultsEnabled,
+            adminEnabled
           })
         });
         if (!res.ok) {

@@ -135,10 +135,14 @@ export async function sendFcmNotificationToUser(
       return 0;
     }
 
+    // チャンネル種別に応じて購読トグルのフィルタリングを変更 (v2.0.2)
+    const isChannelAdmin = payload.channelId === 'admin_notifications_channel';
+    const query = isChannelAdmin
+      ? "SELECT token FROM user_push_tokens WHERE user_id = ? AND admin_enabled = 1"
+      : "SELECT token FROM user_push_tokens WHERE user_id = ? AND results_enabled = 1";
+
     // 1. D1からユーザーのトークンリストを取得
-    const { results } = await env.D1_DB.prepare(
-      "SELECT token FROM user_push_tokens WHERE user_id = ?"
-    ).bind(userId).all();
+    const { results } = await env.D1_DB.prepare(query).bind(userId).all();
 
     if (!results || results.length === 0) {
       console.log(`No registered push tokens found for user: ${userId}`);
