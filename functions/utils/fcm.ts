@@ -122,6 +122,39 @@ export async function sendFcmNotification(
   }
 }
 
+async function saveInAppNotification(
+  db: any,
+  userId: string,
+  payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
+) {
+  try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        type TEXT NOT NULL,
+        link_action TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `).run();
+
+    const id = crypto.randomUUID();
+    const type = payload.channelId || 'general';
+    const linkAction = payload.data?.action || null;
+
+    await db.prepare(`
+      INSERT INTO notifications (id, user_id, title, body, type, link_action)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(id, userId, payload.title, payload.body, type, linkAction).run();
+    console.log(`Saved in-app notification for user ${userId}: ${payload.title}`);
+  } catch (err) {
+    console.error('Failed to save in-app notification in DB:', err);
+  }
+}
+
 /**
  * データベースの指定したユーザーIDに紐づくすべての端末トークンを取得して、通知を送信します。
  */
@@ -136,11 +169,28 @@ export async function sendFcmNotificationToUser(
       return 0;
     }
 
-    // チャンネル種別に応じて購読トグルのフィルタリングを変更 (v2.0.2)
+    // Automatically record in-app notification
+    await saveInAppNotification(env.D1_DB, userId, payload);
+
+    // チャンネル種別に応じて購読トグルのフィルタリングを変更 (v2.2.2)
     const isChannelAdmin = payload.channelId === 'admin_notifications_channel';
-    const query = isChannelAdmin
-      ? "SELECT token FROM user_push_tokens WHERE user_id = ? AND admin_enabled = 1"
-      : "SELECT token FROM user_push_tokens WHERE user_id = ? AND results_enabled = 1";
+    const isChannelAdminEdit = payload.channelId === 'admin_edit_notifications_channel';
+    const isTimelineLike = payload.channelId === 'timeline_likes_channel';
+    const isTimelineComment = payload.channelId === 'timeline_comments_channel';
+    const isTimelineNewPost = payload.channelId === 'timeline_new_posts_channel';
+    
+    let query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND results_enabled = 1";
+    if (isChannelAdmin) {
+      query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND admin_enabled = 1";
+    } else if (isChannelAdminEdit) {
+      query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND admin_edit_enabled = 1";
+    } else if (isTimelineLike) {
+      query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND timeline_like_enabled = 1";
+    } else if (isTimelineComment) {
+      query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND timeline_comment_enabled = 1";
+    } else if (isTimelineNewPost) {
+      query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND timeline_new_post_enabled = 1";
+    }
 
     // 1. D1からユーザーのトークンリストを取得
     const { results } = await env.D1_DB.prepare(query).bind(userId).all();

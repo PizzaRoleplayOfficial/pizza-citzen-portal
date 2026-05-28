@@ -170,8 +170,16 @@ export const requestNotificationPermission = async () => {
       },
       {
         id: 'admin_notifications_channel',
-        name: '管理者向け通知',
+        name: '新規申請の管理者向け通知',
         description: '運営管理者向けの新規申請到着などを通知します。',
+        importance: 3, // DEFAULT
+        visibility: 1,
+        sound: 'default'
+      },
+      {
+        id: 'admin_edit_notifications_channel',
+        name: '登録編集申請の管理者向け通知',
+        description: '運営管理者向けの車両登録情報の編集申請到着などを通知します。',
         importance: 3, // DEFAULT
         visibility: 1,
         sound: 'default'
@@ -271,6 +279,10 @@ export const registerPushNotifications = async (
         const platform = Capacitor.getPlatform();
         const resultsEnabled = localStorage.getItem('gvvr_push_results') !== 'false';
         const adminEnabled = localStorage.getItem('gvvr_push_admin') !== 'false';
+        const adminEditEnabled = localStorage.getItem('gvvr_push_admin_edit') !== 'false';
+        const timelineLikeEnabled = localStorage.getItem('gvvr_push_timeline_like') !== 'false';
+        const timelineCommentEnabled = localStorage.getItem('gvvr_push_timeline_comment') !== 'false';
+        const timelineNewPostEnabled = localStorage.getItem('gvvr_push_timeline_new_post') !== 'false';
 
         const res = await fetch('/api/push-token', {
           method: 'POST',
@@ -280,7 +292,11 @@ export const registerPushNotifications = async (
             token: token.value,
             platform,
             resultsEnabled,
-            adminEnabled
+            adminEnabled,
+            adminEditEnabled,
+            timelineLikeEnabled,
+            timelineCommentEnabled,
+            timelineNewPostEnabled
           })
         });
         if (!res.ok) {

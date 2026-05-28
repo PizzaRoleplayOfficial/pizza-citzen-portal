@@ -13,7 +13,22 @@ export const ImageLightbox = ({ images, startIndex, onClose }: { images: string[
       if (e.key === 'ArrowLeft') setIdx(i => (i - 1 + images.length) % images.length);
     };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+
+    // Intercept back gesture / hardware back button
+    window.history.pushState({ imageLightbox: true }, '');
+
+    const handlePopState = (e: PopStateEvent) => {
+      onClose();
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.imageLightbox) {
+        window.history.back();
+      }
+    };
   }, [images, onClose]);
 
   return ReactDOM.createPortal(

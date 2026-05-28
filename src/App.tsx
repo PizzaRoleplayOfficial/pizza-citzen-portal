@@ -6,6 +6,7 @@ import { ApplicationFormView } from './views/ApplicationFormView';
 import { MyGarageView } from './views/MyGarageView';
 import { ProfileView } from './views/ProfileView';
 import { AdminDashboardView } from './views/AdminDashboardView';
+import { TimelineView } from './views/TimelineView';
 import { 
   Car, 
   Plus, 
@@ -34,7 +35,10 @@ import {
   RefreshCw,
   RotateCcw,
   Menu,
-  Info
+  Info,
+  MessageSquare,
+  Bell,
+  Heart
 } from 'lucide-react';
 import { isNative } from './utils/native';
 import { 
@@ -155,7 +159,11 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [pushSettings, setPushSettings] = useState({
     resultsEnabled: localStorage.getItem('gvvr_push_results') !== 'false',
-    adminEnabled: localStorage.getItem('gvvr_push_admin') !== 'false'
+    adminEnabled: localStorage.getItem('gvvr_push_admin') !== 'false',
+    adminEditEnabled: localStorage.getItem('gvvr_push_admin_edit') !== 'false',
+    timelineLikeEnabled: localStorage.getItem('gvvr_push_timeline_like') !== 'false',
+    timelineCommentEnabled: localStorage.getItem('gvvr_push_timeline_comment') !== 'false',
+    timelineNewPostEnabled: localStorage.getItem('gvvr_push_timeline_new_post') !== 'false'
   });
   const [theme, setTheme] = useState<'dark'|'light'>(
     (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
@@ -165,17 +173,17 @@ export default function App() {
     const parts = hash.split('/');
     const mainView = parts[0];
     const subTab = parts[1];
-    const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply'];
+    const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply', 'timeline'];
     const validSubTabs = ['dashboard', 'vehicles', 'users', 'lookup', 'applications', 'questions', 'catalog'];
     
     return {
-      view: (validViews.includes(mainView) ? mainView : 'home') as 'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply',
+      view: (validViews.includes(mainView) ? mainView : 'home') as 'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline',
       adminTab: (mainView === 'admin' && subTab && validSubTabs.includes(subTab) ? subTab : null) as any
     };
   };
 
   const initialParsed = getInitialHashState();
-  const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply'>(initialParsed.view);
+  const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline'>(initialParsed.view);
 
   const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog'>(
     initialParsed.adminTab || (sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard'
@@ -214,6 +222,8 @@ export default function App() {
       setView('apply');
     } else if (data.action === 'home') {
       setView('home');
+    } else if (data.action === 'timeline') {
+      setView('timeline');
     }
   };
 
@@ -239,6 +249,145 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
+
+  // Notifications related states (v2.2.0)
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [targetTimelinePostId, setTargetTimelinePostId] = useState<string | null>(null);
+
+  const fetchNotifications = async () => {
+    if (!isLoggedIn || !currentUser?.id) return;
+    try {
+      const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  };
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    triggerHaptic('light');
+    if (!currentUser?.id) return;
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, markAll: true })
+      });
+      if (res.ok) {
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+      }
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
+  };
+
+  const handleNotificationClick = async (notif: any) => {
+    triggerHaptic('medium');
+    setShowNotifications(false);
+    
+    if (notif.is_read === 0) {
+      try {
+        const res = await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, id: notif.id })
+        });
+        if (res.ok) {
+          setUnreadCount(prev => Math.max(0, prev - 1));
+          setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: 1 } : n));
+        }
+      } catch (err) {
+        console.error("Failed to mark notification as read:", err);
+      }
+    }
+
+    if (notif.link_action && notif.link_action.startsWith('timeline')) {
+      setView('timeline');
+      const match = notif.link_action.match(/postId=([^&]+)/);
+      if (match && match[1]) {
+        setTargetTimelinePostId(match[1]);
+      }
+    } else if (notif.link_action === 'garage' || notif.link_action === 'my_garage') {
+      setView('garage');
+    } else if (notif.link_action === 'apply') {
+      setView('apply');
+    } else if (notif.link_action === 'admin') {
+      setView('admin');
+      if (notif.body.includes('市民申請') || notif.title.includes('市民申請')) {
+        setAdminTabPersist('applications');
+      } else if (notif.body.includes('車両') || notif.title.includes('車両')) {
+        setAdminTabPersist('vehicles');
+      } else {
+        setAdminTabPersist('dashboard');
+      }
+    }
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const past = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - past.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return '今';
+      if (diffMins < 60) return `${diffMins}分前`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}時間前`;
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays === 1) return '昨日';
+      if (diffDays < 7) return `${diffDays}日前`;
+      return past.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+    } catch {
+      return '';
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'timeline_likes_channel':
+        return <Heart size={16} />;
+      case 'timeline_comments_channel':
+        return <MessageSquare size={16} />;
+      case 'application_results_channel':
+        return <ClipboardList size={16} />;
+      case 'admin_notifications_channel':
+      case 'admin_edit_notifications_channel':
+        return <ShieldCheck size={16} />;
+      default:
+        return <Info size={16} />;
+    }
+  };
+
+  const getNotificationIconBg = (type: string) => {
+    switch (type) {
+      case 'timeline_likes_channel':
+        return 'var(--error)';
+      case 'timeline_comments_channel':
+        return 'var(--primary)';
+      case 'application_results_channel':
+        return 'var(--success)';
+      case 'admin_notifications_channel':
+      case 'admin_edit_notifications_channel':
+        return '#f59e0b';
+      default:
+        return 'rgba(255,255,255,0.08)';
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn && currentUser?.id) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 20000);
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn, currentUser?.id]);
 
   // Launch / Boot Splash Animation State (v1.5.24)
   const [showBootSplash, setShowBootSplash] = useState(isNative);
@@ -544,7 +693,8 @@ export default function App() {
             newCache[v.id] = v.status;
             if (cachedStr !== null) {
               const oldStatus = cached[v.id];
-              if (oldStatus === 'pending' && (v.status === 'approved' || v.status === 'rejected')) {
+              // アプリ版（FCM受信環境）では通知の2重受信を防ぐため、ステータス変更時のローカル通知をスキップします
+              if (!Capacitor.isNativePlatform() && oldStatus === 'pending' && (v.status === 'approved' || v.status === 'rejected')) {
                 const statusText = v.status === 'approved' ? '承認' : '却下';
                 const carName = `${v.year}年式 ${v.maker} ${v.model}`;
                 scheduleLocalNotification(
@@ -589,7 +739,8 @@ export default function App() {
         if (app && app.status) {
           const cachedStatus = localStorage.getItem(`gvvr_citizen_app_status_${currentUser.id}`);
           if (cachedStatus !== null) {
-            if (cachedStatus === 'pending' && (app.status === 'approved' || app.status === 'rejected')) {
+            // アプリ版（FCM受信環境）では通知の2重受信を防ぐため、ステータス変更時のローカル通知をスキップします
+            if (!Capacitor.isNativePlatform() && cachedStatus === 'pending' && (app.status === 'approved' || app.status === 'rejected')) {
               const statusText = app.status === 'approved' ? '承認' : '却下';
               scheduleLocalNotification(
                 '市民申請の結果',
@@ -1197,10 +1348,21 @@ export default function App() {
     }
   };
 
-  const handleTogglePushSetting = (key: 'resultsEnabled' | 'adminEnabled', enabled: boolean) => {
+  const handleTogglePushSetting = (
+    key: 'resultsEnabled' | 'adminEnabled' | 'adminEditEnabled' | 'timelineLikeEnabled' | 'timelineCommentEnabled' | 'timelineNewPostEnabled', 
+    enabled: boolean
+  ) => {
     const newSettings = { ...pushSettings, [key]: enabled };
     setPushSettings(newSettings);
-    localStorage.setItem(`gvvr_push_${key === 'resultsEnabled' ? 'results' : 'admin'}`, String(enabled));
+    
+    let storageKey = 'results';
+    if (key === 'adminEnabled') storageKey = 'admin';
+    else if (key === 'adminEditEnabled') storageKey = 'admin_edit';
+    else if (key === 'timelineLikeEnabled') storageKey = 'timeline_like';
+    else if (key === 'timelineCommentEnabled') storageKey = 'timeline_comment';
+    else if (key === 'timelineNewPostEnabled') storageKey = 'timeline_new_post';
+    
+    localStorage.setItem(`gvvr_push_${storageKey}`, String(enabled));
     triggerHaptic('light');
 
     if (isLoggedIn && currentUser && currentUser.id) {
@@ -1990,6 +2152,9 @@ export default function App() {
               <button className={`btn nav-btn ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
                 <LayoutDashboard size={18} /> ガレージ
               </button>
+              <button className={`btn nav-btn ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>
+                <MessageSquare size={18} /> タイムライン
+              </button>
               {currentUser.role === 'admin' && (
                 <button className={`btn nav-btn ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>
                   <ShieldCheck size={18} /> 管理パネル
@@ -2002,6 +2167,51 @@ export default function App() {
           </div>
 
           <div className="nav-right">
+            <button
+              onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
+              className="btn glass"
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+                position: 'relative',
+                border: '1px solid var(--glass-border)',
+                background: 'rgba(255,255,255,0.03)',
+                padding: 0,
+                transition: '0.2s',
+                marginRight: '8px'
+              }}
+            >
+              <Bell size={18} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    background: 'var(--error)',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    minWidth: '18px',
+                    height: '18px',
+                    padding: '0 4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 8px var(--error)',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <div className="nav-user-info">
               <div className="nav-username">{currentUser.username}</div>
               <div className="nav-userrole">{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
@@ -2032,6 +2242,49 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
+              className="btn glass"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+                position: 'relative',
+                border: '1px solid var(--glass-border)',
+                background: 'rgba(255,255,255,0.03)',
+                padding: 0,
+              }}
+            >
+              <Bell size={16} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    background: 'var(--error)',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    fontSize: '9px',
+                    fontWeight: 'bold',
+                    minWidth: '15px',
+                    height: '15px',
+                    padding: '0 3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 6px var(--error)',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
             <a href="/api/auth/logout" style={{ color: 'var(--text-muted)' }}><LogOut size={20} /></a>
           </div>
@@ -2429,6 +2682,14 @@ export default function App() {
             pushSettings={pushSettings}
             onTogglePushSetting={handleTogglePushSetting}
           />
+        ) : view === 'timeline' ? (
+          <TimelineView
+            currentUser={currentUser}
+            isMobile={isMobile}
+            theme={theme}
+            targetPostId={targetTimelinePostId}
+            onClearTargetPost={() => setTargetTimelinePostId(null)}
+          />
         ) : (
           <AdminDashboardView
             adminTab={adminTab}
@@ -2484,6 +2745,10 @@ export default function App() {
           <button onClick={() => setView('garage')} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <LayoutDashboard size={24} />
             <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>ガレージ</span>
+          </button>
+          <button onClick={() => setView('timeline')} style={{ background: 'none', border: 'none', color: view === 'timeline' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <MessageSquare size={24} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>タイムライン</span>
           </button>
           {currentUser.role === 'admin' && (
             <button onClick={() => setView('admin')} style={{ background: 'none', border: 'none', color: view === 'admin' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
@@ -3361,6 +3626,133 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ====== Notifications Center Dropdown ====== */}
+      {showNotifications && (
+        <>
+          <div 
+            onClick={() => setShowNotifications(false)} 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 4998,
+              background: 'transparent'
+            }} 
+          />
+          
+          <div 
+            className="glass card animate-fade"
+            style={{
+              position: 'fixed',
+              top: isMobile ? 'calc(65px + env(safe-area-inset-top))' : '75px',
+              right: isMobile ? '16px' : '40px',
+              width: isMobile ? 'calc(100% - 32px)' : '380px',
+              maxHeight: '480px',
+              zIndex: 4999,
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+              borderRadius: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              backdropFilter: 'blur(30px)'
+            }}
+          >
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Bell size={18} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '1rem' }}>通知センター</span>
+                {unreadCount > 0 && (
+                  <span style={{ fontSize: '0.75rem', background: 'var(--primary)', padding: '2px 8px', borderRadius: '20px', color: '#000', fontWeight: 700 }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {unreadCount > 0 && (
+                  <button 
+                    onClick={handleMarkAllNotificationsAsRead}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', padding: '4px 8px' }}
+                  >
+                    すべて既読
+                  </button>
+                )}
+                <button 
+                  onClick={() => setShowNotifications(false)}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', borderRadius: '50%' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', maxHeight: '400px' }}>
+              {notifications.length === 0 ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', border: '1px dashed var(--glass-border)' }}>
+                    <Bell size={24} style={{ opacity: 0.4 }} />
+                  </div>
+                  <span style={{ fontSize: '0.9rem' }}>通知はありません</span>
+                </div>
+              ) : (
+                notifications.map((notif) => {
+                  const isUnread = notif.is_read === 0;
+                  return (
+                    <div 
+                      key={notif.id}
+                      onClick={() => handleNotificationClick(notif)}
+                      style={{
+                        padding: '16px 20px',
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        gap: '14px',
+                        alignItems: 'flex-start',
+                        background: isUnread ? 'rgba(255, 165, 0, 0.04)' : 'transparent',
+                        borderLeft: isUnread ? '4px solid var(--primary)' : '4px solid transparent',
+                        transition: '0.2s',
+                      }}
+                      className="notif-item"
+                    >
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        background: getNotificationIconBg(notif.type),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        flexShrink: 0
+                      }}>
+                        {getNotificationIcon(notif.type)}
+                      </div>
+                      
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: isUnread ? 800 : 700, color: 'var(--text-main)', lineHeight: 1.3 }}>
+                            {notif.title}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                            {formatTimeAgo(notif.created_at)}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>
+                          {notif.body}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </>
       )}
 
     </div>

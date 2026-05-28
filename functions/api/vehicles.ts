@@ -241,7 +241,6 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     }
 
     // Send Real-time Push Notification to Admins (FCM)
-    const isTrailer = vehicle_type === 'trailer';
     const notifyTitle = isTrailer ? '🚛 新規トレーラー登録申請' : '🚗 新規車両登録申請';
     const notifyBody = `Roblox: ${roblox_username || '不明'} から新規登録申請: ${year || 2024} ${maker || ''} ${model} (ナンバー: ${plate}) が届きました。`;
 
@@ -334,6 +333,23 @@ export const onRequestPut = async ({ env, request }: { env: any, request: Reques
         console.error("Webhook edit processing error:", e);
         await sendWebhook(env.DISCORD_WEBHOOK_APPLICATIONS, { embeds: [embedPayload] });
       }
+    }
+
+    // Send Real-time Push Notification to Admins for Edit Application (FCM)
+    if (existing) {
+      const activeGame = game_type || existing.game_type || 'gv';
+      const isRc = activeGame === 'rc';
+      const gameLabel = isRc ? "Rensselaer County" : "Greenville";
+      const isTrailer = existing.vehicle_type === 'trailer';
+      const notifyTitle = isTrailer ? '🚛 トレーラー編集申請' : '🚗 車両編集申請';
+      const notifyBody = `Roblox: ${existing.roblox_username || '不明'} が登録情報を更新しました: ${year || existing.year} ${maker || existing.maker} ${model} (ナンバー: ${plate})。再審査が必要です。`;
+
+      await sendFcmNotificationToAdmins(env, {
+        title: notifyTitle,
+        body: notifyBody,
+        channelId: 'admin_edit_notifications_channel',
+        data: { action: 'admin', tab: 'vehicles' }
+      }).catch(err => console.error('FCM admin edit notification failed:', err));
     }
 
     return new Response(JSON.stringify({ success: true }), {

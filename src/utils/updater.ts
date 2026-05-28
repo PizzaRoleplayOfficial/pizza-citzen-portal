@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.0.4'; // 2.0.4 (起動時自動アップデート確認バグ修正)
+export const CURRENT_VERSION = '2.2.4'; // 2.2.4 (モバイル返信フォーム隠れバグ修正・ローディングスピナー改善)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

@@ -14,8 +14,18 @@ interface ProfileViewProps {
   appVersion: string;
   autoCheckUpdates: boolean;
   onToggleAutoCheck: (enabled: boolean) => void;
-  pushSettings: { resultsEnabled: boolean; adminEnabled: boolean };
-  onTogglePushSetting: (key: 'resultsEnabled' | 'adminEnabled', enabled: boolean) => void;
+  pushSettings: { 
+    resultsEnabled: boolean; 
+    adminEnabled: boolean; 
+    adminEditEnabled: boolean;
+    timelineLikeEnabled: boolean;
+    timelineCommentEnabled: boolean;
+    timelineNewPostEnabled: boolean;
+  };
+  onTogglePushSetting: (
+    key: 'resultsEnabled' | 'adminEnabled' | 'adminEditEnabled' | 'timelineLikeEnabled' | 'timelineCommentEnabled' | 'timelineNewPostEnabled', 
+    enabled: boolean
+  ) => void;
 }
 
 export const ProfileView = ({
@@ -114,42 +124,194 @@ export const ProfileView = ({
             </div>
 
             {currentUser?.role === 'admin' && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                <div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>新規申請の管理者向け通知</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から新しい申請が提出された際にプッシュ通知を受け取ります。</div>
-                </div>
-                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
-                  <input 
-                    type="checkbox" 
-                    checked={pushSettings.adminEnabled} 
-                    onChange={(e) => onTogglePushSetting('adminEnabled', e.target.checked)} 
-                    style={{ opacity: 0, width: 0, height: 0 }} 
-                  />
-                  <span style={{
-                    position: 'absolute',
-                    cursor: 'pointer',
-                    inset: 0,
-                    backgroundColor: pushSettings.adminEnabled ? 'var(--primary)' : '#444',
-                    transition: '0.3s',
-                    borderRadius: '34px'
-                  }}>
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>新規申請の管理者向け通知</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から新しい申請が提出された際にプッシュ通知を受け取ります。</div>
+                  </div>
+                  <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={pushSettings.adminEnabled} 
+                      onChange={(e) => onTogglePushSetting('adminEnabled', e.target.checked)} 
+                      style={{ opacity: 0, width: 0, height: 0 }} 
+                    />
                     <span style={{
                       position: 'absolute',
-                      content: '""',
-                      height: '20px',
-                      width: '20px',
-                      left: pushSettings.adminEnabled ? '26px' : '4px',
-                      bottom: '4px',
-                      backgroundColor: pushSettings.adminEnabled ? '#000' : '#fff',
+                      cursor: 'pointer',
+                      inset: 0,
+                      backgroundColor: pushSettings.adminEnabled ? 'var(--primary)' : '#444',
                       transition: '0.3s',
-                      borderRadius: '50%',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
-                    }} />
-                  </span>
-                </label>
-              </div>
+                      borderRadius: '34px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '20px',
+                        width: '20px',
+                        left: pushSettings.adminEnabled ? '26px' : '4px',
+                        bottom: '4px',
+                        backgroundColor: pushSettings.adminEnabled ? '#000' : '#fff',
+                        transition: '0.3s',
+                        borderRadius: '50%',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>登録編集申請の管理者向け通知</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から車両登録情報の編集申請が提出された際にプッシュ通知を受け取ります。</div>
+                  </div>
+                  <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={pushSettings.adminEditEnabled} 
+                      onChange={(e) => onTogglePushSetting('adminEditEnabled', e.target.checked)} 
+                      style={{ opacity: 0, width: 0, height: 0 }} 
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      inset: 0,
+                      backgroundColor: pushSettings.adminEditEnabled ? 'var(--primary)' : '#444',
+                      transition: '0.3s',
+                      borderRadius: '34px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '20px',
+                        width: '20px',
+                        left: pushSettings.adminEditEnabled ? '26px' : '4px',
+                        bottom: '4px',
+                        backgroundColor: pushSettings.adminEditEnabled ? '#000' : '#fff',
+                        transition: '0.3s',
+                        borderRadius: '50%',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+              </>
             )}
+
+            <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: '16px 0' }} />
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '8px' }}>市民タイムライン通知</div>
+
+            {/* Timeline Like Toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+              <div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>「いいね」通知</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>自分の投稿にいいねされた際に通知を受け取ります。</div>
+              </div>
+              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+                <input 
+                  type="checkbox" 
+                  checked={pushSettings.timelineLikeEnabled} 
+                  onChange={(e) => onTogglePushSetting('timelineLikeEnabled', e.target.checked)} 
+                  style={{ opacity: 0, width: 0, height: 0 }} 
+                />
+                <span style={{
+                  position: 'absolute',
+                  cursor: 'pointer',
+                  inset: 0,
+                  backgroundColor: pushSettings.timelineLikeEnabled ? 'var(--primary)' : '#444',
+                  transition: '0.3s',
+                  borderRadius: '34px'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    content: '""',
+                    height: '20px',
+                    width: '20px',
+                    left: pushSettings.timelineLikeEnabled ? '26px' : '4px',
+                    bottom: '4px',
+                    backgroundColor: pushSettings.timelineLikeEnabled ? '#000' : '#fff',
+                    transition: '0.3s',
+                    borderRadius: '50%',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                  }} />
+                </span>
+              </label>
+            </div>
+
+            {/* Timeline Comment Toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+              <div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>「コメント（返信）」通知</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>自分の投稿に返信があった際に通知を受け取ります。</div>
+              </div>
+              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+                <input 
+                  type="checkbox" 
+                  checked={pushSettings.timelineCommentEnabled} 
+                  onChange={(e) => onTogglePushSetting('timelineCommentEnabled', e.target.checked)} 
+                  style={{ opacity: 0, width: 0, height: 0 }} 
+                />
+                <span style={{
+                  position: 'absolute',
+                  cursor: 'pointer',
+                  inset: 0,
+                  backgroundColor: pushSettings.timelineCommentEnabled ? 'var(--primary)' : '#444',
+                  transition: '0.3s',
+                  borderRadius: '34px'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    content: '""',
+                    height: '20px',
+                    width: '20px',
+                    left: pushSettings.timelineCommentEnabled ? '26px' : '4px',
+                    bottom: '4px',
+                    backgroundColor: pushSettings.timelineCommentEnabled ? '#000' : '#fff',
+                    transition: '0.3s',
+                    borderRadius: '50%',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                  }} />
+                </span>
+              </label>
+            </div>
+
+            {/* Timeline New Post Toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+              <div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>「新着投稿」通知</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民が新しくタイムラインへ投稿した際に通知を受け取ります。</div>
+              </div>
+              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+                <input 
+                  type="checkbox" 
+                  checked={pushSettings.timelineNewPostEnabled} 
+                  onChange={(e) => onTogglePushSetting('timelineNewPostEnabled', e.target.checked)} 
+                  style={{ opacity: 0, width: 0, height: 0 }} 
+                />
+                <span style={{
+                  position: 'absolute',
+                  cursor: 'pointer',
+                  inset: 0,
+                  backgroundColor: pushSettings.timelineNewPostEnabled ? 'var(--primary)' : '#444',
+                  transition: '0.3s',
+                  borderRadius: '34px'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    content: '""',
+                    height: '20px',
+                    width: '20px',
+                    left: pushSettings.timelineNewPostEnabled ? '26px' : '4px',
+                    bottom: '4px',
+                    backgroundColor: pushSettings.timelineNewPostEnabled ? '#000' : '#fff',
+                    transition: '0.3s',
+                    borderRadius: '50%',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                  }} />
+                </span>
+              </label>
+            </div>
           </div>
         </div>
       )}
