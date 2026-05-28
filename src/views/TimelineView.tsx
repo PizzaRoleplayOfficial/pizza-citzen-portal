@@ -905,11 +905,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             background: 'var(--modal-overlay)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            /* zIndex above nav bar (1000) */
             zIndex: 1001,
-            display: 'flex',
-            alignItems: isMobile ? 'flex-end' : 'center',
-            justifyContent: 'center',
             animation: 'fadeIn 0.2s ease-out'
           }}
           onClick={() => setExpandedPostId(null)}
@@ -917,15 +913,25 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           {/* Modal Card */}
           <div
             style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              /* PC: centered; Mobile: anchored to bottom above nav bar */
+              ...(isMobile ? {
+                bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+                top: '10vh',
+                borderRadius: '20px 20px 0 0',
+              } : {
+                top: '10vh',
+                bottom: '10vh',
+                left: '50%',
+                right: 'auto',
+                width: '560px',
+                transform: 'translateX(-50%)',
+                borderRadius: '24px',
+              }),
               background: 'var(--glass-bg)',
               border: '1px solid var(--glass-border)',
-              borderRadius: isMobile ? '20px 20px 0 0' : '24px',
-              width: isMobile ? '100%' : '560px',
-              /* Mobile: leave gap at bottom for nav bar (~64px) + safe area */
-              height: isMobile ? 'calc(82vh - 64px - env(safe-area-inset-bottom, 0px))' : '80vh',
-              maxHeight: isMobile ? 'calc(100% - 64px - env(safe-area-inset-bottom, 0px))' : '90vh',
-              /* Sit above the bottom nav bar */
-              marginBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
