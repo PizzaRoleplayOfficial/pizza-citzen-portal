@@ -918,7 +918,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               right: 0,
               /* PC: centered; Mobile: anchored to bottom above nav bar */
               ...(isMobile ? {
-                bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+                /* nav bar height: 12px top-pad + ~44px icons+text + ~24px bottom-pad = ~80px */
+                bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
                 top: '10vh',
                 borderRadius: '20px 20px 0 0',
               } : {
@@ -960,7 +961,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             </div>
 
             {/* Scrollable Replies Container */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
               {/* Original Post Context */}
               <div style={{ display: 'flex', gap: '12px', padding: '16px', background: 'rgba(255,255,255,0.015)', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
