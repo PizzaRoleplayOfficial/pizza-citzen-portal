@@ -901,14 +901,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         <div 
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            /* On mobile, stop above the bottom nav bar (~60px) + safe area */
-            bottom: isMobile ? 'calc(60px + env(safe-area-inset-bottom))' : 0,
+            inset: 0,
             background: 'var(--modal-overlay)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
+            /* zIndex above nav bar (1000) */
             zIndex: 1001,
             display: 'flex',
             alignItems: isMobile ? 'flex-end' : 'center',
@@ -924,9 +921,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               border: '1px solid var(--glass-border)',
               borderRadius: isMobile ? '20px 20px 0 0' : '24px',
               width: isMobile ? '100%' : '560px',
-              /* Mobile: fill remaining space above nav bar; PC: 80vh */
-              height: isMobile ? '85vh' : '80vh',
-              maxHeight: isMobile ? '100%' : '90vh',
+              /* Mobile: leave gap at bottom for nav bar (~64px) + safe area */
+              height: isMobile ? 'calc(82vh - 64px - env(safe-area-inset-bottom, 0px))' : '80vh',
+              maxHeight: isMobile ? 'calc(100% - 64px - env(safe-area-inset-bottom, 0px))' : '90vh',
+              /* Sit above the bottom nav bar */
+              marginBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -1092,7 +1091,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             </div>
 
             {/* Fixed Reply Box Footer */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
               <form onSubmit={(e) => handleCreateComment(activePost.id, e)} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <img 
                   src={currentUser.avatar} 
