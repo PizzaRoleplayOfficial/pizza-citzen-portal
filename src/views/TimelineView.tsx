@@ -918,8 +918,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               right: 0,
               /* PC: centered; Mobile: anchored to bottom above nav bar */
               ...(isMobile ? {
-                /* nav bar height: 12px top-pad + ~44px icons+text + ~24px bottom-pad = ~80px */
-                bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+                /* nav bar ~80px + reply form ~70px */
+                bottom: 'calc(130px + env(safe-area-inset-bottom, 0px))',
                 top: '10vh',
                 borderRadius: '20px 20px 0 0',
               } : {
@@ -1097,60 +1097,76 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               )}
             </div>
 
-            {/* Fixed Reply Box Footer */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
-              <form onSubmit={(e) => handleCreateComment(activePost.id, e)} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <img 
-                  src={currentUser.avatar} 
-                  alt="My Avatar" 
-                  onError={(e) => handleAvatarError(e, currentUser.username)}
-                  style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff', objectFit: 'cover' }}
-                />
-                <input 
-                  type="text"
-                  value={newCommentText}
-                  onChange={(e) => setNewCommentText(e.target.value)}
-                  placeholder="返信をポスト..."
-                  maxLength={200}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--glass-border)',
-                    color: 'var(--input-text)',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmittingComment || !newCommentText.trim()}
-                  style={{
-                    background: 'var(--primary)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    width: '38px',
-                    height: '38px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: theme === 'light' ? '#fff' : '#000',
-                    cursor: !newCommentText.trim() ? 'not-allowed' : 'pointer',
-                    opacity: !newCommentText.trim() ? 0.6 : 1,
-                    flexShrink: 0
-                  }}
-                >
-                  {isSubmittingComment ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Send size={16} />
-                  )}
-                </button>
-              </form>
-            </div>
           </div>
+        </div>
+      )}
+
+      {/* Reply Form - separate fixed element always above nav bar */}
+      {expandedPostId && activePost && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: isMobile ? 'calc(60px + env(safe-area-inset-bottom, 0px))' : '10vh',
+            zIndex: 1002,
+            background: 'var(--glass-bg)',
+            borderTop: '1px solid var(--glass-border)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.4)',
+            padding: '12px 20px',
+            ...(isMobile ? {} : { width: '560px', left: '50%', transform: 'translateX(-50%)', borderRadius: '0 0 24px 24px', right: 'auto' })
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <form onSubmit={(e) => handleCreateComment(activePost.id, e)} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <img
+              src={currentUser.avatar}
+              alt="My Avatar"
+              onError={(e) => handleAvatarError(e, currentUser.username)}
+              style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff', objectFit: 'cover', flexShrink: 0 }}
+            />
+            <input
+              type="text"
+              value={newCommentText}
+              onChange={(e) => setNewCommentText(e.target.value)}
+              placeholder="返信をポスト..."
+              maxLength={200}
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                borderRadius: '10px',
+                background: 'var(--input-bg)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--input-text)',
+                fontSize: '0.9rem',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={isSubmittingComment || !newCommentText.trim()}
+              style={{
+                background: 'var(--primary)',
+                border: 'none',
+                borderRadius: '10px',
+                width: '42px',
+                height: '42px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: theme === 'light' ? '#fff' : '#000',
+                cursor: !newCommentText.trim() ? 'not-allowed' : 'pointer',
+                opacity: !newCommentText.trim() ? 0.5 : 1,
+                flexShrink: 0
+              }}
+            >
+              {isSubmittingComment ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Send size={18} />
+              )}
+            </button>
+          </form>
         </div>
       )}
 
