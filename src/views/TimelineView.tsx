@@ -61,17 +61,56 @@ interface TimelineVideoPlayerProps {
   src: string;
   onPlay: () => void;
   maxHeight?: string;
+  title?: string;
+  artist?: string;
+  artwork?: string;
 }
 
-const TimelineVideoPlayer = ({ src, onPlay, maxHeight }: TimelineVideoPlayerProps) => {
+const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }: TimelineVideoPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handlePlayClick = () => {
     if (videoRef.current) {
       videoRef.current.play();
-      setIsPlaying(true);
-      if (onPlay) onPlay();
+    }
+  };
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+    if (onPlay) onPlay();
+
+    // Enable native OS-level media control notification via Web Media Session API
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: title || '市民の動画投稿',
+          artist: artist || '不明な市民',
+          album: '市民タイムライン',
+          artwork: [
+            { 
+              src: artwork || 'https://pizza-citzen-portal.pages.dev/assets/logo.png', 
+              sizes: '128x128', 
+              type: 'image/png' 
+            }
+          ]
+        });
+
+        // Set action handlers so lock screen and notification shade buttons work natively
+        navigator.mediaSession.setActionHandler('play', () => {
+          videoRef.current?.play();
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+          videoRef.current?.pause();
+        });
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+          if (videoRef.current && details.seekTime !== undefined) {
+            videoRef.current.currentTime = details.seekTime;
+          }
+        });
+      } catch (err) {
+        console.warn("Failed to set MediaSession metadata:", err);
+      }
     }
   };
 
@@ -93,10 +132,7 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight }: TimelineVideoPlayerProp
         controls={isPlaying} 
         preload="metadata"
         playsInline 
-        onPlay={() => {
-          setIsPlaying(true);
-          if (onPlay) onPlay();
-        }}
+        onPlay={handlePlay}
         style={{ width: '100%', maxHeight: maxHeight || '400px', objectFit: 'contain', display: 'block' }} 
       />
       
@@ -1179,6 +1215,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           src={`/api/media?key=${post.video_path}`} 
                           onPlay={() => incrementPostView(post.id)}
                           maxHeight="400px"
+                          title={post.content || '動画投稿'}
+                          artist={post.author_username || '不明な市民'}
+                          artwork={post.author_avatar || undefined}
                         />
                       </div>
                     )}
@@ -1399,6 +1438,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                         src={`/api/media?key=${activePost.video_path}`} 
                         onPlay={() => incrementPostView(activePost.id)}
                         maxHeight="300px"
+                        title={activePost.content || '動画投稿'}
+                        artist={activePost.author_username || '不明な市民'}
+                        artwork={activePost.author_avatar || undefined}
                       />
                     </div>
                   )}
