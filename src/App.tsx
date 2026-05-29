@@ -841,6 +841,12 @@ export default function App() {
                     // Reload window to re-trigger login check
                     window.location.reload();
                   }
+                } else if (parsedUrl.host === 'timeline' || (parsedUrl.host === 'pizzaportal' && parsedUrl.pathname === '/timeline')) {
+                  const postId = parsedUrl.searchParams.get('postId');
+                  setView('timeline');
+                  if (postId) {
+                    setTargetTimelinePostId(postId);
+                  }
                 }
               } catch (err) {
                 console.error('Failed to parse Deep Link URL:', err);
@@ -856,6 +862,33 @@ export default function App() {
       setupDeepLink();
     }
     
+    // Parse initial postId from query parameters or hash to navigate to the post on web/app
+    const urlParams = new URLSearchParams(window.location.search);
+    let postId = urlParams.get('postId');
+    if (!postId && window.location.hash) {
+      const hashParts = window.location.hash.split('?');
+      if (hashParts[1]) {
+        const hashParams = new URLSearchParams(hashParts[1]);
+        postId = hashParams.get('postId');
+      }
+    }
+
+    if (postId) {
+      // Redirect to native app if opened in web browser on a mobile device
+      if (!Capacitor.isNativePlatform()) {
+        const ua = navigator.userAgent.toLowerCase();
+        const isMobileDevice = /iphone|ipad|ipod|android/.test(ua);
+        if (isMobileDevice) {
+          console.log('Attempting to redirect to native app via custom scheme...');
+          window.location.href = `pizzaportal://timeline?postId=${postId}`;
+        }
+      }
+      
+      // Navigate and highlight the post on web / native app fallback
+      setView('timeline');
+      setTargetTimelinePostId(postId);
+    }
+
     // Load external vehicle catalog
     loadCatalog('gv');
   }, []);

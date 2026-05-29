@@ -6,7 +6,9 @@ import {
   Trash2, 
   MessageSquare, 
   Loader2, 
-  RefreshCw, 
+  RotateCcw, 
+  Share2,
+  BarChart2,
   AlertCircle, 
   X, 
   Send 
@@ -35,6 +37,7 @@ interface TimelinePost {
   likes_count: number;
   comments_count: number;
   is_liked: number;
+  views_count?: number;
 }
 
 interface TimelineComment {
@@ -348,12 +351,64 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   };
 
+  const incrementPostView = async (postId: string) => {
+    // Optimistic Update
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        return { ...p, views_count: (p.views_count || 0) + 1 };
+      }
+      return p;
+    }));
+
+    try {
+      await fetch('/api/timeline', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId,
+          userId: currentUser.id,
+          action: 'view'
+        })
+      });
+    } catch (err) {
+      console.error("Failed to increment post view:", err);
+    }
+  };
+
+  const handleSharePost = async (post: TimelinePost) => {
+    triggerHaptic('light');
+    const shareUrl = `${window.location.origin}/timeline?postId=${post.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: '市民タイムラインの投稿',
+          text: `${post.author_username || '市民'}さんの投稿: "${post.content.substring(0, 100)}"`,
+          url: shareUrl
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error("Web Share failed:", err);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("投稿のリンクをクリップボードにコピーしました！");
+      } catch (err) {
+        console.error("Clipboard copy failed:", err);
+        alert("共有リンクのコピーに失敗しました。");
+      }
+    }
+  };
+
   const handleCommentIconClick = (postId: string) => {
     triggerHaptic('light');
     setExpandedPostId(postId);
     setNewCommentText('');
     setReplyingToComment(null);
     fetchComments(postId);
+    incrementPostView(postId);
   };
 
   const handleCreateComment = async (postId: string, e: React.FormEvent) => {
@@ -598,10 +653,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         <button 
           onClick={() => { triggerHaptic('light'); fetchPosts(); }} 
           disabled={isLoading}
-          className="btn glass"
-          style={{ width: '44px', height: '44px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', cursor: 'pointer', border: '1px solid var(--glass-border)' }}
+          className="btn btn-secondary"
+          style={{ padding: '10px 16px' }}
         >
-          <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} style={{ color: 'var(--text-main)' }} />
+          <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
         </button>
       </div>
 
@@ -876,6 +931,44 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                       >
                         <MessageSquare size={18} />
                         <span>{post.comments_count}</span>
+                      </button>
+
+                      {/* Views Count (BarChart2) */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: 'var(--text-muted)'
+                        }}
+                      >
+                        <BarChart2 size={18} style={{ color: 'var(--text-muted)' }} />
+                        <span>{(post.views_count || 0).toLocaleString()}</span>
+                      </div>
+
+                      {/* Share Action (Share2) */}
+                      <button
+                        onClick={() => handleSharePost(post)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'color 0.2s',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                      >
+                        <Share2 size={18} />
+                        <span>共有</span>
                       </button>
                     </div>
                   </div>

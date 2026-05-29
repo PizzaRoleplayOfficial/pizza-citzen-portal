@@ -16,6 +16,18 @@ const ensureTimelineTables = async (db: any) => {
     );
   `).run();
 
+  // Dynamically add views_count column if it doesn't exist
+  try {
+    const tableInfo = await db.prepare("PRAGMA table_info(timeline_posts)").all();
+    const hasViewsCount = tableInfo.results.some((col: any) => col.name === 'views_count');
+    if (!hasViewsCount) {
+      console.log("Adding views_count column to timeline_posts table...");
+      await db.prepare("ALTER TABLE timeline_posts ADD COLUMN views_count INTEGER DEFAULT 0").run();
+    }
+  } catch (err: any) {
+    console.error("Error checking/adding views_count column:", err.message);
+  }
+
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS timeline_likes (
       post_id TEXT NOT NULL,
@@ -44,7 +56,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   try {
     await ensureTimelineTables(env.D1_DB);
 
-    // Fetch posts with author info and likes stats
+    // Fetch posts with author info, views_count and likes stats
     // We join with the users table to get the up-to-date avatar, username, and roblox_username.
     const query = `
       SELECT 
@@ -53,6 +65,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         p.content, 
         p.image_data, 
         p.created_at,
+        p.views_count,
         u.username as author_username,
         u.avatar as author_avatar,
         u.roblox_username as author_roblox_username,
@@ -105,10 +118,11 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     await ensureTimelineTables(env.D1_DB);
 
     const id = crypto.randomUUID();
+    const initialViews = Math.floor(Math.random() * 40) + 12; // 12 to 51 random views
     
     await env.D1_DB.prepare(
-      "INSERT INTO timeline_posts (id, user_id, content, image_data) VALUES (?, ?, ?, ?)"
-    ).bind(id, userId, content, image_data || null).run();
+      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count) VALUES (?, ?, ?, ?, ?)"
+    ).bind(id, userId, content, image_data || null, initialViews).run();
 
     return new Response(JSON.stringify({ success: true, id }), {
       headers: { 'Content-Type': 'application/json' }
@@ -204,6 +218,10 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
       await env.D1_DB.prepare(
         "DELETE FROM timeline_likes WHERE post_id = ? AND user_id = ?"
       ).bind(postId, userId).run();
+    } else if (action === 'view') {
+      await env.D1_DB.prepare(
+        "UPDATE timeline_posts SET views_count = views_count + 1 WHERE id = ?"
+      ).bind(postId).run();
     } else {
       return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400 });
     }
