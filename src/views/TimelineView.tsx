@@ -70,6 +70,16 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [replyingToComment, setReplyingToComment] = useState<TimelineComment | null>(null);
 
+  // Keep track of posts viewed in this session to prevent duplicate views count increments
+  const [viewedPostIds, setViewedPostIds] = useState<string[]>(() => {
+    try {
+      const stored = sessionStorage.getItem('gvvr_viewed_posts');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchPosts = async (isBackground = false) => {
@@ -183,6 +193,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     // 1. Open the comments replies overlay modal
     setExpandedPostId(targetPostId);
     fetchComments(targetPostId);
+    incrementPostView(targetPostId);
     
     // 2. Scroll the post element into view smoothly after a short delay
     setTimeout(() => {
@@ -352,6 +363,18 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   };
 
   const incrementPostView = async (postId: string) => {
+    // If already viewed in this session, do not increment again
+    if (viewedPostIds.includes(postId)) return;
+
+    // Add to viewed posts in session
+    const updated = [...viewedPostIds, postId];
+    setViewedPostIds(updated);
+    try {
+      sessionStorage.setItem('gvvr_viewed_posts', JSON.stringify(updated));
+    } catch (err) {
+      console.warn('Failed to save viewed posts to sessionStorage:', err);
+    }
+
     // Optimistic Update
     setPosts(prev => prev.map(p => {
       if (p.id === postId) {
