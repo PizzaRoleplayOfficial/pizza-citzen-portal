@@ -689,7 +689,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=00c166&color=fff&size=100`;
   };
 
-  const renderImageGrid = (imagesJson: string | null) => {
+  const renderImageGrid = (imagesJson: string | null, postId: string) => {
     const urls = parseImages(imagesJson);
     if (urls.length === 0) return null;
 
@@ -705,7 +705,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
     if (count === 1) {
       return (
-        <div style={{ marginTop: '12px', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)', cursor: 'zoom-in' }} onClick={() => setActiveZoomImage(urls[0])}>
+        <div style={{ marginTop: '12px', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)', cursor: 'zoom-in' }} onClick={() => { setActiveZoomImage(urls[0]); incrementPostView(postId); }}>
           <img src={urls[0]} alt="Attached 1" style={{ width: '100%', maxHeight: '420px', objectFit: 'cover', display: 'block' }} />
         </div>
       );
@@ -734,7 +734,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           }
 
           return (
-            <div key={i} style={wrapperStyle} onClick={() => setActiveZoomImage(url)}>
+            <div key={i} style={wrapperStyle} onClick={() => { setActiveZoomImage(url); incrementPostView(postId); }}>
               <img src={url} alt={`Attached ${i + 1}`} style={itemStyle} />
             </div>
           );
@@ -1073,8 +1073,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                       {post.content}
                     </p>
 
-                    {/* Render Images if any attached */}
-                    {renderImageGrid(post.image_data)}
+                     {/* Render Images if any attached */}
+                    {renderImageGrid(post.image_data, post.id)}
 
                     {/* Render Video if attached */}
                     {post.video_path && (
@@ -1083,6 +1083,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           src={`/api/media?key=${post.video_path}`} 
                           controls 
                           playsInline 
+                          onPlay={() => incrementPostView(post.id)}
                           style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', display: 'block' }} 
                         />
                       </div>
@@ -1296,7 +1297,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>
                     {activePost.content}
                   </p>
-                  {renderImageGrid(activePost.image_data)}
+                  {renderImageGrid(activePost.image_data, activePost.id)}
 
                   {activePost.video_path && (
                     <div style={{ marginTop: '8px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--glass-border)', background: '#000' }}>
@@ -1304,6 +1305,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                         src={`/api/media?key=${activePost.video_path}`} 
                         controls 
                         playsInline 
+                        onPlay={() => incrementPostView(activePost.id)}
                         style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', display: 'block' }} 
                       />
                     </div>
