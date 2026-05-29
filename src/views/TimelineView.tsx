@@ -112,12 +112,12 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   };
 
-  // Poll timeline posts every 8 seconds for real-time likes, views and new posts
+  // Poll timeline posts every 1 second for real-time likes, views and new posts
   useEffect(() => {
     fetchPosts();
     const interval = setInterval(() => {
       fetchPosts(true);
-    }, 8000);
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -128,7 +128,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   }, [expandedPostId]);
 
-  // Poll active reply thread comments every 8 seconds when a thread is expanded
+  // Poll active reply thread comments every 1 second when a thread is expanded
   useEffect(() => {
     if (!expandedPostId) return;
 
@@ -137,7 +137,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     const interval = setInterval(() => {
       // Fetch in background to prevent flickering or losing focus
       fetchComments(expandedPostId, true);
-    }, 8000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [expandedPostId]);
