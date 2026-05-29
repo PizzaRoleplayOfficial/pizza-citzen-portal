@@ -24,8 +24,7 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
     
     // Retrieve the media object from R2 with range support if requested
     const object = await env.R2_BUCKET.get(key, {
-      range: rangeHeader || undefined,
-      onlyIf: request.headers
+      range: rangeHeader || undefined
     });
 
     if (!object) {
@@ -33,8 +32,12 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
     }
 
     const headers = new Headers();
-    object.writeHttpMetadata(headers);
-    headers.set("etag", object.httpEtag);
+    if (object.writeHttpMetadata) {
+      object.writeHttpMetadata(headers);
+    }
+    if (object.httpEtag) {
+      headers.set("etag", object.httpEtag);
+    }
     
     // Set caching headers for premium loading speed
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
@@ -47,7 +50,10 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
       headers
     });
   } catch (err: any) {
-    console.error("Error streaming R2 media:", err.message);
-    return new Response("Error loading media file", { status: 500 });
+    console.error("Error streaming R2 media:", err.message || err);
+    return new Response(JSON.stringify({ error: err.message || err, stack: err.stack }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 };
