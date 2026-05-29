@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.5'; // 2.2.5 (返信への返信多重スレッド機能実装)
+export const CURRENT_VERSION = '2.2.6'; // 2.2.6 (オフライン用プレミアムエラー画面実装)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

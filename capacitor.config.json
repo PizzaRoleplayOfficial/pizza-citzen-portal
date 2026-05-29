@@ -5,6 +5,7 @@
   "server": {
     "url": "https://pizza-citzen-portal.pages.dev",
     "androidScheme": "https",
+    "errorPath": "/offline.html",
     "allowNavigation": [
       "pizza-citzen-portal.pages.dev",
       "discord.com",
