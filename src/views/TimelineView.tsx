@@ -65,6 +65,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [isCommentsLoading, setIsCommentsLoading] = useState<Record<string, boolean>>({});
   const [newCommentText, setNewCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [replyingToComment, setReplyingToComment] = useState<TimelineComment | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -159,6 +160,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         window.history.back();
       }
     };
+  }, [expandedPostId]);
+
+  // Handle resetting nested replying state on modal close
+  useEffect(() => {
+    if (!expandedPostId) {
+      setReplyingToComment(null);
+    }
   }, [expandedPostId]);
 
   // Handle target post selection, scrolling and comment expansion from notification center (v2.2.3)
@@ -344,6 +352,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     triggerHaptic('light');
     setExpandedPostId(postId);
     setNewCommentText('');
+    setReplyingToComment(null);
     fetchComments(postId);
   };
 
@@ -361,12 +370,14 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         body: JSON.stringify({
           postId,
           userId: currentUser.id,
-          content: newCommentText
+          content: newCommentText,
+          parentId: replyingToComment?.id || null
         })
       });
 
       if (res.ok) {
         setNewCommentText('');
+        setReplyingToComment(null);
         // Refresh replies list
         await fetchComments(postId);
         // Increment reply count in posts list
@@ -1009,91 +1020,250 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   まだ返信はありません。
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {(postComments[activePost.id] || []).map((comment) => {
-                    const isCommentOwner = comment.user_id === currentUser.id;
-                    const isPostOwner = activePost.user_id === currentUser.id;
-                    const isUserAdmin = currentUser.role === 'admin';
-                    const isCommentLiked = comment.is_liked === 1;
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {(() => {
+                    const allComments = postComments[activePost.id] || [];
+                    const mainComments = allComments.filter(c => !c.parent_id);
+                    
+                    return mainComments.map((comment) => {
+                      const subReplies = allComments.filter(sub => sub.parent_id === comment.id);
+                      const isCommentOwner = comment.user_id === currentUser.id;
+                      const isPostOwner = activePost.user_id === currentUser.id;
+                      const isUserAdmin = currentUser.role === 'admin';
+                      const isCommentLiked = comment.is_liked === 1;
 
-                    return (
-                      <div key={comment.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                        <img 
-                          src={comment.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author_username || 'C')}&background=00c166&color=fff`} 
-                          alt="Avatar" 
-                          onError={(e) => handleAvatarError(e, comment.author_username || 'C')}
-                          style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff', objectFit: 'cover', flexShrink: 0 }}
-                        />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
-                            <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>
-                              {comment.author_username || '不明な市民'}
-                            </span>
-                            {comment.author_roblox_username && (
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                @{comment.author_roblox_username}
-                              </span>
-                            )}
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>•</span>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                              {formatRelativeTime(comment.created_at)}
-                            </span>
+                      return (
+                        <div key={comment.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '12px' }}>
+                          
+                          {/* 1階層目: メインコメント */}
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                            <img 
+                              src={comment.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author_username || 'C')}&background=00c166&color=fff`} 
+                              alt="Avatar" 
+                              onError={(e) => handleAvatarError(e, comment.author_username || 'C')}
+                              style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff', objectFit: 'cover', flexShrink: 0 }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                                <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>
+                                  {comment.author_username || '不明な市民'}
+                                </span>
+                                {comment.author_roblox_username && (
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                    @{comment.author_roblox_username}
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>•</span>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                  {formatRelativeTime(comment.created_at)}
+                                </span>
+                              </div>
+
+                              <p style={{ margin: '4px 0 8px', fontSize: '0.9rem', color: 'var(--text-main)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                                {comment.content}
+                              </p>
+
+                              {/* Action Bar */}
+                              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                {/* Like */}
+                                <button
+                                  onClick={() => handleCommentLikeToggle(activePost.id, comment.id, isCommentLiked)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: 0,
+                                    color: isCommentLiked ? '#ff5252' : 'var(--text-muted)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'color 0.2s'
+                                  }}
+                                >
+                                  <Heart size={13} fill={isCommentLiked ? '#ff5252' : 'none'} />
+                                  <span>{comment.likes_count || 0}</span>
+                                </button>
+
+                                {/* Reply */}
+                                <button
+                                  onClick={() => {
+                                    triggerHaptic('light');
+                                    setReplyingToComment(comment);
+                                    // Autofocus the reply input field
+                                    const inputEl = document.querySelector('input[placeholder*="返信"]') as HTMLInputElement;
+                                    if (inputEl) {
+                                      inputEl.focus();
+                                    }
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: 0,
+                                    color: 'var(--text-muted)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'color 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                                >
+                                  返信
+                                </button>
+
+                                {/* Delete */}
+                                {(isCommentOwner || isPostOwner || isUserAdmin) && (
+                                  <button
+                                    onClick={() => handleDeleteComment(activePost.id, comment.id)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      padding: 0,
+                                      color: 'rgba(255,82,82,0.65)',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 500,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      transition: 'color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = '#ff5252'}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,82,82,0.65)'}
+                                  >
+                                    削除
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           </div>
 
-                          <p style={{ margin: '4px 0 8px', fontSize: '0.9rem', color: 'var(--text-main)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-                            {comment.content}
-                          </p>
+                          {/* 2階層目: スレッド返信 */}
+                          {subReplies.length > 0 && (
+                            <div style={{
+                              marginLeft: isMobile ? '24px' : '44px',
+                              paddingLeft: '12px',
+                              borderLeft: '1.5px solid rgba(255,255,255,0.08)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px',
+                              marginTop: '4px'
+                            }}>
+                              {subReplies.map((sub) => {
+                                const isSubOwner = sub.user_id === currentUser.id;
+                                const isSubLiked = sub.is_liked === 1;
 
-                          {/* Reply Actions Bar */}
-                          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                            {/* Comment Like Action */}
-                            <button
-                              onClick={() => handleCommentLikeToggle(activePost.id, comment.id, isCommentLiked)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                color: isCommentLiked ? '#ff5252' : 'var(--text-muted)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                transition: 'color 0.2s'
-                              }}
-                            >
-                              <Heart size={13} fill={isCommentLiked ? '#ff5252' : 'none'} />
-                              <span>{comment.likes_count || 0}</span>
-                            </button>
+                                return (
+                                  <div key={sub.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', paddingBottom: '4px' }}>
+                                    <img 
+                                      src={sub.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sub.author_username || 'C')}&background=00c166&color=fff`} 
+                                      alt="Avatar" 
+                                      onError={(e) => handleAvatarError(e, sub.author_username || 'C')}
+                                      style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#fff', objectFit: 'cover', flexShrink: 0 }}
+                                    />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                                        <span style={{ fontWeight: 700, fontSize: '0.78rem', color: 'var(--text-main)' }}>
+                                          {sub.author_username || '不明な市民'}
+                                        </span>
+                                        {sub.author_roblox_username && (
+                                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                            @{sub.author_roblox_username}
+                                          </span>
+                                        )}
+                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>•</span>
+                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                          {formatRelativeTime(sub.created_at)}
+                                        </span>
+                                      </div>
 
-                            {/* Comment Delete Action */}
-                            {(isCommentOwner || isPostOwner || isUserAdmin) && (
-                              <button
-                                onClick={() => handleDeleteComment(activePost.id, comment.id)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  padding: 0,
-                                  color: 'rgba(255,82,82,0.65)',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 500,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  transition: 'color 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.color = '#ff5252'}
-                                onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,82,82,0.65)'}
-                              >
-                                削除
-                              </button>
-                            )}
-                          </div>
+                                      <p style={{ margin: '2px 0 6px', fontSize: '0.85rem', color: 'var(--text-main)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.35 }}>
+                                        {sub.content}
+                                      </p>
+
+                                      {/* Sub Actions */}
+                                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                        {/* Like */}
+                                        <button
+                                          onClick={() => handleCommentLikeToggle(activePost.id, sub.id, isSubLiked)}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            padding: 0,
+                                            color: isSubLiked ? '#ff5252' : 'var(--text-muted)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            fontSize: '0.7rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            transition: 'color 0.2s'
+                                          }}
+                                        >
+                                          <Heart size={11} fill={isSubLiked ? '#ff5252' : 'none'} />
+                                          <span>{sub.likes_count || 0}</span>
+                                        </button>
+
+                                        {/* Reply */}
+                                        <button
+                                          onClick={() => {
+                                            triggerHaptic('light');
+                                            setReplyingToComment(comment);
+                                            setNewCommentText(`@${sub.author_username} `);
+                                            const inputEl = document.querySelector('input[placeholder*="返信"]') as HTMLInputElement;
+                                            if (inputEl) {
+                                              inputEl.focus();
+                                            }
+                                          }}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            padding: 0,
+                                            color: 'var(--text-muted)',
+                                            fontSize: '0.7rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            transition: 'color 0.2s'
+                                          }}
+                                          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                                        >
+                                          返信
+                                        </button>
+
+                                        {/* Delete */}
+                                        {(isSubOwner || isPostOwner || isUserAdmin) && (
+                                          <button
+                                            onClick={() => handleDeleteComment(activePost.id, sub.id)}
+                                            style={{
+                                              background: 'none',
+                                              border: 'none',
+                                              padding: 0,
+                                              color: 'rgba(255,82,82,0.65)',
+                                              fontSize: '0.7rem',
+                                              fontWeight: 500,
+                                              cursor: 'pointer',
+                                              transition: 'color 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.color = '#ff5252'}
+                                            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,82,82,0.65)'}
+                                          >
+                                            削除
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
@@ -1116,10 +1286,51 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             borderTop: '1px solid var(--glass-border)',
             boxShadow: '0 -4px 20px rgba(0,0,0,0.4)',
             padding: '12px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
             ...(isMobile ? {} : { width: '560px', left: '50%', transform: 'translateX(-50%)', borderRadius: '0 0 24px 24px', right: 'auto' })
           }}
           onClick={e => e.stopPropagation()}
         >
+          {replyingToComment && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'rgba(0, 255, 136, 0.08)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid rgba(0, 255, 136, 0.15)',
+              fontSize: '0.8rem',
+              color: 'var(--primary)',
+              animation: 'fadeIn 0.2s ease-out'
+            }}>
+              <span>
+                <strong>@{replyingToComment.author_username}</strong> さんへの返信中...
+              </span>
+              <button 
+                onClick={() => {
+                  triggerHaptic('light');
+                  setReplyingToComment(null);
+                  if (newCommentText.startsWith(`@${replyingToComment.author_username} `)) {
+                    setNewCommentText('');
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: '0.75rem'
+                }}
+              >
+                キャンセル
+              </button>
+            </div>
+          )}
+
           <form onSubmit={(e) => handleCreateComment(activePost.id, e)} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <img
               src={currentUser.avatar}
@@ -1131,7 +1342,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               type="text"
               value={newCommentText}
               onChange={(e) => setNewCommentText(e.target.value)}
-              placeholder="返信をポスト..."
+              placeholder={replyingToComment ? `${replyingToComment.author_username}さんへ返信...` : "返信をポスト..."}
               maxLength={200}
               style={{
                 flex: 1,

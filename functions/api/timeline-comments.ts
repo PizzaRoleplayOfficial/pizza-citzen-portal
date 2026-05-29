@@ -14,6 +14,18 @@ const ensureCommentsTable = async (db: any) => {
     );
   `).run();
 
+  // Dynamically alter table to add parent_id column if it doesn't exist
+  try {
+    const tableInfo = await db.prepare("PRAGMA table_info(timeline_comments)").all();
+    const hasParentId = tableInfo.results.some((col: any) => col.name === 'parent_id');
+    if (!hasParentId) {
+      console.log("Adding parent_id column to timeline_comments table...");
+      await db.prepare("ALTER TABLE timeline_comments ADD COLUMN parent_id TEXT").run();
+    }
+  } catch (err: any) {
+    console.error("Error checking/adding parent_id column:", err.message);
+  }
+
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS timeline_comment_likes (
       comment_id TEXT NOT NULL,
@@ -36,7 +48,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   try {
     await ensureCommentsTable(env.D1_DB);
 
-    // Fetch replies with author details, likes_count, and whether the current user liked it
+    // Fetch replies with author details, parent_id, likes_count, and whether the current user liked it
     const query = `
       SELECT 
         c.id, 
@@ -44,6 +56,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         c.user_id, 
         c.content, 
         c.created_at,
+        c.parent_id,
         u.username as author_username,
         u.avatar as author_avatar,
         u.roblox_username as author_roblox_username,
@@ -75,7 +88,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     const body = await request.json() as any;
-    const { postId, userId, content } = body;
+    const { postId, userId, content, parentId } = body;
 
     if (!postId || !userId || !content) {
       return new Response(JSON.stringify({ error: '投稿ID、ユーザーID、およびコメント内容は必須です。' }), {
@@ -96,21 +109,45 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     const id = crypto.randomUUID();
     
     await env.D1_DB.prepare(
-      "INSERT INTO timeline_comments (id, post_id, user_id, content) VALUES (?, ?, ?, ?)"
-    ).bind(id, postId, userId, content).run();
+      "INSERT INTO timeline_comments (id, post_id, user_id, content, parent_id) VALUES (?, ?, ?, ?, ?)"
+    ).bind(id, postId, userId, content, parentId || null).run();
 
     try {
-      // Send in-app & push notification to the author of the post (if not the same person)
-      const post = await env.D1_DB.prepare("SELECT user_id, content FROM timeline_posts WHERE id = ?").bind(postId).first() as any;
       const commenter = await env.D1_DB.prepare("SELECT username FROM users WHERE id = ?").bind(userId).first() as any;
-      if (post && commenter && post.user_id !== userId) {
-        const preview = post.content.length > 20 ? post.content.substring(0, 20) + '...' : post.content;
-        await sendFcmNotificationToUser(env, post.user_id, {
-          title: '💬 タイムライン投稿への返信',
-          body: `${commenter.username}さんがあなたの投稿「${preview}」に返信しました。`,
-          channelId: 'timeline_comments_channel',
-          data: { action: `timeline?postId=${postId}` }
-        });
+      if (commenter) {
+        let notifiedUser = null;
+        let notificationTitle = '💬 タイムライン投稿への返信';
+        let notificationBody = '';
+
+        if (parentId) {
+          // If replying to a comment, notify the parent comment owner
+          const parentComment = await env.D1_DB.prepare("SELECT user_id, content FROM timeline_comments WHERE id = ?").bind(parentId).first() as any;
+          if (parentComment && parentComment.user_id !== userId) {
+            notifiedUser = parentComment.user_id;
+            notificationTitle = '💬 返信への新たな返信';
+            const preview = parentComment.content.length > 20 ? parentComment.content.substring(0, 20) + '...' : parentComment.content;
+            notificationBody = `${commenter.username}さんがあなたの返信「${preview}」に返信しました。`;
+          }
+        }
+
+        // Fallback to post owner if first-level comment or parent comment author is themselves
+        if (!notifiedUser) {
+          const post = await env.D1_DB.prepare("SELECT user_id, content FROM timeline_posts WHERE id = ?").bind(postId).first() as any;
+          if (post && post.user_id !== userId) {
+            notifiedUser = post.user_id;
+            const preview = post.content.length > 20 ? post.content.substring(0, 20) + '...' : post.content;
+            notificationBody = `${commenter.username}さんがあなたの投稿「${preview}」に返信しました。`;
+          }
+        }
+
+        if (notifiedUser) {
+          await sendFcmNotificationToUser(env, notifiedUser, {
+            title: notificationTitle,
+            body: notificationBody,
+            channelId: 'timeline_comments_channel',
+            data: { action: `timeline?postId=${postId}` }
+          });
+        }
       }
     } catch (err) {
       console.error("Failed to send timeline reply notification:", err);
