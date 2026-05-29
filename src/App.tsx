@@ -2765,33 +2765,33 @@ export default function App() {
       </main>
 
       {isMobile && (
-        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(10px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 16px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(10px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
           <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <Home size={24} />
-            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>ホーム</span>
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ホーム</span>
           </button>
           <button onClick={() => setView('apply')} style={{ background: 'none', border: 'none', color: view === 'apply' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', position: 'relative', cursor: 'pointer' }}>
             <ClipboardList size={24} />
-            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>市民申請</span>
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>市民申請</span>
             {(!myApplication || myApplication.status === 'rejected') && <span style={{ position: 'absolute', top: 0, right: 'calc(50% - 16px)', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />}
           </button>
           <button onClick={() => setView('garage')} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <LayoutDashboard size={24} />
-            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>ガレージ</span>
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ガレージ</span>
           </button>
           <button onClick={() => setView('timeline')} style={{ background: 'none', border: 'none', color: view === 'timeline' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <MessageSquare size={24} />
-            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>タイムライン</span>
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>タイムライン</span>
           </button>
           {currentUser.role === 'admin' && (
             <button onClick={() => setView('admin')} style={{ background: 'none', border: 'none', color: view === 'admin' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
               <ShieldCheck size={24} />
-              <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>管理パネル</span>
+              <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>管理パネル</span>
             </button>
           )}
           <button onClick={() => setView('profile')} style={{ background: 'none', border: 'none', color: view === 'profile' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <UserIcon size={24} />
-            <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>設定</span>
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>設定</span>
           </button>
         </nav>
       )}
