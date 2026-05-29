@@ -30,11 +30,14 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
     const maxAttempts = 4;
     const delayMs = 300;
 
+    const getOptions: any = {};
+    if (rangeHeader) {
+      getOptions.range = rangeHeader;
+    }
+
     while (attempts < maxAttempts) {
       try {
-        object = await env.R2_BUCKET.get(key, {
-          range: rangeHeader || undefined
-        });
+        object = await env.R2_BUCKET.get(key, getOptions);
         if (object) {
           break; // Successfully retrieved
         }
