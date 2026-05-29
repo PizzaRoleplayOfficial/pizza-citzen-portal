@@ -16,6 +16,8 @@ import {
 import { compressImage } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
 import { triggerHaptic } from '../utils/native';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
 
 interface TimelineViewProps {
   currentUser: any;
@@ -409,7 +411,18 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     triggerHaptic('light');
     const shareUrl = `${window.location.origin}/timeline?postId=${post.id}`;
     
-    if (navigator.share) {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Share.share({
+          title: '市民タイムラインの投稿',
+          text: `${post.author_username || '市民'}さんの投稿: "${post.content.substring(0, 100)}"`,
+          url: shareUrl,
+          dialogTitle: '投稿を共有する'
+        });
+      } catch (err) {
+        console.error("Native Share failed:", err);
+      }
+    } else if (navigator.share) {
       try {
         await navigator.share({
           title: '市民タイムラインの投稿',
