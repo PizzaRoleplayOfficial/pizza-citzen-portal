@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.7'; // 2.2.7 (表示数・共有・アプリ移動機能実装)
+export const CURRENT_VERSION = '2.2.8'; // 2.2.8 (表示数・共有・アプリ移動機能実装・共有バグ修正版)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
