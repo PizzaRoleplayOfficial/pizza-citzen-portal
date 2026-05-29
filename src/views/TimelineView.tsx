@@ -844,9 +844,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '240px', border: '1px solid var(--glass-border)', marginTop: '8px', background: '#000' }}>
                 <video 
                   src={URL.createObjectURL(selectedVideoFile)} 
-                  muted 
+                  controls
                   playsInline 
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} 
                 />
                 <div style={{
                   position: 'absolute',
