@@ -5,6 +5,40 @@ interface Env {
   R2_BUCKET: any;
 }
 
+interface R2Range {
+  offset?: number;
+  length?: number;
+  suffix?: number;
+}
+
+// Parses standard HTTP Range header (e.g. bytes=0-100, bytes=2000-, bytes=-500)
+// into a native R2Range object that is accepted by the Cloudflare R2 native runtime engine.
+function parseRangeHeader(rangeHeader: string): R2Range | undefined {
+  const match = rangeHeader.trim().match(/^bytes=(\d*)-(\d*)$/);
+  if (match) {
+    const startStr = match[1];
+    const endStr = match[2];
+    
+    if (startStr && endStr) {
+      const offset = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      const length = end - offset + 1;
+      return { offset, length };
+    } else if (startStr) {
+      const offset = parseInt(startStr, 10);
+      return { offset };
+    }
+  }
+  
+  const suffixMatch = rangeHeader.trim().match(/^bytes=-(\d+)$/);
+  if (suffixMatch) {
+    const suffix = parseInt(suffixMatch[1], 10);
+    return { suffix };
+  }
+  
+  return undefined;
+}
+
 export const onRequestGet = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -22,6 +56,14 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
     // Parse Range header to support seamless iOS/Safari and Chrome seeking (HTTP 206 Partial Content)
     const rangeHeader = request.headers.get("Range");
     
+    const getOptions: any = {};
+    if (rangeHeader) {
+      const parsedRange = parseRangeHeader(rangeHeader);
+      if (parsedRange) {
+        getOptions.range = parsedRange;
+      }
+    }
+
     // Retrieve the media object from R2 with range support if requested.
     // We implement a server-side retry loop (up to 4 attempts with 300ms delays) to gracefully handle
     // eventual consistency or replication delays across Cloudflare's Edge nodes right after upload.
@@ -29,11 +71,6 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
     let attempts = 0;
     const maxAttempts = 4;
     const delayMs = 300;
-
-    const getOptions: any = {};
-    if (rangeHeader) {
-      getOptions.range = rangeHeader;
-    }
 
     while (attempts < maxAttempts) {
       try {
