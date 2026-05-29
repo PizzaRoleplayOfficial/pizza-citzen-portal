@@ -112,14 +112,21 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   };
 
-  // Poll timeline posts every 15 seconds for real-time likes and new posts
+  // Poll timeline posts every 8 seconds for real-time likes, views and new posts
   useEffect(() => {
     fetchPosts();
     const interval = setInterval(() => {
       fetchPosts(true);
-    }, 15000);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch posts in background immediately when the detail modal is closed to sync views/comments/likes count
+  useEffect(() => {
+    if (!expandedPostId) {
+      fetchPosts(true);
+    }
+  }, [expandedPostId]);
 
   // Poll active reply thread comments every 8 seconds when a thread is expanded
   useEffect(() => {

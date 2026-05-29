@@ -46,6 +46,14 @@ const ensureTimelineTables = async (db: any) => {
     );
   `).run();
 
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS timeline_views (
+      post_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      PRIMARY KEY (post_id, user_id)
+    );
+  `).run();
+
   console.log("Timeline database schema check complete.");
 };
 
@@ -219,9 +227,15 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
         "DELETE FROM timeline_likes WHERE post_id = ? AND user_id = ?"
       ).bind(postId, userId).run();
     } else if (action === 'view') {
-      await env.D1_DB.prepare(
-        "UPDATE timeline_posts SET views_count = views_count + 1 WHERE id = ?"
-      ).bind(postId).run();
+      const result = await env.D1_DB.prepare(
+        "INSERT OR IGNORE INTO timeline_views (post_id, user_id) VALUES (?, ?)"
+      ).bind(postId, userId).run();
+      
+      if (result.meta?.changes > 0) {
+        await env.D1_DB.prepare(
+          "UPDATE timeline_posts SET views_count = views_count + 1 WHERE id = ?"
+        ).bind(postId).run();
+      }
     } else {
       return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400 });
     }
