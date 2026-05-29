@@ -70,10 +70,52 @@ interface TimelineVideoPlayerProps {
 const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }: TimelineVideoPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const lastUpdatedTimeRef = useRef<number>(0);
 
   const handlePlayClick = () => {
     if (videoRef.current) {
       videoRef.current.play();
+    }
+  };
+
+  const updatePositionState = (customParams?: { duration?: number; position?: number; playbackRate?: number }) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const duration = customParams?.duration !== undefined ? customParams.duration : video.duration;
+    const currentTime = customParams?.position !== undefined ? customParams.position : video.currentTime;
+    const playbackRate = customParams?.playbackRate !== undefined ? customParams.playbackRate : (video.playbackRate || 1);
+
+    // Guard against invalid duration or NaN
+    if (isNaN(duration) || duration <= 0 || isNaN(currentTime)) return;
+
+    // Only throttle normal time updates (i.e. if customParams are not provided)
+    if (!customParams) {
+      if (Math.abs(currentTime - lastUpdatedTimeRef.current) < 1 && currentTime !== 0 && currentTime !== duration) {
+        return;
+      }
+    }
+
+    lastUpdatedTimeRef.current = currentTime;
+
+    const positionParams = {
+      duration: duration,
+      position: currentTime,
+      playbackRate: playbackRate
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        MediaSession.setPositionState(positionParams);
+      } catch (err) {
+        console.error("Failed to set native MediaSession position state:", err);
+      }
+    } else if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+      try {
+        navigator.mediaSession.setPositionState(positionParams);
+      } catch (err) {
+        console.error("Failed to set Web MediaSession position state:", err);
+      }
     }
   };
 
@@ -122,6 +164,7 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
         MediaSession.setActionHandler({ action: 'seekto' }, (details: any) => {
           if (videoRef.current && details?.seekTime !== undefined) {
             videoRef.current.currentTime = details.seekTime;
+            updatePositionState({ position: details.seekTime });
           }
         });
       } catch (err) {
@@ -143,16 +186,32 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
         navigator.mediaSession.setActionHandler('seekto', (details) => {
           if (videoRef.current && details.seekTime !== undefined) {
             videoRef.current.currentTime = details.seekTime;
+            updatePositionState({ position: details.seekTime });
           }
         });
       } catch (err) {
         console.error("Failed to set Web MediaSession metadata:", err);
       }
     }
+
+    // Set initial position state as soon as it plays
+    setTimeout(() => {
+      updatePositionState();
+    }, 150);
   };
 
   const handlePause = () => {
     setIsPlaying(false);
+
+    // Force final accurate position update on pause with rate = 0
+    if (videoRef.current) {
+      const duration = videoRef.current.duration;
+      const currentTime = videoRef.current.currentTime;
+      if (!isNaN(duration) && duration > 0) {
+        updatePositionState({ duration, position: currentTime, playbackRate: 0 });
+      }
+    }
+
     if (Capacitor.isNativePlatform()) {
       try {
         MediaSession.setPlaybackState({ playbackState: 'paused' });
@@ -166,6 +225,14 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
 
   const handleEnded = () => {
     setIsPlaying(false);
+
+    if (videoRef.current) {
+      const duration = videoRef.current.duration;
+      if (!isNaN(duration) && duration > 0) {
+        updatePositionState({ duration, position: duration, playbackRate: 0 });
+      }
+    }
+
     if (Capacitor.isNativePlatform()) {
       try {
         MediaSession.setPlaybackState({ playbackState: 'none' });
@@ -175,6 +242,14 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
     } else if ('mediaSession' in navigator) {
       navigator.mediaSession.playbackState = 'none';
     }
+  };
+
+  const handleTimeUpdate = () => {
+    updatePositionState();
+  };
+
+  const handleLoadedMetadata = () => {
+    updatePositionState();
   };
 
   return (
@@ -198,6 +273,8 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
         onPlay={handlePlay}
         onPause={handlePause}
         onEnded={handleEnded}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
         style={{ width: '100%', maxHeight: maxHeight || '400px', objectFit: 'contain', display: 'block' }} 
       />
       
