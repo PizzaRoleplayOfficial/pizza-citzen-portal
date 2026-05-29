@@ -63,11 +63,21 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
       headers.set("etag", object.httpEtag);
     }
     
-    // Set caching headers for premium loading speed
+    headers.set("Accept-Ranges", "bytes");
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
-    // If partial content was requested, respond with HTTP 206
-    const status = rangeHeader ? 206 : 200;
+    // Correctly adjust Content-Range and Content-Length headers for partial content (HTTP 206)
+    // R2Object's writeHttpMetadata defaults to the total file size, which causes protocol errors
+    // if the client requested and received a partial byte slice (range).
+    if (object.range) {
+      const { offset, length } = object.range;
+      headers.set("Content-Range", `bytes ${offset}-${offset + length - 1}/${object.size}`);
+      headers.set("Content-Length", length.toString());
+    } else {
+      headers.set("Content-Length", object.size.toString());
+    }
+
+    const status = object.range ? 206 : 200;
 
     return new Response(object.body, {
       status,
