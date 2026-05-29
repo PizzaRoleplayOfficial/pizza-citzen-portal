@@ -19,6 +19,7 @@ import { parseImages } from '../components/UIBase';
 import { triggerHaptic } from '../utils/native';
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
+import { MediaSession } from '@capgo/capacitor-media-session';
 
 interface TimelineViewProps {
   currentUser: any;
@@ -80,21 +81,57 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
     setIsPlaying(true);
     if (onPlay) onPlay();
 
-    // Enable native OS-level media control notification via Web Media Session API
-    if ('mediaSession' in navigator) {
+    // Prepare artwork fallback
+    let artworkUrl = 'https://pizza-citzen-portal.pages.dev/assets/logo.png';
+    if (artwork && !artwork.startsWith('data:')) {
+      if (artwork.startsWith('http://') || artwork.startsWith('https://')) {
+        artworkUrl = artwork;
+      } else if (artwork.startsWith('/')) {
+        artworkUrl = window.location.origin + artwork;
+      }
+    } else {
+      // Generate a premium absolute HTTP fallback avatar dynamically
+      artworkUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(artist || 'P')}&background=00c166&color=fff&size=128`;
+    }
+
+    const metadataParams = {
+      title: title || '市民の動画投稿',
+      artist: artist || '不明な市民',
+      album: '市民タイムライン',
+      artwork: [
+        { 
+          src: artworkUrl, 
+          sizes: '128x128', 
+          type: 'image/png' 
+        }
+      ]
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      // 1. Native Capacitor Media Session Integration
       try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: title || '市民の動画投稿',
-          artist: artist || '不明な市民',
-          album: '市民タイムライン',
-          artwork: [
-            { 
-              src: artwork || 'https://pizza-citzen-portal.pages.dev/assets/logo.png', 
-              sizes: '128x128', 
-              type: 'image/png' 
-            }
-          ]
+        MediaSession.setMetadata(metadataParams);
+        MediaSession.setPlaybackState({ playbackState: 'playing' });
+
+        MediaSession.setActionHandler({ action: 'play' }, () => {
+          videoRef.current?.play();
         });
+        MediaSession.setActionHandler({ action: 'pause' }, () => {
+          videoRef.current?.pause();
+        });
+        MediaSession.setActionHandler({ action: 'seekto' }, (details: any) => {
+          if (videoRef.current && details?.seekTime !== undefined) {
+            videoRef.current.currentTime = details.seekTime;
+          }
+        });
+      } catch (err) {
+        console.error("Failed to set native MediaSession:", err);
+      }
+    } else if ('mediaSession' in navigator && 'MediaMetadata' in window) {
+      // 2. Standard Web Media Session API
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata(metadataParams);
+        navigator.mediaSession.playbackState = 'playing';
 
         // Set action handlers so lock screen and notification shade buttons work natively
         navigator.mediaSession.setActionHandler('play', () => {
@@ -109,8 +146,34 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
           }
         });
       } catch (err) {
-        console.warn("Failed to set MediaSession metadata:", err);
+        console.error("Failed to set Web MediaSession metadata:", err);
       }
+    }
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+    if (Capacitor.isNativePlatform()) {
+      try {
+        MediaSession.setPlaybackState({ playbackState: 'paused' });
+      } catch (err) {
+        console.error("Failed to set native MediaSession pause state:", err);
+      }
+    } else if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    if (Capacitor.isNativePlatform()) {
+      try {
+        MediaSession.setPlaybackState({ playbackState: 'none' });
+      } catch (err) {
+        console.error("Failed to reset native MediaSession state:", err);
+      }
+    } else if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'none';
     }
   };
 
@@ -133,6 +196,8 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
         preload="metadata"
         playsInline 
         onPlay={handlePlay}
+        onPause={handlePause}
+        onEnded={handleEnded}
         style={{ width: '100%', maxHeight: maxHeight || '400px', objectFit: 'contain', display: 'block' }} 
       />
       
