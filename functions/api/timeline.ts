@@ -126,7 +126,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     await ensureTimelineTables(env.D1_DB);
 
     const id = crypto.randomUUID();
-    const initialViews = Math.floor(Math.random() * 40) + 12; // 12 to 51 random views
+    const initialViews = 0; // Starts with 0 views
     
     await env.D1_DB.prepare(
       "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count) VALUES (?, ?, ?, ?, ?)"
