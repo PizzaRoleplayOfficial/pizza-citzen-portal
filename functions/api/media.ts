@@ -22,10 +22,34 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
     // Parse Range header to support seamless iOS/Safari and Chrome seeking (HTTP 206 Partial Content)
     const rangeHeader = request.headers.get("Range");
     
-    // Retrieve the media object from R2 with range support if requested
-    const object = await env.R2_BUCKET.get(key, {
-      range: rangeHeader || undefined
-    });
+    // Retrieve the media object from R2 with range support if requested.
+    // We implement a server-side retry loop (up to 4 attempts with 300ms delays) to gracefully handle
+    // eventual consistency or replication delays across Cloudflare's Edge nodes right after upload.
+    let object = null;
+    let attempts = 0;
+    const maxAttempts = 4;
+    const delayMs = 300;
+
+    while (attempts < maxAttempts) {
+      try {
+        object = await env.R2_BUCKET.get(key, {
+          range: rangeHeader || undefined
+        });
+        if (object) {
+          break; // Successfully retrieved
+        }
+      } catch (err: any) {
+        console.warn(`R2 get attempt ${attempts + 1} failed:`, err.message || err);
+        if (attempts === maxAttempts - 1) {
+          throw err; // Re-throw if it was the last attempt
+        }
+      }
+      
+      attempts++;
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
 
     if (!object) {
       return new Response("Media not found", { status: 404 });
