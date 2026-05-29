@@ -411,37 +411,50 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     triggerHaptic('light');
     const shareUrl = `${window.location.origin}/timeline?postId=${post.id}`;
     
+    let nativeShareSuccess = false;
     if (Capacitor.isNativePlatform()) {
       try {
-        await Share.share({
-          title: '市民タイムラインの投稿',
-          text: `${post.author_username || '市民'}さんの投稿: "${post.content.substring(0, 100)}"`,
-          url: shareUrl,
-          dialogTitle: '投稿を共有する'
-        });
-      } catch (err) {
-        console.error("Native Share failed:", err);
-      }
-    } else if (navigator.share) {
-      try {
-        await navigator.share({
-          title: '市民タイムラインの投稿',
-          text: `${post.author_username || '市民'}さんの投稿: "${post.content.substring(0, 100)}"`,
-          url: shareUrl
-        });
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          console.error("Web Share failed:", err);
+        if (Share && typeof Share.share === 'function') {
+          await Share.share({
+            title: '市民タイムラインの投稿',
+            text: `${post.author_username || '市民'}さんの投稿: "${post.content.substring(0, 100)}"`,
+            url: shareUrl,
+            dialogTitle: '投稿を共有する'
+          });
+          nativeShareSuccess = true;
         }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert("投稿のリンクをクリップボードにコピーしました！");
       } catch (err) {
-        console.error("Clipboard copy failed:", err);
-        alert("共有リンクのコピーに失敗しました。");
+        console.warn("Native Share plugin failed or not compiled into APK:", err);
       }
+    }
+
+    if (!nativeShareSuccess) {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: '市民タイムラインの投稿',
+            text: `${post.author_username || '市民'}さんの投稿: "${post.content.substring(0, 100)}"`,
+            url: shareUrl
+          });
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            console.error("Web Share failed:", err);
+            fallbackCopyToClipboard(shareUrl);
+          }
+        }
+      } else {
+        fallbackCopyToClipboard(shareUrl);
+      }
+    }
+  };
+
+  const fallbackCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("投稿のリンクをクリップボードにコピーしました！\n（※新しいアプリ版APKをインストールすると、OS標準の共有画面が使用可能になります）");
+    } catch (err) {
+      console.error("Clipboard copy failed:", err);
+      alert("共有リンクのコピーに失敗しました。");
     }
   };
 
