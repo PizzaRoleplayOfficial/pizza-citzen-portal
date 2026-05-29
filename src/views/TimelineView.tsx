@@ -13,7 +13,7 @@ import {
   X, 
   Send 
 } from 'lucide-react';
-import { compressImage } from '../utils/helpers';
+import { compressImage, compressVideo } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
 import { triggerHaptic } from '../utils/native';
 import { Capacitor } from '@capacitor/core';
@@ -32,6 +32,7 @@ interface TimelinePost {
   user_id: string;
   content: string;
   image_data: string | null;
+  video_path: string | null;
   created_at: string;
   author_username: string | null;
   author_avatar: string | null;
@@ -59,6 +60,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [posts, setPosts] = useState<TimelinePost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [isCompressingVideo, setIsCompressingVideo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeZoomImage, setActiveZoomImage] = useState<string | null>(null);
@@ -226,11 +229,29 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   }, [targetPostId, posts]);
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const fileList = Array.from(files);
+    
+    // Check if there are any video files in the selection
+    const videoFile = fileList.find(f => f.type.startsWith('video/'));
+    
+    if (videoFile) {
+      // If a video is selected, switch exclusively to video mode and clear any selected images
+      triggerHaptic('medium');
+      setSelectedVideoFile(videoFile);
+      setNewPostImages([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // If images are selected, clear any selected video
+    if (selectedVideoFile) {
+      setSelectedVideoFile(null);
+    }
+
     if (newPostImages.length + fileList.length > 4) {
       alert("添付できる画像は最大4枚までです。");
       return;
@@ -251,6 +272,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const handleRemoveImage = (index: number) => {
     triggerHaptic('light');
     setNewPostImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveVideo = () => {
+    triggerHaptic('light');
+    setSelectedVideoFile(null);
   };
 
   const handlePaste = async (e: React.ClipboardEvent) => {
@@ -283,19 +309,54 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     setIsSubmitting(true);
 
     try {
+      let videoPath: string | null = null;
+
+      if (selectedVideoFile) {
+        setIsCompressingVideo(true);
+        try {
+          // Compress large video to 720p client-side
+          const compressedBlob = await compressVideo(selectedVideoFile);
+          setIsCompressingVideo(false);
+
+          // Upload compressed video to R2
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', compressedBlob, selectedVideoFile.name);
+
+          const uploadRes = await fetch('/api/upload-media', {
+            method: 'POST',
+            body: uploadFormData
+          });
+
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json() as any;
+            throw new Error(errData.error || "動画のアップロードに失敗しました。");
+          }
+
+          const uploadResult = await uploadRes.json() as { key: string };
+          videoPath = uploadResult.key;
+        } catch (compressErr: any) {
+          setIsCompressingVideo(false);
+          setIsSubmitting(false);
+          alert(compressErr.message || "動画の圧縮またはアップロードに失敗しました。");
+          return;
+        }
+      }
+
       const res = await fetch('/api/timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: currentUser.id,
           content: newPostContent,
-          image_data: newPostImages.length > 0 ? JSON.stringify(newPostImages) : null
+          image_data: newPostImages.length > 0 ? JSON.stringify(newPostImages) : null,
+          video_path: videoPath
         })
       });
 
       if (res.ok) {
         setNewPostContent('');
         setNewPostImages([]);
+        setSelectedVideoFile(null);
         await fetchPosts();
       } else {
         const err = await res.json() as any;
@@ -777,6 +838,53 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 ))}
               </div>
             )}
+
+            {/* Selected Video Preview Container */}
+            {selectedVideoFile && (
+              <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '240px', border: '1px solid var(--glass-border)', marginTop: '8px', background: '#000' }}>
+                <video 
+                  src={URL.createObjectURL(selectedVideoFile)} 
+                  muted 
+                  playsInline 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  left: '12px',
+                  background: 'rgba(0,0,0,0.65)',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.75rem',
+                  fontWeight: 600
+                }}>
+                  動画: {(selectedVideoFile.size / (1024 * 1024)).toFixed(1)}MB
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveVideo}
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: 'rgba(0,0,0,0.65)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '26px',
+                    height: '26px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -788,36 +896,52 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={newPostImages.length >= 4}
+              disabled={newPostImages.length >= 4 || selectedVideoFile !== null}
               style={{
                 background: 'rgba(0,193,102,0.08)',
                 border: '1px solid rgba(0,193,102,0.15)',
                 borderRadius: '10px',
                 padding: '10px 14px',
                 color: 'var(--primary)',
-                cursor: newPostImages.length >= 4 ? 'not-allowed' : 'pointer',
+                cursor: (newPostImages.length >= 4 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                opacity: newPostImages.length >= 4 ? 0.5 : 1
+                opacity: (newPostImages.length >= 4 || selectedVideoFile !== null) ? 0.5 : 1
               }}
             >
               <ImageIcon size={18} />
-              <span>写真 ({newPostImages.length}/4)</span>
+              <span>
+                {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
+              </span>
             </button>
             <input 
               type="file" 
               ref={fileInputRef} 
-              onChange={handleImageSelect}
+              onChange={handleFileSelect}
               multiple 
-              accept="image/*" 
+              accept="image/*,video/*" 
               style={{ display: 'none' }} 
             />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {isCompressingVideo && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                <span style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}>動画を720pに最適化中...</span>
+              </div>
+            )}
+
+            {isSubmitting && !isCompressingVideo && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>アップロード中...</span>
+              </div>
+            )}
+
             <span style={{ fontSize: '0.8rem', color: newPostContent.length > 250 ? 'var(--error)' : 'var(--text-muted)' }}>
               {newPostContent.length} / 280
             </span>
@@ -937,6 +1061,18 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
                     {/* Render Images if any attached */}
                     {renderImageGrid(post.image_data)}
+
+                    {/* Render Video if attached */}
+                    {post.video_path && (
+                      <div style={{ marginTop: '12px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)', background: '#000' }}>
+                        <video 
+                          src={`/api/media?key=${post.video_path}`} 
+                          controls 
+                          playsInline 
+                          style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', display: 'block' }} 
+                        />
+                      </div>
+                    )}
 
                     {/* Post Stats & Actions Bar */}
                     <div style={{ display: 'flex', gap: '32px', marginTop: '16px', color: 'var(--text-muted)' }}>
@@ -1147,6 +1283,17 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     {activePost.content}
                   </p>
                   {renderImageGrid(activePost.image_data)}
+
+                  {activePost.video_path && (
+                    <div style={{ marginTop: '8px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--glass-border)', background: '#000' }}>
+                      <video 
+                        src={`/api/media?key=${activePost.video_path}`} 
+                        controls 
+                        playsInline 
+                        style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', display: 'block' }} 
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

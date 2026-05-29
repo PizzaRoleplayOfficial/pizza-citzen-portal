@@ -26,9 +26,9 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
 
   if (postId) {
     try {
-      // Query the post content, author's username, and image data from the D1 SQLite database
+      // Query the post content, author's username, image data, and video path from the D1 SQLite database
       const query = `
-        SELECT p.content, u.username as author_username, p.image_data
+        SELECT p.content, u.username as author_username, p.image_data, p.video_path
         FROM timeline_posts p
         LEFT JOIN users u ON p.user_id = u.id
         WHERE p.id = ?
@@ -37,6 +37,7 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
         content: string;
         author_username?: string;
         image_data?: string | null;
+        video_path?: string | null;
       } | null;
 
       if (post) {
@@ -78,6 +79,21 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
         // 5. Update og:url
         const ogUrl = `${url.origin}/timeline?postId=${postId}`;
         html = html.replace(/<meta property="og:url" content=".*?"\s*\/?>/gi, `<meta property="og:url" content="${ogUrl}" />`);
+
+        // If the post has a video, dynamically inject the og:video meta tags to enable inline video playing
+        if (post.video_path) {
+          const ogVideoUrl = `${url.origin}/api/media?key=${post.video_path}`;
+          const videoMetaTags = `
+    <meta property="og:video" content="${ogVideoUrl}" />
+    <meta property="og:video:secure_url" content="${ogVideoUrl}" />
+    <meta property="og:video:type" content="video/mp4" />
+    <meta property="og:video:width" content="1280" />
+    <meta property="og:video:height" content="720" />
+    <meta property="og:type" content="video.other" />`;
+          // Replace standard website type with video type
+          html = html.replace(/<meta property="og:type" content="website"\s*\/?>/gi, '');
+          html = html.replace(/<meta property="og:url" content=".*?"\s*\/?>/gi, `<meta property="og:url" content="${ogUrl}" />${videoMetaTags}`);
+        }
 
         // 6. Update og:image dynamically if post has attachments
         let ogImage = `${url.origin}/pizza.png`;

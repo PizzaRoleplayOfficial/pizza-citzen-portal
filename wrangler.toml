@@ -7,6 +7,10 @@ binding = "D1_DB"
 database_name = "gv-cars-prod"
 database_id = "062f1644-7d69-44b0-8909-ee7ef64c8f34"
 
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "pizza-portal-media"
+
 [vars]
 DISCORD_CLIENT_ID = "1489468404120424550"
 DISCORD_REDIRECT_URI = "https://pizza-citzen-portal.pages.dev/api/auth/callback"

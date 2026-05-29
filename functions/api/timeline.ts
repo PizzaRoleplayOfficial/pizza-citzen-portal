@@ -24,8 +24,14 @@ const ensureTimelineTables = async (db: any) => {
       console.log("Adding views_count column to timeline_posts table...");
       await db.prepare("ALTER TABLE timeline_posts ADD COLUMN views_count INTEGER DEFAULT 0").run();
     }
+
+    const hasVideoPath = tableInfo.results.some((col: any) => col.name === 'video_path');
+    if (!hasVideoPath) {
+      console.log("Adding video_path column to timeline_posts table...");
+      await db.prepare("ALTER TABLE timeline_posts ADD COLUMN video_path TEXT").run();
+    }
   } catch (err: any) {
-    console.error("Error checking/adding views_count column:", err.message);
+    console.error("Error checking/adding columns:", err.message);
   }
 
   await db.prepare(`
@@ -72,6 +78,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         p.user_id, 
         p.content, 
         p.image_data, 
+        p.video_path,
         p.created_at,
         p.views_count,
         u.username as author_username,
@@ -107,7 +114,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     const body = await request.json() as any;
-    const { userId, content, image_data } = body;
+    const { userId, content, image_data, video_path } = body;
 
     if (!userId || !content) {
       return new Response(JSON.stringify({ error: 'ユーザーIDと投稿内容は必須です。' }), {
@@ -129,8 +136,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     const initialViews = 0; // Starts with 0 views
     
     await env.D1_DB.prepare(
-      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count) VALUES (?, ?, ?, ?, ?)"
-    ).bind(id, userId, content, image_data || null, initialViews).run();
+      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path) VALUES (?, ?, ?, ?, ?, ?)"
+    ).bind(id, userId, content, image_data || null, initialViews, video_path || null).run();
 
     return new Response(JSON.stringify({ success: true, id }), {
       headers: { 'Content-Type': 'application/json' }
