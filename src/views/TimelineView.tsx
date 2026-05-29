@@ -11,7 +11,8 @@ import {
   BarChart2,
   AlertCircle, 
   X, 
-  Send 
+  Send,
+  Play
 } from 'lucide-react';
 import { compressImage, compressVideo } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
@@ -55,6 +56,101 @@ interface TimelineComment {
   likes_count: number;
   is_liked: number;
 }
+
+interface TimelineVideoPlayerProps {
+  src: string;
+  onPlay: () => void;
+  maxHeight?: string;
+}
+
+const TimelineVideoPlayer = ({ src, onPlay, maxHeight }: TimelineVideoPlayerProps) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handlePlayClick = () => {
+    if (videoRef.current) {
+      videoRef.current.play();
+      setIsPlaying(true);
+      if (onPlay) onPlay();
+    }
+  };
+
+  return (
+    <div 
+      style={{ 
+        position: 'relative', 
+        borderRadius: '16px', 
+        overflow: 'hidden', 
+        border: '1px solid var(--glass-border)', 
+        background: '#000',
+        cursor: isPlaying ? 'default' : 'pointer'
+      }}
+      onClick={isPlaying ? undefined : handlePlayClick}
+    >
+      <video 
+        ref={videoRef}
+        src={`${src}#t=0.001`} 
+        controls={isPlaying} 
+        preload="metadata"
+        playsInline 
+        onPlay={() => {
+          setIsPlaying(true);
+          if (onPlay) onPlay();
+        }}
+        style={{ width: '100%', maxHeight: maxHeight || '400px', objectFit: 'contain', display: 'block' }} 
+      />
+      
+      {!isPlaying && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0, 0, 0, 0.25)',
+          transition: 'background 0.3s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.25)';
+        }}
+        >
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid var(--glass-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+            transition: 'transform 0.2s, background 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1)';
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.background = 'var(--glass-bg)';
+          }}
+          >
+            <Play size={28} fill="#fff" style={{ marginLeft: '4px' }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onClearTargetPost }: TimelineViewProps) => {
   const [posts, setPosts] = useState<TimelinePost[]>([]);
@@ -1078,13 +1174,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
                     {/* Render Video if attached */}
                     {post.video_path && (
-                      <div style={{ marginTop: '12px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)', background: '#000' }}>
-                        <video 
+                      <div style={{ marginTop: '12px' }}>
+                        <TimelineVideoPlayer 
                           src={`/api/media?key=${post.video_path}`} 
-                          controls 
-                          playsInline 
                           onPlay={() => incrementPostView(post.id)}
-                          style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', display: 'block' }} 
+                          maxHeight="400px"
                         />
                       </div>
                     )}
@@ -1300,13 +1394,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   {renderImageGrid(activePost.image_data, activePost.id)}
 
                   {activePost.video_path && (
-                    <div style={{ marginTop: '8px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--glass-border)', background: '#000' }}>
-                      <video 
+                    <div style={{ marginTop: '8px' }}>
+                      <TimelineVideoPlayer 
                         src={`/api/media?key=${activePost.video_path}`} 
-                        controls 
-                        playsInline 
                         onPlay={() => incrementPostView(activePost.id)}
-                        style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', display: 'block' }} 
+                        maxHeight="300px"
                       />
                     </div>
                   )}
