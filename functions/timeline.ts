@@ -26,9 +26,9 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
 
   if (postId) {
     try {
-      // Query the post content and the author's username from the D1 SQLite database
+      // Query the post content, author's username, and image data from the D1 SQLite database
       const query = `
-        SELECT p.content, u.username as author_username
+        SELECT p.content, u.username as author_username, p.image_data
         FROM timeline_posts p
         LEFT JOIN users u ON p.user_id = u.id
         WHERE p.id = ?
@@ -36,6 +36,7 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
       const post = await env.D1_DB.prepare(query).bind(postId).first() as {
         content: string;
         author_username?: string;
+        image_data?: string | null;
       } | null;
 
       if (post) {
@@ -77,6 +78,22 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
         // 5. Update og:url
         const ogUrl = `${url.origin}/timeline?postId=${postId}`;
         html = html.replace(/<meta property="og:url" content=".*?"\s*\/?>/gi, `<meta property="og:url" content="${ogUrl}" />`);
+
+        // 6. Update og:image dynamically if post has attachments
+        let ogImage = `${url.origin}/pizza.png`;
+        if (post.image_data) {
+          try {
+            const images = JSON.parse(post.image_data);
+            if (Array.isArray(images) && images.length > 0) {
+              ogImage = `${url.origin}/api/timeline-image?postId=${postId}`;
+            }
+          } catch (err) {
+            if (typeof post.image_data === 'string' && post.image_data.startsWith('data:image')) {
+              ogImage = `${url.origin}/api/timeline-image?postId=${postId}`;
+            }
+          }
+        }
+        html = html.replace(/<meta property="og:image" content=".*?"\s*\/?>/gi, `<meta property="og:image" content="${ogImage}" />`);
       }
     } catch (e: any) {
       console.error("Error generating dynamic OGP:", e.message);
