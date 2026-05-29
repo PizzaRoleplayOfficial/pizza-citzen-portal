@@ -61,7 +61,21 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isCompressingVideo, setIsCompressingVideo] = useState(false);
+
+  // Manage video preview object URL lifetime to prevent memory leaks and unnecessary player resets
+  useEffect(() => {
+    if (!selectedVideoFile) {
+      setVideoPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedVideoFile);
+    setVideoPreviewUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [selectedVideoFile]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeZoomImage, setActiveZoomImage] = useState<string | null>(null);
@@ -840,10 +854,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             )}
 
             {/* Selected Video Preview Container */}
-            {selectedVideoFile && (
+            {selectedVideoFile && videoPreviewUrl && (
               <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '240px', border: '1px solid var(--glass-border)', marginTop: '8px', background: '#000' }}>
                 <video 
-                  src={URL.createObjectURL(selectedVideoFile)} 
+                  src={videoPreviewUrl} 
                   controls
                   playsInline 
                   style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} 
