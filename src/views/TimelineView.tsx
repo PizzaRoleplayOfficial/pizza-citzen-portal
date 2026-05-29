@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Image as ImageIcon, 
   Heart, 
@@ -897,7 +898,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       )}
 
       {/* Floating Bottom Sheet (Mobile) / Centered Modal (PC) for Comments Replies */}
-      {expandedPostId && activePost && (
+      {expandedPostId && activePost && createPortal(
         <div 
           style={{
             position: 'fixed',
@@ -1098,11 +1099,12 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Reply Form - separate fixed element always above nav bar */}
-      {expandedPostId && activePost && (
+      {expandedPostId && activePost && createPortal(
         <div
           style={{
             position: 'fixed',
@@ -1167,11 +1169,12 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               )}
             </button>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Image Zoom Modal overlay */}
-      {activeZoomImage && (
+      {activeZoomImage && createPortal(
         <div 
           onClick={() => setActiveZoomImage(null)}
           style={{ 
@@ -1218,8 +1221,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               boxShadow: '0 10px 50px rgba(0,0,0,0.6)'
             }} 
           />
-        </div>
+        </div>,
+        document.body
       )}
+
     </div>
   );
 };
