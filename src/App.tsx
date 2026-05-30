@@ -2224,10 +2224,17 @@ export default function App() {
             gap: '12px',
             width: '100%'
           }}>
-            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
+            <div 
+              onClick={() => { triggerHaptic('light'); setView('profile'); }}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, cursor: 'pointer', transition: 'all 0.2s ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'none'; }}
+            >
+              <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover', transition: 'transform 0.2s ease' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <button
