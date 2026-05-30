@@ -2163,99 +2163,122 @@ export default function App() {
   if (!isLoggedIn) return <LandingView />;
 
   return (
-    <div className="app-layout" style={{ background: 'var(--bg-dark)', minHeight: '100vh', paddingBottom: isMobile ? '70px' : '0' }}>
+    <div className="app-layout" style={{ background: 'var(--bg-dark)', minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row' }}>
       {!isMobile && (
-        <nav className="main-nav">
-        <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/pizza.webp" alt="Logo" style={{ width: '30px', height: '30px', marginRight: '8px', objectFit: 'cover', borderRadius: '50%' }} />
-            <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>ぴっざぁポータル</span>
-          </div>
-          
-          <div className="nav-tabs-wrapper">
-            <div className="nav-tabs">
-              <button className={`btn nav-btn ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')}>
+        <aside className="main-sidebar" style={{
+          width: '260px',
+          background: 'var(--nav-bg)',
+          borderRight: '1px solid var(--glass-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          padding: '32px 20px',
+          flexShrink: 0,
+          justifyContent: 'space-between'
+        }}>
+          {/* Top segment: Logo + Menu */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <img src="/pizza.webp" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '50%' }} />
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <button className={`btn-sidebar ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')}>
                 <Home size={18} /> ホーム
               </button>
-              <button className={`btn nav-btn ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative' }}>
+              <button className={`btn-sidebar ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative' }}>
                 <ClipboardList size={18} /> 市民申請
                 {(!myApplication || myApplication.status === 'rejected') && (
-                  <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />
+                  <span className="badge-sidebar" />
                 )}
               </button>
-              <button className={`btn nav-btn ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
+              <button className={`btn-sidebar ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
                 <LayoutDashboard size={18} /> ガレージ
               </button>
-              <button className={`btn nav-btn ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>
+              <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>
                 <MessageSquare size={18} /> タイムライン
               </button>
               {currentUser.role === 'admin' && (
-                <button className={`btn nav-btn ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>
+                <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>
                   <ShieldCheck size={18} /> 管理パネル
                 </button>
               )}
-              <button className={`btn nav-btn ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
+              <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
                 <UserIcon size={18} /> 設定
               </button>
             </div>
           </div>
 
-          <div className="nav-right">
-            <button
-              onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
-              className="btn glass"
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-main)',
-                cursor: 'pointer',
-                position: 'relative',
-                border: '1px solid var(--glass-border)',
-                background: 'rgba(255,255,255,0.03)',
-                padding: 0,
-                transition: '0.2s',
-                marginRight: '8px'
-              }}
-            >
-              <Bell size={18} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
-              {unreadCount > 0 && (
-                <span
-                  style={{
+          {/* Bottom segment: User profile card */}
+          <div className="glass sidebar-user-card" style={{
+            padding: '12px 14px',
+            borderRadius: '16px',
+            background: 'var(--panel-bg)',
+            border: '1px solid var(--glass-border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            width: '100%'
+          }}>
+            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <button
+                onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
+                className="btn glass"
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  border: '1px solid var(--glass-border)',
+                  background: 'rgba(255,255,255,0.03)',
+                  padding: 0
+                }}
+              >
+                <Bell size={14} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
+                {unreadCount > 0 && (
+                  <span style={{
                     position: 'absolute',
-                    top: '-4px',
-                    right: '-4px',
+                    top: '-3px',
+                    right: '-3px',
                     background: 'var(--error)',
                     color: '#fff',
                     borderRadius: '50%',
-                    fontSize: '10px',
+                    fontSize: '8px',
                     fontWeight: 'bold',
-                    minWidth: '18px',
-                    height: '18px',
-                    padding: '0 4px',
+                    minWidth: '13px',
+                    height: '13px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 0 8px var(--error)',
-                  }}
-                >
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            <div className="nav-user-info">
-              <div className="nav-username">{currentUser.username}</div>
-              <div className="nav-userrole">{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
+                    boxShadow: '0 0 4px var(--error)',
+                  }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              <a href="/api/auth/logout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--glass-border)' }}>
+                <LogOut size={14} />
+              </a>
             </div>
-            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff', objectFit: 'cover' }} />
-            <a href="/api/auth/logout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--glass-border)', transition: '0.2s' }}>
-              <LogOut size={18} />
-            </a>
           </div>
-        </nav>
+        </aside>
       )}
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh', position: 'relative' }}>
 
       {isMobile && (
         <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--nav-bg)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
@@ -3788,6 +3811,7 @@ export default function App() {
         </>
       )}
 
+      </div>
     </div>
   );
 }

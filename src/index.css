@@ -1698,3 +1698,72 @@ h1 {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* PC Sidebar Layout Revamp Styles (v2.2.21) */
+.btn-sidebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.btn-sidebar:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+  transform: translateX(4px);
+}
+
+:root[data-theme='light'] .btn-sidebar:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.btn-sidebar.active {
+  background: rgba(0, 193, 102, 0.08);
+  color: var(--primary);
+  font-weight: 700;
+  transform: translateX(4px);
+  box-shadow: inset 3px 0 0 var(--primary);
+  border-radius: 0 12px 12px 0;
+}
+
+:root[data-theme='light'] .btn-sidebar.active {
+  background: rgba(0, 193, 102, 0.06);
+}
+
+.btn-sidebar svg {
+  color: inherit;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+.badge-sidebar {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--error);
+  margin-left: auto;
+  box-shadow: 0 0 6px var(--error);
+}
+
+.sidebar-user-card {
+  transition: border-color 0.3s, background-color 0.3s;
+}
+
+.sidebar-user-card:hover {
+  border-color: rgba(0, 193, 102, 0.2) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+:root[data-theme='light'] .sidebar-user-card:hover {
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
