@@ -2351,144 +2351,230 @@ export default function App() {
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '1200px', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
-            {/* デジタルIDカード (市民証) */}
+            {/* Top row: ID Card and My Garage Status (Side-by-side on PC, stacked on mobile) */}
             <div style={{
-              position: 'relative',
-              borderRadius: '24px',
-              padding: isMobile ? '24px' : '36px',
-              background: theme === 'light'
-                ? (myApplication?.status === 'approved'
-                  ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
-                  : myApplication?.status === 'pending'
-                  ? 'linear-gradient(135deg, #fffcf5 0%, #ffffff 100%)'
-                  : 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)')
-                : (myApplication?.status === 'approved'
-                  ? 'linear-gradient(135deg, #0a2115 0%, #060a0f 100%)'
-                  : myApplication?.status === 'pending'
-                  ? 'linear-gradient(135deg, #241c0a 0%, #060a0f 100%)'
-                  : 'linear-gradient(135deg, #181a1c 0%, #060a0f 100%)'),
-              border: `1px solid ${
-                myApplication?.status === 'approved'
-                  ? (theme === 'light' ? 'rgba(0, 193, 102, 0.3)' : 'rgba(0, 193, 102, 0.25)')
-                  : myApplication?.status === 'pending'
-                  ? (theme === 'light' ? 'rgba(255, 177, 66, 0.3)' : 'rgba(255, 177, 66, 0.25)')
-                  : 'var(--glass-border)'
-              }`,
-              boxShadow: myApplication?.status === 'approved'
-                ? (theme === 'light'
-                  ? '0 12px 30px rgba(0, 193, 102, 0.08), inset 0 1px 2px rgba(255,255,255,0.6)'
-                  : '0 12px 40px rgba(0, 193, 102, 0.15), inset 0 1px 2px rgba(255,255,255,0.05)')
-                : (theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'),
-              overflow: 'hidden',
               display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',
               gap: '32px',
-              alignItems: 'center',
-              maxWidth: '800px',
+              alignItems: 'stretch',
               width: '100%'
             }}>
-
-              {/* 装飾ネオンバー */}
+              {/* デジタルIDカード (市民証) */}
               <div style={{
-                position: 'absolute',
-                top: 0, left: 0, right: 0,
-                height: '4px',
-                background: myApplication?.status === 'approved'
-                  ? 'linear-gradient(90deg, #00c166, #00d2fc)'
-                  : myApplication?.status === 'pending'
-                  ? 'linear-gradient(90deg, #ffb142, #ff7b00)'
-                  : 'linear-gradient(90deg, #666, #333)'
-              }} />
+                position: 'relative',
+                borderRadius: '24px',
+                padding: isMobile ? '24px' : '36px',
+                background: theme === 'light'
+                  ? (myApplication?.status === 'approved'
+                    ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
+                    : myApplication?.status === 'pending'
+                    ? 'linear-gradient(135deg, #fffcf5 0%, #ffffff 100%)'
+                    : 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)')
+                  : (myApplication?.status === 'approved'
+                    ? 'linear-gradient(135deg, #0a2115 0%, #060a0f 100%)'
+                    : myApplication?.status === 'pending'
+                    ? 'linear-gradient(135deg, #241c0a 0%, #060a0f 100%)'
+                    : 'linear-gradient(135deg, #181a1c 0%, #060a0f 100%)'),
+                border: `1px solid ${
+                  myApplication?.status === 'approved'
+                    ? (theme === 'light' ? 'rgba(0, 193, 102, 0.3)' : 'rgba(0, 193, 102, 0.25)')
+                    : myApplication?.status === 'pending'
+                    ? (theme === 'light' ? 'rgba(255, 177, 66, 0.3)' : 'rgba(255, 177, 66, 0.25)')
+                    : 'var(--glass-border)'
+                }`,
+                boxShadow: myApplication?.status === 'approved'
+                  ? (theme === 'light'
+                    ? '0 12px 30px rgba(0, 193, 102, 0.08), inset 0 1px 2px rgba(255,255,255,0.6)'
+                    : '0 12px 40px rgba(0, 193, 102, 0.15), inset 0 1px 2px rgba(255,255,255,0.05)')
+                  : (theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'),
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: '32px',
+                alignItems: 'center',
+                flex: 1.4,
+                minWidth: 0
+              }}>
 
-              {/* 左側: アバターとステータスバッジ */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-                <div style={{ position: 'relative' }}>
-                  <img
-                    src={currentUser.avatar}
-                    alt="Avatar"
-                    onError={(e) => handleAvatarError(e, currentUser.username)}
-                    style={{
-                      width: '100px',
-                      height: '100px',
-                      borderRadius: '20px',
-                      border: `3px solid ${
-                        myApplication?.status === 'approved'
-                          ? 'var(--primary)'
-                          : myApplication?.status === 'pending'
-                          ? '#ffb142'
-                          : (theme === 'light' ? 'var(--glass-border)' : '#444')
-                      }`,
-                      objectFit: 'cover',
-                      boxShadow: theme === 'light' ? '0 4px 12px rgba(0,0,0,0.08)' : '0 8px 24px rgba(0,0,0,0.3)'
-                    }}
-                  />
-                  {myApplication?.status === 'approved' && (
-                    <span style={{
-                      position: 'absolute',
-                      bottom: '-6px',
-                      right: '-6px',
-                      background: 'var(--primary)',
-                      color: theme === 'light' ? '#fff' : '#000',
-                      borderRadius: '50%',
-                      width: '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 'bold',
-                      fontSize: '0.8rem',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                    }}>✓</span>
-                  )}
-                </div>
+                {/* 装飾ネオンバー */}
                 <div style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  padding: '6px 12px',
-                  borderRadius: '20px',
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0,
+                  height: '4px',
                   background: myApplication?.status === 'approved'
-                    ? 'rgba(0, 193, 102, 0.15)'
+                    ? 'linear-gradient(90deg, #00c166, #00d2fc)'
                     : myApplication?.status === 'pending'
-                    ? 'rgba(255, 177, 66, 0.15)'
-                    : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
-                  color: myApplication?.status === 'approved'
-                    ? 'var(--primary)'
-                    : myApplication?.status === 'pending'
-                    ? '#ffb142'
-                    : 'var(--text-muted)',
-                  border: `1px solid ${
-                    myApplication?.status === 'approved'
-                      ? 'rgba(0, 193, 102, 0.2)'
+                    ? 'linear-gradient(90deg, #ffb142, #ff7b00)'
+                    : 'linear-gradient(90deg, #666, #333)'
+                }} />
+
+                {/* 左側: アバターとステータスバッジ */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                  <div style={{ position: 'relative' }}>
+                    <img
+                      src={currentUser.avatar}
+                      alt="Avatar"
+                      onError={(e) => handleAvatarError(e, currentUser.username)}
+                      style={{
+                        width: '100px',
+                        height: '100px',
+                        borderRadius: '20px',
+                        border: `3px solid ${
+                          myApplication?.status === 'approved'
+                            ? 'var(--primary)'
+                            : myApplication?.status === 'pending'
+                            ? '#ffb142'
+                            : (theme === 'light' ? 'var(--glass-border)' : '#444')
+                        }`,
+                        objectFit: 'cover',
+                        boxShadow: theme === 'light' ? '0 4px 12px rgba(0,0,0,0.08)' : '0 8px 24px rgba(0,0,0,0.3)'
+                      }}
+                    />
+                    {myApplication?.status === 'approved' && (
+                      <span style={{
+                        position: 'absolute',
+                        bottom: '-6px',
+                        right: '-6px',
+                        background: 'var(--primary)',
+                        color: theme === 'light' ? '#fff' : '#000',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '0.8rem',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                      }}>✓</span>
+                    )}
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    background: myApplication?.status === 'approved'
+                      ? 'rgba(0, 193, 102, 0.15)'
                       : myApplication?.status === 'pending'
-                      ? 'rgba(255, 177, 66, 0.2)'
-                      : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)')
-                  }`,
-                  letterSpacing: '0.05em'
-                }}>
-                  {myApplication?.status === 'approved' ? 'OFFICIAL CITIZEN' : myApplication?.status === 'pending' ? 'UNDER REVIEW' : 'UNREGISTERED'}
+                      ? 'rgba(255, 177, 66, 0.15)'
+                      : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+                    color: myApplication?.status === 'approved'
+                      ? 'var(--primary)'
+                      : myApplication?.status === 'pending'
+                      ? '#ffb142'
+                      : 'var(--text-muted)',
+                    border: `1px solid ${
+                      myApplication?.status === 'approved'
+                        ? 'rgba(0, 193, 102, 0.2)'
+                        : myApplication?.status === 'pending'
+                        ? 'rgba(255, 177, 66, 0.2)'
+                        : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)')
+                    }`,
+                    letterSpacing: '0.05em'
+                  }}>
+                    {myApplication?.status === 'approved' ? 'OFFICIAL CITIZEN' : myApplication?.status === 'pending' ? 'UNDER REVIEW' : 'UNREGISTERED'}
+                  </div>
+                </div>
+
+                {/* 右側: 情報グリッド */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', textAlign: isMobile ? 'center' : 'left' }}>
+                  <div>
+                    <span style={{ fontSize: '0.8rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Roblox Citizen Identifier</span>
+                    <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: theme === 'light' ? 'var(--text-main)' : '#ffffff', margin: 0, letterSpacing: '0.02em' }}>{currentUser.roblox_username || currentUser.username}</h2>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', borderTop: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                    <div>
+                      <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>ROLE</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: currentUser.role === 'admin' ? (theme === 'light' ? 'var(--secondary)' : '#00d2fc') : (theme === 'light' ? 'var(--text-main)' : '#ffffff') }}>
+                        {currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>STATUS</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: myApplication?.status === 'approved' ? 'var(--primary)' : myApplication?.status === 'rejected' ? 'var(--error)' : (theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)') }}>
+                        {myApplication?.status === 'approved' ? '認可済み' : myApplication?.status === 'pending' ? '審査中' : myApplication?.status === 'rejected' ? '却下' : '未登録'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* 右側: 情報グリッド */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', textAlign: isMobile ? 'center' : 'left' }}>
-                <div>
-                  <span style={{ fontSize: '0.8rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Roblox Citizen Identifier</span>
-                  <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: theme === 'light' ? 'var(--text-main)' : '#ffffff', margin: 0, letterSpacing: '0.02em' }}>{currentUser.roblox_username || currentUser.username}</h2>
+              {/* マイガレージの登録状況 (My Garage Overview) */}
+              <div className="glass" style={{
+                flex: 1,
+                borderRadius: '24px',
+                padding: '28px',
+                background: 'var(--panel-bg)',
+                border: '1px solid var(--glass-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                minWidth: 0,
+                justifyContent: 'flex-start',
+                boxShadow: theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Car size={20} style={{ color: 'var(--primary)' }} />
+                    登録車両の状況
+                  </h3>
+                  <button 
+                    onClick={() => { triggerHaptic('light'); setView('garage'); }} 
+                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  >
+                    詳細 <ChevronRight size={14} />
+                  </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', borderTop: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
-                  <div>
-                    <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>ROLE</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: currentUser.role === 'admin' ? (theme === 'light' ? 'var(--secondary)' : '#00d2fc') : (theme === 'light' ? 'var(--text-main)' : '#ffffff') }}>
-                      {currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}
-                    </span>
+                {/* Status counts pills */}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ flex: 1, background: 'rgba(0, 193, 102, 0.08)', border: '1px solid rgba(0, 193, 102, 0.15)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>承認済み</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)' }}>
+                      {vehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length}
+                    </div>
                   </div>
-                  <div>
-                    <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>STATUS</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: myApplication?.status === 'approved' ? 'var(--primary)' : myApplication?.status === 'rejected' ? 'var(--error)' : (theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)') }}>
-                      {myApplication?.status === 'approved' ? '認可済み' : myApplication?.status === 'pending' ? '審査中' : myApplication?.status === 'rejected' ? '却下' : '未登録'}
-                    </span>
+                  <div style={{ flex: 1, background: 'rgba(255, 177, 66, 0.08)', border: '1px solid rgba(255, 177, 66, 0.15)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>審査中</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffb142' }}>
+                      {vehicles.filter(v => v.status === 'pending').length}
+                    </div>
                   </div>
+                </div>
+
+                {/* List of latest vehicles */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, overflowY: 'auto', maxHeight: '160px', paddingRight: '4px' }}>
+                  {vehicles.length === 0 ? (
+                    <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', border: '1px dashed var(--glass-border)', borderRadius: '16px', justifyContent: 'center', flex: 1 }}>
+                      <span>登録済みの車両はありません。</span>
+                      <button 
+                        onClick={() => { triggerHaptic('medium'); setView('garage'); setShowAddModal(true); }}
+                        style={{ background: 'var(--primary-glow)', border: '1px solid var(--primary)', color: '#fff', padding: '6px 14px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}
+                      >
+                        🚗 初の車両を登録申請
+                      </button>
+                    </div>
+                  ) : (
+                    vehicles.slice(0, 2).map(v => (
+                      <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)', gap: '12px' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {v.year} {v.maker} {v.model}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                            <span style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700 }}>{v.plate}</span>
+                            <span>•</span>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.color}</span>
+                          </div>
+                        </div>
+                        <StatusBadge status={v.status} />
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
