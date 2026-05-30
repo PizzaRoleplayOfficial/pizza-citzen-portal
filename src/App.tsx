@@ -2347,9 +2347,9 @@ export default function App() {
         </div>
       )}
 
-      <main className="container" style={{ padding: isMobile ? '30px 16px' : '60px 40px', maxWidth: '1400px' }}>
+      <main className="container" style={{ padding: isMobile ? '30px 16px' : '60px 40px', maxWidth: '100%', margin: isMobile ? '0 auto' : '0', width: '100%' }}>
         {view === 'home' ? (
-          <div className="animate-fade" style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          <div className="animate-fade" style={{ maxWidth: '1200px', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
             {/* デジタルIDカード (市民証) */}
             <div style={{
@@ -2383,7 +2383,9 @@ export default function App() {
               display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',
               gap: '32px',
-              alignItems: 'center'
+              alignItems: 'center',
+              maxWidth: '800px',
+              width: '100%'
             }}>
 
               {/* 装飾ネオンバー */}
@@ -2555,7 +2557,7 @@ export default function App() {
             </div>
           </div>
         ) : view === 'intro' ? (
-          <div className="animate-fade" style={{ maxWidth: '800px', margin: '0 auto', color: 'var(--text-main)' }}>
+          <div className="animate-fade" style={{ maxWidth: '1000px', width: '100%', margin: isMobile ? '0 auto' : '0', color: 'var(--text-main)' }}>
             <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '24px' }}>
               <ArrowLeft size={20} /> ホームへ戻る
             </button>
