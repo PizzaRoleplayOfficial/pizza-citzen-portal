@@ -7,12 +7,14 @@ import {
   MessageSquare, 
   Loader2, 
   RotateCcw, 
-  Share2,
-  BarChart2,
+  Share2, 
+  BarChart2, 
   AlertCircle, 
   X, 
   Send,
-  Play
+  Play,
+  Car,
+  ChevronRight
 } from 'lucide-react';
 import { compressImage, compressVideo } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
@@ -362,6 +364,26 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [newCommentText, setNewCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [replyingToComment, setReplyingToComment] = useState<TimelineComment | null>(null);
+
+  // User Profile Modal States
+  const [selectedUserProfile, setSelectedUserProfile] = useState<{ userId: string; username: string; robloxUsername: string | null; avatar: string | null } | null>(null);
+  const [profileVehicles, setProfileVehicles] = useState<any[]>([]);
+  const [loadingProfileVehicles, setLoadingProfileVehicles] = useState(false);
+
+  useEffect(() => {
+    if (!selectedUserProfile) {
+      setProfileVehicles([]);
+      return;
+    }
+    setLoadingProfileVehicles(true);
+    fetch(`/api/vehicles?userId=${selectedUserProfile.userId}`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        setProfileVehicles(Array.isArray(data) ? data : []);
+      })
+      .catch(err => console.error("Failed to fetch profile vehicles:", err))
+      .finally(() => setLoadingProfileVehicles(false));
+  }, [selectedUserProfile]);
 
   // Keep track of posts viewed in this session to prevent duplicate views count increments
   const [viewedPostIds, setViewedPostIds] = useState<string[]>(() => {
@@ -1313,7 +1335,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     src={post.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author_username || 'P')}&background=00c166&color=fff`} 
                     alt="Author Avatar" 
                     onError={(e) => handleAvatarError(e, post.author_username || 'P')}
-                    style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff', objectFit: 'cover', flexShrink: 0 }} 
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setSelectedUserProfile({ userId: post.user_id, username: post.author_username || '不明な市民', robloxUsername: post.author_roblox_username, avatar: post.author_avatar });
+                    }}
+                    style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff', objectFit: 'cover', flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }} 
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                   />
 
                   {/* Post Content Area */}
@@ -1321,7 +1349,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     
                     {/* User meta information row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                      <span 
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setSelectedUserProfile({ userId: post.user_id, username: post.author_username || '不明な市民', robloxUsername: post.author_roblox_username, avatar: post.author_avatar });
+                        }}
+                        style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', cursor: 'pointer', transition: 'color 0.2s' }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-main)'}
+                      >
                         {post.author_username || '不明な市民'}
                       </span>
                       {post.author_roblox_username && (
@@ -1556,11 +1592,25 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   src={activePost.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePost.author_username || 'P')}&background=00c166&color=fff`} 
                   alt="Author Avatar" 
                   onError={(e) => handleAvatarError(e, activePost.author_username || 'P')}
-                  style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover', flexShrink: 0 }}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setSelectedUserProfile({ userId: activePost.user_id, username: activePost.author_username || '不明な市民', robloxUsername: activePost.author_roblox_username, avatar: activePost.author_avatar });
+                  }}
+                  style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover', flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                    <span 
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setSelectedUserProfile({ userId: activePost.user_id, username: activePost.author_username || '不明な市民', robloxUsername: activePost.author_roblox_username, avatar: activePost.author_avatar });
+                      }}
+                      style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)', cursor: 'pointer', transition: 'color 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-main)'}
+                    >
                       {activePost.author_username || '不明な市民'}
                     </span>
                     {activePost.author_roblox_username && (
@@ -1629,11 +1679,25 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                               src={comment.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author_username || 'C')}&background=00c166&color=fff`} 
                               alt="Avatar" 
                               onError={(e) => handleAvatarError(e, comment.author_username || 'C')}
-                              style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff', objectFit: 'cover', flexShrink: 0 }}
+                              onClick={() => {
+                                triggerHaptic('light');
+                                setSelectedUserProfile({ userId: comment.user_id, username: comment.author_username || '不明な市民', robloxUsername: comment.author_roblox_username, avatar: comment.author_avatar });
+                              }}
+                              style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff', objectFit: 'cover', flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                             />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
-                                <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>
+                                <span 
+                                  onClick={() => {
+                                    triggerHaptic('light');
+                                    setSelectedUserProfile({ userId: comment.user_id, username: comment.author_username || '不明な市民', robloxUsername: comment.author_roblox_username, avatar: comment.author_avatar });
+                                  }}
+                                  style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)', cursor: 'pointer', transition: 'color 0.2s' }}
+                                  onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-main)'}
+                                >
                                   {comment.author_username || '不明な市民'}
                                 </span>
                                 {comment.author_roblox_username && (
@@ -2020,6 +2084,179 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               boxShadow: '0 10px 50px rgba(0,0,0,0.6)'
             }} 
           />
+        </div>,
+        document.body
+      )}
+
+      {/* User Profile Modal overlay */}
+      {selectedUserProfile && createPortal(
+        <div 
+          onClick={() => setSelectedUserProfile(null)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+            backdropFilter: 'blur(16px)',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 9999, 
+            padding: '16px'
+          }}
+          className="animate-fade"
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="glass card"
+            style={{ 
+              width: '100%',
+              maxWidth: '500px',
+              borderRadius: '24px',
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 0
+            }}
+          >
+            {/* Cover header gradient banner */}
+            <div style={{
+              height: '110px',
+              background: theme === 'light' 
+                ? 'linear-gradient(135deg, #00c166 0%, #00d2fc 100%)' 
+                : 'linear-gradient(135deg, #0a2115 0%, #0d1520 100%)',
+              position: 'relative'
+            }}>
+              {/* Close Button */}
+              <button
+                onClick={() => setSelectedUserProfile(null)}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: 'rgba(0,0,0,0.5)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  zIndex: 2,
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Profile info block */}
+            <div style={{ padding: '24px', paddingTop: '0', position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Avatar offset */}
+              <div style={{ position: 'relative', marginTop: '-45px', marginBottom: '8px', display: 'inline-block', width: '90px' }}>
+                <img 
+                  src={selectedUserProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUserProfile.username || 'P')}&background=00c166&color=fff`}
+                  alt="Avatar"
+                  onError={(e) => handleAvatarError(e, selectedUserProfile.username || 'P')}
+                  style={{
+                    width: '90px',
+                    height: '90px',
+                    borderRadius: '22px',
+                    border: '4px solid var(--nav-bg)',
+                    background: '#fff',
+                    objectFit: 'cover',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
+                  }}
+                />
+              </div>
+
+              {/* User Names */}
+              <div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+                  {selectedUserProfile.username || '不明な市民'}
+                </h3>
+                {selectedUserProfile.robloxUsername && (
+                  <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>Roblox:</span>
+                    <strong style={{ color: 'var(--primary)' }}>@{selectedUserProfile.robloxUsername}</strong>
+                  </div>
+                )}
+              </div>
+
+              {/* Role & Verification badge */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: 800, 
+                  padding: '5px 12px', 
+                  borderRadius: '20px', 
+                  background: profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
+                    ? 'rgba(0, 193, 102, 0.15)'
+                    : 'rgba(255,255,255,0.05)',
+                  color: profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
+                    ? 'var(--primary)'
+                    : 'var(--text-muted)',
+                  border: `1px solid ${
+                    profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
+                      ? 'rgba(0, 193, 102, 0.2)'
+                      : 'var(--glass-border)'
+                  }`
+                }}>
+                  {profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning') ? '認可市民 (Official Citizen)' : '一般メンバー'}
+                </span>
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: '1px', background: 'var(--glass-border)', margin: '8px 0' }} />
+
+              {/* Vehicles Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '4px', height: '14px', background: 'var(--primary)', borderRadius: '2px' }} />
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  登録車両リスト
+                </h4>
+                <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px', color: 'var(--text-muted)' }}>
+                  {profileVehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length}台認可
+                </span>
+              </div>
+
+              {/* Vehicles List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px', minHeight: '60px' }}>
+                {loadingProfileVehicles ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px', gap: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    <Loader2 size={16} className="animate-spin" /> 車両を取得中...
+                  </div>
+                ) : profileVehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', border: '1px dashed var(--glass-border)', borderRadius: '16px' }}>
+                    認可済みの登録車両はありません。
+                  </div>
+                ) : (
+                  profileVehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').map(v => (
+                    <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                          {v.year} {v.maker} {v.model}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                          <span style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700 }}>{v.plate}</span>
+                          <span>•</span>
+                          <span>{v.color}</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700 }}>認可済み</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+            </div>
+          </div>
         </div>,
         document.body
       )}
