@@ -5,6 +5,60 @@ import { VehicleImageGallery } from '../components/VehicleImageGallery';
 import { formatDate, parseUTCDate } from '../utils/helpers';
 import { triggerHaptic } from '../utils/native';
 
+export const GarageTiltCard = ({ children, className }: { children: React.ReactNode, className?: string }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [tiltStyle, setTiltStyle] = useState<React.CSSProperties>({
+    transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+    transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.5s ease',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+  });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const rotateX = ((centerY - y) / centerY) * 10; // Max 10 degrees
+    const rotateY = ((x - centerX) / centerX) * 10;
+
+    setTiltStyle({
+      transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
+      transition: 'transform 0.1s ease-out, box-shadow 0.1s ease-out',
+      boxShadow: '0 20px 45px rgba(0, 0, 0, 0.55), 0 0 20px rgba(0, 193, 102, 0.08)',
+      zIndex: 10
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setTiltStyle({
+      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+      transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.5s ease',
+      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+    });
+  };
+
+  return (
+    <div 
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={className}
+      style={{
+        ...tiltStyle,
+        position: 'relative'
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 interface MyGarageViewProps {
   myApplication: any;
   vehicles: any[];
@@ -367,7 +421,7 @@ export const MyGarageView = ({
                   return 0;
                 })
                 .map(v => (
-                <div key={v.id} className="glass card garage-card animate-fade">
+                <GarageTiltCard key={v.id} className="glass card garage-card animate-fade">
                   <div className="garage-card-image"><VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} /></div>
                   <div className="garage-card-body">
                     <div className="garage-card-header">
@@ -438,7 +492,7 @@ export const MyGarageView = ({
                       </div>
                     </div>
                   </div>
-                </div>
+                </GarageTiltCard>
               ))
             )}
           </div>

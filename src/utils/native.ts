@@ -110,7 +110,28 @@ export const scheduleLocalNotification = async (
   delayMs: number = 0,
   channelId?: string
 ) => {
-  if (!isNative) return;
+  if (!isNative) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        if (delayMs > 0) {
+          setTimeout(() => {
+            new Notification(title, { 
+              body,
+              icon: '/favicon.ico'
+            });
+          }, delayMs);
+        } else {
+          new Notification(title, { 
+            body,
+            icon: '/favicon.ico'
+          });
+        }
+      } catch (err) {
+        console.error('Web Notification creation failed:', err);
+      }
+    }
+    return;
+  }
 
   try {
     // 1. 通知パーミッションの確認
@@ -151,7 +172,18 @@ export const scheduleLocalNotification = async (
  * アプリの初回起動時に通知などの必要な権限を明示的にリクエストし、用途別の通知カテゴリー（チャンネル）を作成します。
  */
 export const requestNotificationPermission = async () => {
-  if (!isNative) return;
+  if (!isNative) {
+    if ('Notification' in window) {
+      try {
+        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+          await Notification.requestPermission();
+        }
+      } catch (err) {
+        console.error('Web Notification permission request failed:', err);
+      }
+    }
+    return;
+  }
   try {
     const permission = await LocalNotifications.checkPermissions();
     if (permission.display !== 'granted') {

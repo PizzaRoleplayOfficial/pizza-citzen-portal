@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.21'; // 2.2.21 (表示数・共有・アプリ移動機能実装・共有バグ＆プレビューOGP画像・動画R2・プレビュー再生・画像動画閲覧時カウント・カスタムプレイヤー・OSメディアコントロール安全化・Capawesome native media session統合・シーク位置秒数同期・PCサイドバーUI・バックグラウンド再生対応版)
+export const CURRENT_VERSION = '2.2.30'; // 2.2.30 (表示数・共有・アプリ移動機能実装・共有バグ＆プレビューOGP画像・動画R2・プレビュー再生・画像動画閲覧時カウント・カスタムプレイヤー・OSメディアコントロール安全化・Capawesome native media session統合・シーク位置秒数同期・PCサイドバーUI・バックグラウンド再生・プロフ自己紹介・他人の車両リスト非表示・フォロー機能・フォローフォロワーD1同期・フォロー通知対応版・返信コメントメディア添付機能・バックグラウンド再生の完全化・onStopライフサイクル復帰・WAKE_LOCKスリープ対策・フォローフォロワー一覧表示機能・自己紹介インライン直接編集・相互フォロー関係性バッジ・クロスフェード演出)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

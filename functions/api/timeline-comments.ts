@@ -14,16 +14,29 @@ const ensureCommentsTable = async (db: any) => {
     );
   `).run();
 
-  // Dynamically alter table to add parent_id column if it doesn't exist
+  // Dynamically alter table to add columns if they don't exist
   try {
     const tableInfo = await db.prepare("PRAGMA table_info(timeline_comments)").all();
-    const hasParentId = tableInfo.results.some((col: any) => col.name === 'parent_id');
-    if (!hasParentId) {
+    const columns = tableInfo.results.map((col: any) => col.name);
+    
+    if (!columns.includes('parent_id')) {
       console.log("Adding parent_id column to timeline_comments table...");
       await db.prepare("ALTER TABLE timeline_comments ADD COLUMN parent_id TEXT").run();
     }
+    if (!columns.includes('image_data')) {
+      console.log("Adding image_data column to timeline_comments table...");
+      await db.prepare("ALTER TABLE timeline_comments ADD COLUMN image_data TEXT").run();
+    }
+    if (!columns.includes('video_path')) {
+      console.log("Adding video_path column to timeline_comments table...");
+      await db.prepare("ALTER TABLE timeline_comments ADD COLUMN video_path TEXT").run();
+    }
+    if (!columns.includes('views_count')) {
+      console.log("Adding views_count column to timeline_comments table...");
+      await db.prepare("ALTER TABLE timeline_comments ADD COLUMN views_count INTEGER DEFAULT 0").run();
+    }
   } catch (err: any) {
-    console.error("Error checking/adding parent_id column:", err.message);
+    console.error("Error checking/adding columns to timeline_comments:", err.message);
   }
 
   await db.prepare(`
@@ -48,7 +61,6 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   try {
     await ensureCommentsTable(env.D1_DB);
 
-    // Fetch replies with author details, parent_id, likes_count, and whether the current user liked it
     const query = `
       SELECT 
         c.id, 
@@ -57,6 +69,9 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         c.content, 
         c.created_at,
         c.parent_id,
+        c.image_data,
+        c.video_path,
+        c.views_count,
         u.username as author_username,
         u.avatar as author_avatar,
         u.roblox_username as author_roblox_username,
@@ -88,16 +103,16 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     const body = await request.json() as any;
-    const { postId, userId, content, parentId } = body;
+    const { postId, userId, content, parentId, image_data, video_path } = body;
 
-    if (!postId || !userId || !content) {
-      return new Response(JSON.stringify({ error: '投稿ID、ユーザーID、およびコメント内容は必須です。' }), {
+    if (!postId || !userId || (!content && !image_data && !video_path)) {
+      return new Response(JSON.stringify({ error: '投稿ID、ユーザーID、およびコメント内容（またはメディア）は必須です。' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    if (content.length > 200) {
+    if (content && content.length > 200) {
       return new Response(JSON.stringify({ error: 'コメントは最大200文字までです。' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -109,8 +124,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     const id = crypto.randomUUID();
     
     await env.D1_DB.prepare(
-      "INSERT INTO timeline_comments (id, post_id, user_id, content, parent_id) VALUES (?, ?, ?, ?, ?)"
-    ).bind(id, postId, userId, content, parentId || null).run();
+      "INSERT INTO timeline_comments (id, post_id, user_id, content, parent_id, image_data, video_path) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, postId, userId, content || "", parentId || null, image_data || null, video_path || null).run();
 
     try {
       const commenter = await env.D1_DB.prepare("SELECT username FROM users WHERE id = ?").bind(userId).first() as any;
@@ -200,6 +215,10 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
       await env.D1_DB.prepare(
         "DELETE FROM timeline_comment_likes WHERE comment_id = ? AND user_id = ?"
       ).bind(commentId, userId).run();
+    } else if (action === 'view') {
+      await env.D1_DB.prepare(
+        "UPDATE timeline_comments SET views_count = views_count + 1 WHERE id = ?"
+      ).bind(commentId).run();
     } else {
       return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });
     }

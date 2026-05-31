@@ -42,6 +42,17 @@ public class MainActivity extends BridgeActivity {
         // Prevent WebView from pausing to allow background HTML5 audio/video playback
         if (this.bridge != null && this.bridge.getWebView() != null) {
             this.bridge.getWebView().onResume();
+            this.bridge.getWebView().resumeTimers();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        // Prevent WebView from pausing when fully stopped/minimized to allow background play
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().onResume();
+            this.bridge.getWebView().resumeTimers();
         }
     }
 }

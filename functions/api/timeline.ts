@@ -30,6 +30,12 @@ const ensureTimelineTables = async (db: any) => {
       console.log("Adding video_path column to timeline_posts table...");
       await db.prepare("ALTER TABLE timeline_posts ADD COLUMN video_path TEXT").run();
     }
+
+    const hasRepostId = tableInfo.results.some((col: any) => col.name === 'repost_id');
+    if (!hasRepostId) {
+      console.log("Adding repost_id column to timeline_posts table...");
+      await db.prepare("ALTER TABLE timeline_posts ADD COLUMN repost_id TEXT").run();
+    }
   } catch (err: any) {
     console.error("Error checking/adding columns:", err.message);
   }
@@ -70,9 +76,9 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   try {
     await ensureTimelineTables(env.D1_DB);
 
-    // Fetch posts with author info, views_count and likes stats
-    // We join with the users table to get the up-to-date avatar, username, and roblox_username.
-    const query = `
+    const postId = url.searchParams.get('postId') || '';
+    
+    let query = `
       SELECT 
         p.id, 
         p.user_id, 
@@ -81,20 +87,45 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         p.video_path,
         p.created_at,
         p.views_count,
+        p.repost_id,
         u.username as author_username,
         u.avatar as author_avatar,
         u.roblox_username as author_roblox_username,
-        (SELECT COUNT(*) FROM timeline_likes WHERE post_id = p.id) as likes_count,
-        (SELECT COUNT(*) FROM timeline_comments WHERE post_id = p.id) as comments_count,
+        -- Original post joined fields
+        orig.content as orig_content,
+        orig.image_data as orig_image_data,
+        orig.video_path as orig_video_path,
+        orig.created_at as orig_created_at,
+        orig_u.id as orig_author_id,
+        orig_u.username as orig_author_username,
+        orig_u.avatar as orig_author_avatar,
+        orig_u.roblox_username as orig_author_roblox_username,
+        -- Counts and statuses (uses original post ID if it's a repost)
+        (SELECT COUNT(*) FROM timeline_likes WHERE post_id = COALESCE(p.repost_id, p.id)) as likes_count,
+        (SELECT COUNT(*) FROM timeline_comments WHERE post_id = COALESCE(p.repost_id, p.id)) as comments_count,
+        (SELECT COUNT(*) FROM timeline_posts WHERE repost_id = COALESCE(p.repost_id, p.id)) as reposts_count,
         CASE WHEN EXISTS (
-          SELECT 1 FROM timeline_likes WHERE post_id = p.id AND user_id = ?
-        ) THEN 1 ELSE 0 END as is_liked
+          SELECT 1 FROM timeline_likes WHERE post_id = COALESCE(p.repost_id, p.id) AND user_id = ?
+        ) THEN 1 ELSE 0 END as is_liked,
+        CASE WHEN EXISTS (
+          SELECT 1 FROM timeline_posts WHERE repost_id = COALESCE(p.repost_id, p.id) AND user_id = ?
+        ) THEN 1 ELSE 0 END as is_reposted
       FROM timeline_posts p
       LEFT JOIN users u ON p.user_id = u.id
-      ORDER BY p.created_at DESC
+      LEFT JOIN timeline_posts orig ON p.repost_id = orig.id
+      LEFT JOIN users orig_u ON orig.user_id = orig_u.id
     `;
 
-    const { results } = await env.D1_DB.prepare(query).bind(userId).all();
+    let results;
+    if (postId) {
+      query += ` WHERE p.id = ? ORDER BY p.created_at DESC `;
+      const stmt = await env.D1_DB.prepare(query).bind(userId, userId, postId).all();
+      results = stmt.results;
+    } else {
+      query += ` ORDER BY p.created_at DESC `;
+      const stmt = await env.D1_DB.prepare(query).bind(userId, userId).all();
+      results = stmt.results;
+    }
     
     return new Response(JSON.stringify(results), {
       headers: { 
@@ -114,16 +145,16 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     const body = await request.json() as any;
-    const { userId, content, image_data, video_path } = body;
+    const { userId, content, image_data, video_path, repostId } = body;
 
-    if (!userId || !content) {
-      return new Response(JSON.stringify({ error: 'ユーザーIDと投稿内容は必須です。' }), {
+    if (!userId || (!content && !repostId)) {
+      return new Response(JSON.stringify({ error: 'ユーザーIDと投稿内容、またはリポスト対象IDが必要です。' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    if (content.length > 280) {
+    if (content && content.length > 280) {
       return new Response(JSON.stringify({ error: '投稿内容は最大280文字までです。' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -136,8 +167,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     const initialViews = 0; // Starts with 0 views
     
     await env.D1_DB.prepare(
-      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path) VALUES (?, ?, ?, ?, ?, ?)"
-    ).bind(id, userId, content, image_data || null, initialViews, video_path || null).run();
+      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path, repost_id) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, userId, content || "", image_data || null, initialViews, video_path || null, repostId || null).run();
 
     return new Response(JSON.stringify({ success: true, id }), {
       headers: { 'Content-Type': 'application/json' }

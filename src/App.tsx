@@ -250,11 +250,24 @@ export default function App() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
 
+  const [holoPos, setHoloPos] = useState({ x: 50, y: 50, active: false });
+  const [inAppToast, setInAppToast] = useState<{ title: string; desc: string; action: () => void } | null>(null);
+
+  // Auto close toast after 4.5 seconds
+  useEffect(() => {
+    if (!inAppToast) return;
+    const timer = setTimeout(() => {
+      setInAppToast(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [inAppToast]);
+
   // Notifications related states (v2.2.0)
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [targetTimelinePostId, setTargetTimelinePostId] = useState<string | null>(null);
+  const lastNotificationIdRef = React.useRef<string | null>(null);
 
   const fetchNotifications = async () => {
     if (!isLoggedIn || !currentUser?.id) return;
@@ -262,7 +275,43 @@ export default function App() {
       const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
+        const newNotifications = data.notifications || [];
+
+        // Triggers Web Browser/Native notification if a new unread notification is retrieved via polling
+        if (lastNotificationIdRef.current !== null && newNotifications.length > 0) {
+          const newUnread = newNotifications.filter((n: any) => 
+            n.is_read === 0 && 
+            !notifications.some((old: any) => old.id === n.id)
+          );
+          if (newUnread.length > 0) {
+            const newest = newUnread[0];
+            
+            // Push system notification
+            scheduleLocalNotification(
+              newest.title || 'ぴっざぁ市民ポータル',
+              newest.body || '新しい通知が届きました。',
+              0
+            );
+
+            // Trigger beautiful in-app sliding glassmorphic toast
+            setInAppToast({
+              title: newest.title || 'ぴっざぁ市民ポータル',
+              desc: newest.body || '新しい通知が届きました。',
+              action: () => {
+                triggerHaptic('medium');
+                setShowNotifications(true);
+              }
+            });
+          }
+        }
+
+        if (newNotifications.length > 0) {
+          lastNotificationIdRef.current = newNotifications[0].id;
+        } else {
+          lastNotificationIdRef.current = '';
+        }
+
+        setNotifications(newNotifications);
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (err) {
@@ -360,6 +409,8 @@ export default function App() {
       case 'admin_notifications_channel':
       case 'admin_edit_notifications_channel':
         return <ShieldCheck size={16} />;
+      case 'follow':
+        return <UserIcon size={16} />;
       default:
         return <Info size={16} />;
     }
@@ -376,6 +427,8 @@ export default function App() {
       case 'admin_notifications_channel':
       case 'admin_edit_notifications_channel':
         return '#f59e0b';
+      case 'follow':
+        return '#3b82f6';
       default:
         return 'rgba(255,255,255,0.08)';
     }
@@ -2358,6 +2411,92 @@ export default function App() {
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '1200px', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
+            {/* ぴっざぁ公式Discord プレミアムバナー */}
+            <div 
+              className="glass" 
+              style={{
+                borderRadius: '24px',
+                padding: isMobile ? '20px' : '24px 32px',
+                background: 'linear-gradient(135deg, rgba(88, 101, 242, 0.12) 0%, rgba(88, 101, 242, 0.03) 100%)',
+                border: '1px solid rgba(88, 101, 242, 0.25)',
+                boxShadow: '0 12px 40px rgba(88, 101, 242, 0.12)',
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '20px',
+                width: '100%',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {/* 背景のネオンブラー装飾 */}
+              <div style={{ position: 'absolute', width: '150px', height: '150px', background: 'rgba(88, 101, 242, 0.15)', filter: 'blur(50px)', top: '-50px', right: '-50px', borderRadius: '50%', pointerEvents: 'none' }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, textAlign: isMobile ? 'center' : 'left', flexDirection: isMobile ? 'column' : 'row', zIndex: 1 }}>
+                <div style={{ 
+                  width: '56px', 
+                  height: '56px', 
+                  borderRadius: '16px', 
+                  background: 'rgba(88, 101, 242, 0.2)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(88, 101, 242, 0.25)'
+                }}>
+                  <svg width="28" height="28" viewBox="0 0 127.14 96.36" fill="#5865F2" style={{ filter: 'drop-shadow(0 0 6px rgba(88, 101, 242, 0.5))' }}>
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
+                  </svg>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
+                    ぴっざぁ公式 Discord サーバーへ参加しよう！
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                    市民同士のリアルタイム交流、アップデート告知、運営へのサポートチケット作成などはこちらから。
+                  </p>
+                </div>
+              </div>
+
+              <a 
+                href="https://discord.gg/RruM8Gqc4m" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn"
+                style={{
+                  padding: '12px 28px',
+                  borderRadius: '14px',
+                  background: '#5865F2',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  border: 'none',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 15px rgba(88, 101, 242, 0.4)',
+                  transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  zIndex: 1
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#4752c4';
+                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(88, 101, 242, 0.5)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#5865F2';
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(88, 101, 242, 0.4)';
+                }}
+              >
+                サーバーに参加
+              </a>
+            </div>
+            
             {/* Top row: ID Card and My Garage Status (Side-by-side on PC, stacked on mobile) */}
             <div style={{
               display: 'flex',
@@ -2367,41 +2506,67 @@ export default function App() {
               width: '100%'
             }}>
               {/* デジタルIDカード (市民証) */}
-              <div style={{
-                position: 'relative',
-                borderRadius: '24px',
-                padding: isMobile ? '24px' : '36px',
-                background: theme === 'light'
-                  ? (myApplication?.status === 'approved'
-                    ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
-                    : myApplication?.status === 'pending'
-                    ? 'linear-gradient(135deg, #fffcf5 0%, #ffffff 100%)'
-                    : 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)')
-                  : (myApplication?.status === 'approved'
-                    ? 'linear-gradient(135deg, #0a2115 0%, #060a0f 100%)'
-                    : myApplication?.status === 'pending'
-                    ? 'linear-gradient(135deg, #241c0a 0%, #060a0f 100%)'
-                    : 'linear-gradient(135deg, #181a1c 0%, #060a0f 100%)'),
-                border: `1px solid ${
-                  myApplication?.status === 'approved'
-                    ? (theme === 'light' ? 'rgba(0, 193, 102, 0.3)' : 'rgba(0, 193, 102, 0.25)')
-                    : myApplication?.status === 'pending'
-                    ? (theme === 'light' ? 'rgba(255, 177, 66, 0.3)' : 'rgba(255, 177, 66, 0.25)')
-                    : 'var(--glass-border)'
-                }`,
-                boxShadow: myApplication?.status === 'approved'
-                  ? (theme === 'light'
-                    ? '0 12px 30px rgba(0, 193, 102, 0.08), inset 0 1px 2px rgba(255,255,255,0.6)'
-                    : '0 12px 40px rgba(0, 193, 102, 0.15), inset 0 1px 2px rgba(255,255,255,0.05)')
-                  : (theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'),
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                gap: '32px',
-                alignItems: 'center',
-                flex: 1.4,
-                minWidth: 0
-              }}>
+              <div 
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setHoloPos({
+                    x: ((e.clientX - rect.left) / rect.width) * 100,
+                    y: ((e.clientY - rect.top) / rect.height) * 100,
+                    active: true
+                  });
+                }}
+                onMouseLeave={() => {
+                  setHoloPos(prev => ({ ...prev, active: false }));
+                }}
+                style={{
+                  position: 'relative',
+                  borderRadius: '24px',
+                  padding: isMobile ? '24px' : '36px',
+                  background: theme === 'light'
+                    ? (myApplication?.status === 'approved'
+                      ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
+                      : myApplication?.status === 'pending'
+                      ? 'linear-gradient(135deg, #fffcf5 0%, #ffffff 100%)'
+                      : 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)')
+                    : (myApplication?.status === 'approved'
+                      ? 'linear-gradient(135deg, #0a2115 0%, #060a0f 100%)'
+                      : myApplication?.status === 'pending'
+                      ? 'linear-gradient(135deg, #241c0a 0%, #060a0f 100%)'
+                      : 'linear-gradient(135deg, #181a1c 0%, #060a0f 100%)'),
+                  border: `1px solid ${
+                    myApplication?.status === 'approved'
+                      ? (theme === 'light' ? 'rgba(0, 193, 102, 0.3)' : 'rgba(0, 193, 102, 0.25)')
+                      : myApplication?.status === 'pending'
+                      ? (theme === 'light' ? 'rgba(255, 177, 66, 0.3)' : 'rgba(255, 177, 66, 0.25)')
+                      : 'var(--glass-border)'
+                  }`,
+                  boxShadow: myApplication?.status === 'approved'
+                    ? (theme === 'light'
+                      ? '0 12px 30px rgba(0, 193, 102, 0.08), inset 0 1px 2px rgba(255,255,255,0.6)'
+                      : '0 12px 40px rgba(0, 193, 102, 0.15), inset 0 1px 2px rgba(255,255,255,0.05)')
+                    : (theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'),
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  gap: '32px',
+                  alignItems: 'center',
+                  flex: 1.4,
+                  minWidth: 0
+                }}
+              >
+                {/* ホログラフィック箔押し (Holographic Foil Shine Overlay) */}
+                {holoPos.active && (
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                    opacity: theme === 'dark' ? 0.08 : 0.04,
+                    mixBlendMode: 'color-dodge',
+                    background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(0, 193, 102, 0.4) 30%, rgba(0, 160, 204, 0.4) 60%, transparent 100%)`,
+                    transition: 'opacity 0.3s ease'
+                  }} />
+                )}
 
                 {/* 装飾ネオンバー */}
                 <div style={{
@@ -2645,6 +2810,44 @@ export default function App() {
                     <UserIcon size={22} style={{ color: 'var(--text-main)' }} />
                   </div>
                 </button>
+
+                <a 
+                  href="https://discord.gg/RruM8Gqc4m" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="glass card" 
+                  style={{ 
+                    textAlign: 'left', 
+                    padding: '24px', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '16px', 
+                    cursor: 'pointer', 
+                    border: '1px solid var(--glass-border)', 
+                    background: 'var(--panel-bg)', 
+                    borderRadius: '20px', 
+                    textDecoration: 'none',
+                    transition: 'transform 0.2s, border-color 0.2s' 
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(88, 101, 242, 0.4)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--glass-border)';
+                    e.currentTarget.style.transform = 'none';
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>💬 公式 Discord</div>
+                    <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                  <div style={{ width: '48px', height: '48px', background: 'rgba(88, 101, 242, 0.15)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="22" height="22" viewBox="0 0 127.14 96.36" fill="#5865F2" style={{ display: 'inline-block', verticalAlign: 'middle', filter: 'drop-shadow(0 0 4px rgba(88, 101, 242, 0.4))' }}>
+                      <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
+                    </svg>
+                  </div>
+                </a>
 
               </div>
             </div>
@@ -3799,9 +4002,11 @@ export default function App() {
             className="glass card animate-fade"
             style={{
               position: 'fixed',
-              top: isMobile ? 'calc(65px + env(safe-area-inset-top))' : '75px',
-              right: isMobile ? '16px' : '40px',
-              width: isMobile ? 'calc(100% - 32px)' : '380px',
+              top: isMobile ? 'calc(65px + env(safe-area-inset-top))' : 'auto',
+              bottom: isMobile ? 'auto' : '100px',
+              left: isMobile ? '16px' : '20px',
+              right: isMobile ? '16px' : 'auto',
+              width: isMobile ? 'calc(100% - 32px)' : '340px',
               maxHeight: '480px',
               zIndex: 4999,
               background: 'var(--panel-bg)',
@@ -3905,6 +4110,70 @@ export default function App() {
           </div>
         </>
       )}
+
+      {/* App-wide sliding glassmorphic Toast notification */}
+      {inAppToast && (
+        <div 
+          onClick={() => {
+            inAppToast.action();
+            setInAppToast(null);
+          }}
+          className="glass card"
+          style={{
+            position: 'fixed',
+            top: 'calc(16px + env(safe-area-inset-top))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'calc(100% - 32px)',
+            maxWidth: '400px',
+            padding: '16px 20px',
+            background: 'rgba(10, 12, 16, 0.8)',
+            border: '1px solid var(--glass-border)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+            borderRadius: '16px',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            cursor: 'pointer',
+            backdropFilter: 'blur(20px)',
+            animation: 'toastSlideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+          }}
+        >
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            background: 'rgba(0,193,102,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--primary)',
+            flexShrink: 0
+          }}>
+            <Bell size={20} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inAppToast.title}</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>{inAppToast.desc}</div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700, flexShrink: 0 }}>表示</div>
+        </div>
+      )}
+
+      {/* Global CSS animations style block for sliding toast */}
+      <style>{`
+        @keyframes toastSlideDown {
+          0% {
+            transform: translate(-50%, -100px);
+            opacity: 0;
+          }
+          100% {
+            transform: translate(-50%, 0);
+            opacity: 1;
+          }
+        }
+      `}</style>
 
       </div>
     </div>

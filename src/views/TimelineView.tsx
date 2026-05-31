@@ -13,8 +13,14 @@ import {
   X, 
   Send,
   Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
   Car,
-  ChevronRight
+  ChevronRight,
+  Repeat2,
+  Search
 } from 'lucide-react';
 import { compressImage, compressVideo } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
@@ -45,6 +51,17 @@ interface TimelinePost {
   comments_count: number;
   is_liked: number;
   views_count?: number;
+  repost_id?: string | null;
+  reposts_count?: number;
+  is_reposted?: number;
+  orig_content?: string | null;
+  orig_image_data?: string | null;
+  orig_video_path?: string | null;
+  orig_created_at?: string | null;
+  orig_author_id?: string | null;
+  orig_author_username?: string | null;
+  orig_author_avatar?: string | null;
+  orig_author_roblox_username?: string | null;
 }
 
 interface TimelineComment {
@@ -58,6 +75,10 @@ interface TimelineComment {
   author_roblox_username: string | null;
   likes_count: number;
   is_liked: number;
+  parent_id?: string | null;
+  image_data?: string | null;
+  video_path?: string | null;
+  views_count?: number;
 }
 
 interface TimelineVideoPlayerProps {
@@ -71,8 +92,91 @@ interface TimelineVideoPlayerProps {
 
 const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }: TimelineVideoPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(1.0);
+  const [showControls, setShowControls] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const lastUpdatedTimeRef = useRef<number>(0);
+
+  // Synchronize fullscreen state for custom styles
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Auto-hide controls after 3 seconds of playing
+  useEffect(() => {
+    if (!isPlaying || !showControls) return;
+    const timer = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [showControls, isPlaying]);
+
+  // 60fps high-precision linear interpolation loop for ultra-smooth seek thumb gliding
+  useEffect(() => {
+    let animationFrameId: number;
+    let baseVideoTime = 0;
+    let baseWallTime = 0;
+    let isInitialized = false;
+    
+    const updateLoop = () => {
+      const video = videoRef.current;
+      if (video && !video.paused && !isDragging) {
+        if (!isInitialized) {
+          baseVideoTime = video.currentTime;
+          baseWallTime = performance.now();
+          isInitialized = true;
+        }
+        
+        const elapsed = (performance.now() - baseWallTime) / 1000;
+        let smoothTime = baseVideoTime + elapsed * (video.playbackRate || 1);
+        
+        // If smooth time drifts from actual video time by more than 0.15s (e.g. buffering/looping), resync immediately!
+        const actual = video.currentTime;
+        if (Math.abs(smoothTime - actual) > 0.15) {
+          baseVideoTime = actual;
+          baseWallTime = performance.now();
+          smoothTime = actual;
+        }
+        
+        // Clamp smoothly to duration boundary
+        const dur = video.duration || 1;
+        if (smoothTime > dur) {
+          smoothTime = dur;
+        }
+        
+        setCurrentTime(smoothTime);
+      } else {
+        isInitialized = false;
+      }
+      animationFrameId = requestAnimationFrame(updateLoop);
+    };
+
+    if (isPlaying && !isDragging) {
+      animationFrameId = requestAnimationFrame(updateLoop);
+    }
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [isPlaying, isDragging]);
 
   const handlePlayClick = () => {
     if (videoRef.current) {
@@ -80,29 +184,91 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
     }
   };
 
+  const togglePlayPause = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    triggerHaptic('light');
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHaptic('light');
+    if (videoRef.current) {
+      const nextMuted = !isMuted;
+      videoRef.current.muted = nextMuted;
+      setIsMuted(nextMuted);
+      if (!nextMuted && volume === 0) {
+        videoRef.current.volume = 0.5;
+        setVolume(0.5);
+      }
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    const val = parseFloat(e.target.value);
+    setVolume(val);
+    if (videoRef.current) {
+      videoRef.current.volume = val;
+      videoRef.current.muted = val === 0;
+      setIsMuted(val === 0);
+    }
+  };
+
+  const toggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHaptic('medium');
+    if (containerRef.current) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        const container = containerRef.current;
+        container.requestFullscreen?.() || 
+        (container as any).webkitRequestFullscreen?.() || 
+        (container as any).msRequestFullscreen?.();
+      }
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setCurrentTime(val); // Smooth visual feedback instantly!
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '0:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   const updatePositionState = (customParams?: { duration?: number; position?: number; playbackRate?: number }) => {
     const video = videoRef.current;
     if (!video) return;
 
-    const duration = customParams?.duration !== undefined ? customParams.duration : video.duration;
-    const currentTime = customParams?.position !== undefined ? customParams.position : video.currentTime;
+    const dur = customParams?.duration !== undefined ? customParams.duration : video.duration;
+    const cur = customParams?.position !== undefined ? customParams.position : video.currentTime;
     const playbackRate = customParams?.playbackRate !== undefined ? customParams.playbackRate : (video.playbackRate || 1);
 
-    // Guard against invalid duration or NaN
-    if (isNaN(duration) || duration <= 0 || isNaN(currentTime)) return;
+    if (isNaN(dur) || dur <= 0 || isNaN(cur)) return;
 
-    // Only throttle normal time updates (i.e. if customParams are not provided)
     if (!customParams) {
-      if (Math.abs(currentTime - lastUpdatedTimeRef.current) < 1 && currentTime !== 0 && currentTime !== duration) {
+      if (Math.abs(cur - lastUpdatedTimeRef.current) < 1 && cur !== 0 && cur !== dur) {
         return;
       }
     }
 
-    lastUpdatedTimeRef.current = currentTime;
+    lastUpdatedTimeRef.current = cur;
 
     const positionParams = {
-      duration: duration,
-      position: currentTime,
+      duration: dur,
+      position: cur,
       playbackRate: playbackRate
     };
 
@@ -123,9 +289,9 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
 
   const handlePlay = () => {
     setIsPlaying(true);
+    setShowControls(true);
     if (onPlay) onPlay();
 
-    // Prepare artwork fallback
     let artworkUrl = 'https://pizza-citzen-portal.pages.dev/assets/logo.png';
     if (artwork && !artwork.startsWith('data:')) {
       if (artwork.startsWith('http://') || artwork.startsWith('https://')) {
@@ -134,7 +300,6 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
         artworkUrl = window.location.origin + artwork;
       }
     } else {
-      // Generate a premium absolute HTTP fallback avatar dynamically
       artworkUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(artist || 'P')}&background=00c166&color=fff&size=128`;
     }
 
@@ -152,7 +317,6 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
     };
 
     if (Capacitor.isNativePlatform()) {
-      // 1. Native Capacitor Media Session Integration
       try {
         MediaSession.setMetadata(metadataParams);
         MediaSession.setPlaybackState({ playbackState: 'playing' });
@@ -173,12 +337,10 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
         console.error("Failed to set native MediaSession:", err);
       }
     } else if ('mediaSession' in navigator && 'MediaMetadata' in window) {
-      // 2. Standard Web Media Session API
       try {
         navigator.mediaSession.metadata = new MediaMetadata(metadataParams);
         navigator.mediaSession.playbackState = 'playing';
 
-        // Set action handlers so lock screen and notification shade buttons work natively
         navigator.mediaSession.setActionHandler('play', () => {
           videoRef.current?.play();
         });
@@ -196,7 +358,6 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
       }
     }
 
-    // Set initial position state as soon as it plays
     setTimeout(() => {
       updatePositionState();
     }, 150);
@@ -204,13 +365,13 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
 
   const handlePause = () => {
     setIsPlaying(false);
+    setShowControls(true);
 
-    // Force final accurate position update on pause with rate = 0
     if (videoRef.current) {
-      const duration = videoRef.current.duration;
-      const currentTime = videoRef.current.currentTime;
-      if (!isNaN(duration) && duration > 0) {
-        updatePositionState({ duration, position: currentTime, playbackRate: 0 });
+      const dur = videoRef.current.duration;
+      const cur = videoRef.current.currentTime;
+      if (!isNaN(dur) && dur > 0) {
+        updatePositionState({ duration: dur, position: cur, playbackRate: 0 });
       }
     }
 
@@ -227,11 +388,12 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
 
   const handleEnded = () => {
     setIsPlaying(false);
+    setShowControls(true);
 
     if (videoRef.current) {
-      const duration = videoRef.current.duration;
-      if (!isNaN(duration) && duration > 0) {
-        updatePositionState({ duration, position: duration, playbackRate: 0 });
+      const dur = videoRef.current.duration;
+      if (!isNaN(dur) && dur > 0) {
+        updatePositionState({ duration: dur, position: dur, playbackRate: 0 });
       }
     }
 
@@ -247,29 +409,44 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
   };
 
   const handleTimeUpdate = () => {
+    if (videoRef.current && !isDragging) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
     updatePositionState();
   };
 
   const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
     updatePositionState();
   };
 
   return (
     <div 
+      ref={containerRef}
+      onMouseMove={() => setShowControls(true)}
+      onMouseLeave={() => { if (isPlaying) setShowControls(false); }}
+      onClick={togglePlayPause}
       style={{ 
         position: 'relative', 
-        borderRadius: '16px', 
+        borderRadius: isFullscreen ? '0' : '16px', 
         overflow: 'hidden', 
-        border: '1px solid var(--glass-border)', 
+        border: isFullscreen ? 'none' : '1px solid var(--glass-border)', 
         background: '#000',
-        cursor: isPlaying ? 'default' : 'pointer'
+        cursor: 'pointer',
+        boxShadow: isFullscreen ? 'none' : '0 12px 36px rgba(0,0,0,0.5)',
+        width: isFullscreen ? '100%' : 'auto',
+        height: isFullscreen ? '100%' : 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
       }}
-      onClick={isPlaying ? undefined : handlePlayClick}
     >
       <video 
         ref={videoRef}
         src={`${src}#t=0.001`} 
-        controls={isPlaying} 
         preload="metadata"
         playsInline 
         onPlay={handlePlay}
@@ -277,27 +454,32 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
         onEnded={handleEnded}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
-        style={{ width: '100%', maxHeight: maxHeight || '400px', objectFit: 'contain', display: 'block' }} 
+        style={{ 
+          width: '100%', 
+          height: isFullscreen ? '100%' : 'auto',
+          maxHeight: isFullscreen ? '100vh' : (maxHeight || '400px'), 
+          objectFit: 'contain', 
+          display: 'block' 
+        }} 
       />
       
+      {/* 1. Large Central Play Button (When paused) */}
       {!isPlaying && (
         <div style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(0, 0, 0, 0.25)',
+          background: 'rgba(0, 0, 0, 0.35)',
           transition: 'background 0.3s',
+          zIndex: 4
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)';
+          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.45)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.25)';
+          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.35)';
         }}
         >
           <div style={{
@@ -305,14 +487,14 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
             height: '64px',
             borderRadius: '50%',
             background: 'var(--glass-bg)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
             transition: 'transform 0.2s, background 0.2s',
           }}
           onMouseEnter={(e) => {
@@ -328,7 +510,260 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
           </div>
         </div>
       )}
+
+      {/* 2. Glassmorphic Ultra-Stylish Controls Bar */}
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: isFullscreen ? '16px' : '8px 12px',
+        background: 'linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: isFullscreen ? '12px' : '4px',
+        zIndex: 5,
+        opacity: showControls ? 1 : 0,
+        transform: showControls ? 'translateY(0)' : 'translateY(10px)',
+        transition: 'opacity 0.3s ease, transform 0.3s ease',
+        pointerEvents: showControls ? 'auto' : 'none'
+      }}
+      onClick={e => e.stopPropagation()}
+      >
+        {/* Progress Slider Track */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+          <input 
+            type="range"
+            min={0}
+            max={duration || 100}
+            step="any"
+            value={currentTime}
+            onChange={handleSeek}
+            onMouseDown={() => setIsDragging(true)}
+            onTouchStart={() => setIsDragging(true)}
+            onMouseUp={(e) => {
+              setIsDragging(false);
+              const val = parseFloat((e.target as HTMLInputElement).value);
+              if (videoRef.current) {
+                videoRef.current.currentTime = val;
+              }
+              updatePositionState({ position: val });
+            }}
+            onTouchEnd={(e) => {
+              setIsDragging(false);
+              const val = parseFloat((e.target as HTMLInputElement).value);
+              if (videoRef.current) {
+                videoRef.current.currentTime = val;
+              }
+              updatePositionState({ position: val });
+            }}
+            style={{
+              flex: 1,
+              height: '5px',
+              borderRadius: '3px',
+              background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.15) 100%)`,
+              outline: 'none',
+              cursor: 'pointer',
+              WebkitAppearance: 'none',
+              transition: 'none'
+            }}
+            className="video-seek-slider"
+          />
+        </div>
+
+        {/* Action Buttons & Time Metadata */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', color: '#fff' }}>
+          
+          {/* Play/Pause & Time */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              onClick={togglePlayPause}
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: 'none',
+                color: '#fff',
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+            >
+              {isPlaying ? <Pause size={16} fill="#fff" /> : <Play size={16} fill="#fff" style={{ marginLeft: '2px' }} />}
+            </button>
+
+            {/* Time Stamp Counter */}
+            <span style={{ 
+              fontSize: '0.78rem', 
+              fontWeight: 600, 
+              color: 'rgba(255,255,255,0.85)', 
+              letterSpacing: '0.5px',
+              whiteSpace: 'nowrap'
+            }}>
+              {formatTime(currentTime)}<span style={{ color: 'rgba(255,255,255,0.4)', margin: '0 4px' }}>/</span>{formatTime(duration)}
+            </span>
+          </div>
+
+          {/* Volume, Mute & Fullscreen */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <button 
+                onClick={toggleMute}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.8)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '6px',
+                  transition: 'color 0.2s, transform 0.1s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+              >
+                {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+              </button>
+
+              <input 
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={isMuted ? 0 : volume}
+                onChange={handleVolumeChange}
+                style={{
+                  width: '60px',
+                  height: '4px',
+                  borderRadius: '2px',
+                  background: `linear-gradient(to right, #fff 0%, #fff ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.2) ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.2) 100%)`,
+                  outline: 'none',
+                  cursor: 'pointer',
+                  WebkitAppearance: 'none',
+                }}
+                className="volume-slider"
+              />
+            </div>
+
+            <button 
+              onClick={toggleFullscreen}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'rgba(255,255,255,0.8)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                transition: 'color 0.2s, transform 0.1s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+            >
+              <Maximize size={18} />
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Stylesheet for seeking slider thumb hiding/styling */}
+      <style>{`
+        .video-seek-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: #ffffff;
+          box-shadow: 0 0 10px rgba(0, 193, 102, 0.8), 0 0 4px rgba(0,0,0,0.5);
+          cursor: pointer;
+          margin-top: -4.5px;
+          border: none;
+          transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .video-seek-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.25);
+        }
+        .video-seek-slider::-moz-range-thumb {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: none;
+          box-shadow: 0 0 10px rgba(0, 193, 102, 0.8), 0 0 4px rgba(0,0,0,0.5);
+          cursor: pointer;
+          transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .video-seek-slider::-moz-range-thumb:hover {
+          transform: scale(1.25);
+        }
+        .volume-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #ffffff;
+          cursor: pointer;
+          border: none;
+        }
+        .volume-slider::-moz-range-thumb {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: none;
+          cursor: pointer;
+        }
+        @media (max-width: 480px) {
+          .volume-slider {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
+  );
+};
+
+const highlightText = (text: string, highlight: string) => {
+  if (!highlight.trim()) return <span>{text}</span>;
+  const regex = new RegExp(`(${highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <span>
+      {parts.map((part, i) => 
+        regex.test(part) ? (
+          <mark 
+            key={i} 
+            style={{ 
+              background: 'rgba(0, 193, 102, 0.25)', 
+              color: 'var(--primary)', 
+              padding: '1px 3px', 
+              borderRadius: '4px',
+              fontWeight: 700
+            }}
+          >
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </span>
   );
 };
 
@@ -339,6 +774,140 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isCompressingVideo, setIsCompressingVideo] = useState(false);
+
+  // Click Particle Burst System
+  const [clickParticles, setClickParticles] = useState<Array<{ id: string; x: number; y: number; char: string; color: string; angle: number; velocity: number }>>([]);
+  
+  const triggerParticleBurst = (clientX: number, clientY: number, type: 'like' | 'repost') => {
+    // Generate 6 particles
+    const newParticles = Array.from({ length: 6 }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const velocity = Math.random() * 80 + 40; // Pixels per second
+      return {
+        id: crypto.randomUUID(),
+        x: clientX,
+        y: clientY,
+        char: type === 'like' ? '❤️' : '✨',
+        color: type === 'like' ? '#ff5252' : '#00c166',
+        angle,
+        velocity
+      };
+    });
+
+    setClickParticles(prev => [...prev, ...newParticles]);
+
+    // Cleanup after 800ms
+    setTimeout(() => {
+      const idsToRemove = newParticles.map(p => p.id);
+      setClickParticles(prev => prev.filter(p => !idsToRemove.includes(p.id)));
+    }, 850);
+  };
+
+  // URL Link Preview Generator
+  const renderLinkPreview = (text: string) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/gi;
+    const match = text.match(urlRegex);
+    if (!match) return null;
+    const url = match[0];
+
+    let title = "Web リンク";
+    let desc = "共有された外部リンクを開く";
+    let brandColor = "rgba(255,255,255,0.4)";
+    let icon = <Compass size={18} />;
+
+    if (url.includes('roblox.com')) {
+      title = "Roblox 公式サイト";
+      desc = "Greenville や Rensselaer County へのアクセスはこちらから";
+      brandColor = "rgba(239, 68, 68, 0.4)";
+      icon = (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#ef4444" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M18.884 2.846L5.12 6.812l3.966 14.34L22.85 17.185zM9.54 11.238l4.49-.974.974 4.49-4.49.974z" />
+        </svg>
+      );
+    } else if (url.includes('discord.gg') || url.includes('discord.com')) {
+      title = "Discord 招待リンク";
+      desc = "公式ディスコードに参加して市民コミュニティに合流しよう！";
+      brandColor = "rgba(88, 101, 242, 0.4)";
+      icon = (
+        <svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="#5865F2" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
+        </svg>
+      );
+    } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      title = "YouTube 共有動画";
+      desc = "市民がタイムラインで共有した動画を開いて再生する";
+      brandColor = "rgba(239, 68, 68, 0.4)";
+      icon = (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff0000" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.508 9.388.508 9.388.508s7.517 0 9.388-.508a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+        </svg>
+      );
+    } else if (url.includes('fandom.com') || url.includes('wiki')) {
+      title = "Roblox Wiki カタログ";
+      desc = "車両モデルやカラーコード、トリムの詳細仕様をWikiで確認";
+      brandColor = "rgba(0, 193, 102, 0.4)";
+      icon = <BookOpen size={18} style={{ color: 'var(--primary)' }} />;
+    }
+
+    try {
+      const host = new URL(url).hostname;
+      return (
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            marginTop: '12px',
+            padding: '12px 16px',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
+            border: '1px solid var(--glass-border)',
+            borderLeft: `4px solid ${brandColor}`,
+            borderRadius: '12px',
+            textDecoration: 'none',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)';
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+          }}
+        >
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            background: 'rgba(255,255,255,0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            {icon}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>{desc}</div>
+          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', flexShrink: 0, background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px' }}>
+            {host}
+          </div>
+        </a>
+      );
+    } catch {
+      return null;
+    }
+  };
 
   // Manage video preview object URL lifetime to prevent memory leaks and unnecessary player resets
   useEffect(() => {
@@ -352,6 +921,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       URL.revokeObjectURL(url);
     };
   }, [selectedVideoFile]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeZoomImage, setActiveZoomImage] = useState<string | null>(null);
@@ -359,19 +929,180 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   
   // Comments related states
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [deepLinkedPost, setDeepLinkedPost] = useState<TimelinePost | null>(null);
   const [postComments, setPostComments] = useState<Record<string, TimelineComment[]>>({});
   const [isCommentsLoading, setIsCommentsLoading] = useState<Record<string, boolean>>({});
   const [newCommentText, setNewCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [replyingToComment, setReplyingToComment] = useState<TimelineComment | null>(null);
+  // Comment Media States
+  const [newCommentImages, setNewCommentImages] = useState<string[]>([]);
+  const [selectedCommentVideoFile, setSelectedCommentVideoFile] = useState<File | null>(null);
+  const [commentVideoPreviewUrl, setCommentVideoPreviewUrl] = useState<string | null>(null);
+  const [isCompressingCommentVideo, setIsCompressingCommentVideo] = useState(false);
+
+  useEffect(() => {
+    if (!selectedCommentVideoFile) {
+      setCommentVideoPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedCommentVideoFile);
+    setCommentVideoPreviewUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [selectedCommentVideoFile]);
 
   // User Profile Modal States
   const [selectedUserProfile, setSelectedUserProfile] = useState<{ userId: string; username: string; robloxUsername: string | null; avatar: string | null } | null>(null);
   const [profileVehicles, setProfileVehicles] = useState<any[]>([]);
   const [loadingProfileVehicles, setLoadingProfileVehicles] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [bioText, setBioText] = useState('');
+  const [profileInfo, setProfileInfo] = useState<{ bio: string | null; followingCount: number; followerCount: number; isFollowing: boolean; isFollower?: boolean } | null>(null);
+  const [loadingProfileInfo, setLoadingProfileInfo] = useState(false);
+
+  // Premium Profile Experience states
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [draftBio, setDraftBio] = useState('');
+  const [profileFade, setProfileFade] = useState(true);
+
+  // Deep Linking Sync - Sync active modals to browser URL query search parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    let changed = false;
+
+    if (expandedPostId) {
+      if (params.get('post') !== expandedPostId) {
+        params.set('post', expandedPostId);
+        params.delete('user'); // Prioritize post modal
+        changed = true;
+      }
+    } else if (selectedUserProfile) {
+      if (params.get('user') !== selectedUserProfile.userId) {
+        params.set('user', selectedUserProfile.userId);
+        params.delete('post');
+        changed = true;
+      }
+    } else {
+      if (params.has('post') || params.has('user')) {
+        params.delete('post');
+        params.delete('user');
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      const newQuery = params.toString();
+      const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '');
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [expandedPostId, selectedUserProfile]);
+
+  // Deep Linking Parse - Parse query parameters on load to auto-open profiles or posts
+  useEffect(() => {
+    const handleUrlParams = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const postParam = params.get('post');
+      const userParam = params.get('user');
+
+      if (postParam) {
+        setExpandedPostId(postParam);
+        
+        try {
+          // Attempt to fetch the specific post in case it's not in the initially loaded feed
+          const res = await fetch(`/api/timeline?userId=${currentUser.id}&postId=${postParam}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              setDeepLinkedPost(data[0]);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch deep-linked post:", err);
+        }
+      } else if (userParam) {
+        try {
+          const res = await fetch(`/api/profile?userId=${userParam}`);
+          if (res.ok) {
+            const data = await res.json();
+            setSelectedUserProfile({
+              userId: data.id,
+              username: data.username,
+              robloxUsername: data.roblox_username,
+              avatar: data.avatar
+            });
+          }
+        } catch (err) {
+          console.error("Failed to fetch deep-linked user profile:", err);
+        }
+      }
+    };
+
+    handleUrlParams();
+  }, [currentUser.id]);
+
+  // Follow list sub-modal states
+  const [followListModal, setFollowListModal] = useState<{ type: 'following' | 'followers'; userId: string; list: any[] } | null>(null);
+  const [loadingFollowList, setLoadingFollowList] = useState(false);
+
+  const fetchFollowList = async (userId: string, type: 'following' | 'followers') => {
+    setLoadingFollowList(true);
+    setFollowListModal({ type, userId, list: [] });
+    try {
+      const res = await fetch(`/api/profile?userId=${userId}&type=${type}`);
+      if (res.ok) {
+        const list = await res.json();
+        setFollowListModal({ type, userId, list: Array.isArray(list) ? list : [] });
+      }
+    } catch (err) {
+      console.error("Failed to fetch follow list:", err);
+    } finally {
+      setLoadingFollowList(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedUserProfile) {
+      setProfileInfo(null);
+      setIsFollowing(false);
+      setBioText('');
+      setIsEditingBio(false);
+      setProfileFade(true);
+      return;
+    }
+    setLoadingProfileInfo(true);
+    setProfileFade(false); // start fade out
+    
+    fetch(`/api/profile?userId=${selectedUserProfile.userId}&viewerId=${currentUser.id}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          setProfileInfo(data);
+          setBioText(data.bio || '');
+          setIsFollowing(data.isFollowing);
+          setIsEditingBio(false);
+          
+          // Trigger smooth fade back in
+          setTimeout(() => {
+            setProfileFade(true);
+          }, 60);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch profile info:", err);
+        setProfileFade(true);
+      })
+      .finally(() => setLoadingProfileInfo(false));
+  }, [selectedUserProfile, currentUser]);
+
+  useEffect(() => {
+    if (!selectedUserProfile) {
+      setProfileVehicles([]);
+      return;
+    }
+    const canSeeVehicles = selectedUserProfile.userId === currentUser.id || currentUser.role === 'admin';
+    if (!canSeeVehicles) {
       setProfileVehicles([]);
       return;
     }
@@ -383,7 +1114,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       })
       .catch(err => console.error("Failed to fetch profile vehicles:", err))
       .finally(() => setLoadingProfileVehicles(false));
-  }, [selectedUserProfile]);
+  }, [selectedUserProfile, currentUser]);
 
   // Keep track of posts viewed in this session to prevent duplicate views count increments
   const [viewedPostIds, setViewedPostIds] = useState<string[]>(() => {
@@ -394,6 +1125,68 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       return [];
     }
   });
+
+  // Keep track of comments viewed in this session to prevent duplicate views count increments
+  const [viewedCommentIds, setViewedCommentIds] = useState<string[]>(() => {
+    try {
+      const stored = sessionStorage.getItem('gvvr_viewed_comments');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const incrementCommentView = async (postId: string, commentId: string) => {
+    if (viewedCommentIds.includes(commentId)) return;
+
+    // Add to viewed comments in session
+    const updated = [...viewedCommentIds, commentId];
+    setViewedCommentIds(updated);
+    try {
+      sessionStorage.setItem('gvvr_viewed_comments', JSON.stringify(updated));
+    } catch (err) {
+      console.warn('Failed to save viewed comments to sessionStorage:', err);
+    }
+
+    // Optimistic Update
+    setPostComments(prev => {
+      const list = prev[postId] || [];
+      return {
+        ...prev,
+        [postId]: list.map(c => {
+          if (c.id === commentId) {
+            return { ...c, views_count: (c.views_count || 0) + 1 };
+          }
+          return c;
+        })
+      };
+    });
+
+    try {
+      await fetch('/api/timeline-comments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commentId,
+          userId: currentUser.id,
+          action: 'view'
+        })
+      });
+    } catch (err) {
+      console.error("Failed to increment comment view:", err);
+    }
+  };
+
+  // Automatically trigger views count updates for loaded comments inside expanded post modal
+  useEffect(() => {
+    if (!expandedPostId) return;
+    const comments = postComments[expandedPostId] || [];
+    comments.forEach(c => {
+      if (!viewedCommentIds.includes(c.id)) {
+        incrementCommentView(expandedPostId, c.id);
+      }
+    });
+  }, [postComments, expandedPostId]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -497,6 +1290,26 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     };
   }, [expandedPostId]);
 
+  // Handle back button / gesture when follow list modal is open
+  useEffect(() => {
+    if (!followListModal) return;
+
+    window.history.pushState({ followListOpen: true }, '');
+
+    const handlePopState = (e: PopStateEvent) => {
+      setFollowListModal(null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.followListOpen) {
+        window.history.back();
+      }
+    };
+  }, [!!followListModal]);
+
   // Handle resetting nested replying state on modal close
   useEffect(() => {
     if (!expandedPostId) {
@@ -587,6 +1400,54 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const handleRemoveVideo = () => {
     triggerHaptic('light');
     setSelectedVideoFile(null);
+  };
+
+  const commentFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCommentFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files);
+    const videoFile = fileList.find(f => f.type.startsWith('video/'));
+    
+    if (videoFile) {
+      triggerHaptic('medium');
+      setSelectedCommentVideoFile(videoFile);
+      setNewCommentImages([]);
+      if (commentFileInputRef.current) commentFileInputRef.current.value = '';
+      return;
+    }
+
+    if (selectedCommentVideoFile) {
+      setSelectedCommentVideoFile(null);
+    }
+
+    if (newCommentImages.length + fileList.length > 4) {
+      alert("添付できる画像は最大4枚までです。");
+      return;
+    }
+
+    triggerHaptic('light');
+    try {
+      const base64Images = await Promise.all(fileList.map(compressImage));
+      setNewCommentImages(prev => [...prev, ...base64Images]);
+    } catch (err) {
+      console.error("Comment image compression failed:", err);
+      alert("画像の圧縮に失敗しました。");
+    }
+    
+    if (commentFileInputRef.current) commentFileInputRef.current.value = '';
+  };
+
+  const handleRemoveCommentImage = (index: number) => {
+    triggerHaptic('light');
+    setNewCommentImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveCommentVideo = () => {
+    triggerHaptic('light');
+    setSelectedCommentVideoFile(null);
   };
 
   const handlePaste = async (e: React.ClipboardEvent) => {
@@ -742,6 +1603,90 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   };
 
+  const handleRepostToggle = async (post: TimelinePost) => {
+    const targetPost = post.repost_id ? getTargetPost(post) : post;
+    const isCurrentlyReposted = targetPost.is_reposted === 1;
+    const action = isCurrentlyReposted ? 'unrepost' : 'repost';
+
+    triggerHaptic('light');
+
+    // Optimistic UI updates
+    setPosts(prev => prev.map(p => {
+      if (p.id === targetPost.id) {
+        return {
+          ...p,
+          is_reposted: isCurrentlyReposted ? 0 : 1,
+          reposts_count: Math.max(0, (p.reposts_count || 0) + (isCurrentlyReposted ? -1 : 1))
+        };
+      }
+      if (p.repost_id === targetPost.id) {
+        return {
+          ...p,
+          reposts_count: Math.max(0, (p.reposts_count || 0) + (isCurrentlyReposted ? -1 : 1))
+        };
+      }
+      return p;
+    }));
+
+    try {
+      if (action === 'repost') {
+        const res = await fetch('/api/timeline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: currentUser.id,
+            repostId: targetPost.id
+          })
+        });
+        if (!res.ok) {
+          await fetchPosts();
+        } else {
+          await fetchPosts();
+        }
+      } else {
+        const ourRepost = posts.find(p => p.repost_id === targetPost.id && p.user_id === currentUser.id);
+        if (ourRepost) {
+          const res = await fetch(`/api/timeline?id=${ourRepost.id}&userId=${currentUser.id}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) {
+            await fetchPosts();
+          } else {
+            await fetchPosts();
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Repost action failed:", err);
+      await fetchPosts();
+    }
+  };
+
+  const getTargetPost = (post: TimelinePost): TimelinePost => {
+    if (!post.repost_id) return post;
+    
+    const loaded = posts.find(p => p.id === post.repost_id);
+    if (loaded) return loaded;
+    
+    return {
+      id: post.repost_id,
+      user_id: post.orig_author_id || '',
+      content: post.orig_content || '',
+      image_data: post.orig_image_data || null,
+      video_path: post.orig_video_path || null,
+      created_at: post.orig_created_at || post.created_at,
+      author_username: post.orig_author_username,
+      author_avatar: post.orig_author_avatar,
+      author_roblox_username: post.orig_author_roblox_username,
+      likes_count: post.likes_count, // Already COALESCE'd in API
+      comments_count: post.comments_count, // Already COALESCE'd in API
+      is_liked: post.is_liked, // Already COALESCE'd in API
+      views_count: post.views_count,
+      reposts_count: post.reposts_count,
+      is_reposted: post.is_reposted
+    };
+  };
+
   const incrementPostView = async (postId: string) => {
     // If already viewed in this session, do not increment again
     if (viewedPostIds.includes(postId)) return;
@@ -840,12 +1785,43 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
   const handleCreateComment = async (postId: string, e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCommentText.trim()) return;
+    if (!newCommentText.trim() && newCommentImages.length === 0 && !selectedCommentVideoFile) return;
 
     triggerHaptic('medium');
     setIsSubmittingComment(true);
 
     try {
+      let videoPath: string | null = null;
+
+      if (selectedCommentVideoFile) {
+        setIsCompressingCommentVideo(true);
+        try {
+          const compressedBlob = await compressVideo(selectedCommentVideoFile);
+          setIsCompressingCommentVideo(false);
+
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', compressedBlob, selectedCommentVideoFile.name);
+
+          const uploadRes = await fetch('/api/upload-media', {
+            method: 'POST',
+            body: uploadFormData
+          });
+
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json() as any;
+            throw new Error(errData.error || "動画のアップロードに失敗しました。");
+          }
+
+          const uploadResult = await uploadRes.json() as { key: string };
+          videoPath = uploadResult.key;
+        } catch (compressErr: any) {
+          setIsCompressingCommentVideo(false);
+          setIsSubmittingComment(false);
+          alert(compressErr.message || "動画の圧縮またはアップロードに失敗しました。");
+          return;
+        }
+      }
+
       const res = await fetch('/api/timeline-comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -853,13 +1829,17 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           postId,
           userId: currentUser.id,
           content: newCommentText,
-          parentId: replyingToComment?.id || null
+          parentId: replyingToComment?.id || null,
+          image_data: newCommentImages.length > 0 ? JSON.stringify(newCommentImages) : null,
+          video_path: videoPath
         })
       });
 
       if (res.ok) {
         setNewCommentText('');
         setReplyingToComment(null);
+        setNewCommentImages([]);
+        setSelectedCommentVideoFile(null);
         // Refresh replies list
         await fetchComments(postId);
         // Increment reply count in posts list
@@ -871,7 +1851,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         }));
       } else {
         const err = await res.json() as any;
-        alert(err.error || "コメントの投稿に失敗しました。");
+        alert(err.error || "返信の投稿に失敗しました。");
       }
     } catch (err) {
       console.error("Comment submission failed:", err);
@@ -1039,7 +2019,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     );
   };
 
-  const activePost = posts.find(p => p.id === expandedPostId);
+  const activePost = (() => {
+    if (!expandedPostId) return undefined;
+    const direct = posts.find(p => p.id === expandedPostId);
+    if (direct) return direct;
+    
+    const repost = posts.find(p => p.repost_id === expandedPostId);
+    if (repost) return getTargetPost(repost);
+
+    if (deepLinkedPost && deepLinkedPost.id === expandedPostId) return deepLinkedPost;
+    
+    return undefined;
+  })();
+
+  // Synced following/followers counts from D1 database
+  const followingCount = profileInfo ? profileInfo.followingCount : 0;
+  const followerCount = profileInfo ? profileInfo.followerCount : 0;
 
   return (
     <div className="animate-fade" style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
@@ -1085,6 +2080,74 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         >
           <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
         </button>
+      </div>
+
+      {/* Sleek Glassmorphic Search Bar */}
+      <div style={{ position: 'relative', width: '100%' }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="タイムライン内を検索（キーワード、Roblox名、市民名）..."
+          style={{
+            width: '100%',
+            padding: '12px 16px 12px 46px',
+            borderRadius: '14px',
+            background: 'var(--panel-bg)',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--text-main)',
+            fontSize: '0.95rem',
+            outline: 'none',
+            transition: 'all 0.2s ease',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+          }}
+          onFocus={e => {
+            e.currentTarget.style.borderColor = 'var(--primary)';
+            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,193,102,0.15), inset 0 2px 4px rgba(0,0,0,0.1)';
+          }}
+          onBlur={e => {
+            e.currentTarget.style.borderColor = 'var(--glass-border)';
+            e.currentTarget.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.1)';
+          }}
+        />
+        <Search 
+          size={18} 
+          style={{ 
+            position: 'absolute', 
+            left: '16px', 
+            top: '50%', 
+            transform: 'translateY(-50%)', 
+            color: searchQuery ? 'var(--primary)' : 'var(--text-muted)',
+            transition: 'color 0.2s ease',
+            pointerEvents: 'none'
+          }} 
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => { triggerHaptic('light'); setSearchQuery(''); }}
+            style={{
+              position: 'absolute',
+              right: '16px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {/* New Post Creator Box */}
@@ -1288,236 +2351,384 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       </form>
 
       {/* Main Post Stream / Feed */}
-      {isLoading && posts.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '100px 0', gap: '20px' }}>
-          <div style={{ position: 'relative', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, border: '4px solid rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-            <div style={{ position: 'absolute', inset: 0, border: '4px solid transparent', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1.2s linear infinite' }} />
-            <Loader2 size={40} className="animate-spin" style={{ color: 'var(--primary)', opacity: 0.8 }} />
-          </div>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 600 }}>タイムラインを読み込み中...</span>
-        </div>
-      ) : posts.length === 0 ? (
-        <div className="glass card" style={{ padding: '60px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-          <AlertCircle size={48} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-          <div>
-            <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px', color: 'var(--text-main)' }}>まだ投稿がありません</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>最初のひとりごとを投稿してみませんか？</p>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {posts.map((post) => {
-            const isAuthor = post.user_id === currentUser.id;
-            const isAdmin = currentUser.role === 'admin';
-            const isLiked = post.is_liked === 1;
-            const isAnimating = likeAnimatingPostId === post.id;
+      {(() => {
+        const filteredPosts = posts.filter(post => {
+          const query = searchQuery.toLowerCase().trim();
+          if (!query) return true;
+          
+          const contentMatches = post.content.toLowerCase().includes(query);
+          const authorMatches = post.author_username?.toLowerCase().includes(query) || false;
+          const robloxMatches = post.author_roblox_username?.toLowerCase().includes(query) || false;
+          
+          const origContentMatches = post.repost_id && post.orig_content?.toLowerCase().includes(query);
+          const origAuthorMatches = post.repost_id && (
+            post.orig_author_username?.toLowerCase().includes(query) || 
+            post.orig_author_roblox_username?.toLowerCase().includes(query)
+          );
+          
+          return contentMatches || authorMatches || robloxMatches || origContentMatches || origAuthorMatches;
+        });
 
-            return (
-              <div 
-                key={post.id} 
-                id={`post-${post.id}`}
-                className="glass card" 
-                style={{ 
-                  padding: '20px', 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  gap: '16px', 
-                  background: 'var(--panel-bg)', 
-                  border: '1px solid var(--glass-border)',
-                  position: 'relative'
-                }}
-              >
-                {/* Main Post Grid */}
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', width: '100%' }}>
-                  {/* Author Avatar */}
-                  <img 
-                    src={post.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author_username || 'P')}&background=00c166&color=fff`} 
-                    alt="Author Avatar" 
-                    onError={(e) => handleAvatarError(e, post.author_username || 'P')}
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setSelectedUserProfile({ userId: post.user_id, username: post.author_username || '不明な市民', robloxUsername: post.author_roblox_username, avatar: post.author_avatar });
-                    }}
-                    style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff', objectFit: 'cover', flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }} 
-                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-                  />
+        if (isLoading && posts.length === 0) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '100px 0', gap: '20px' }}>
+              <div style={{ position: 'relative', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'absolute', inset: 0, border: '4px solid rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+                <div style={{ position: 'absolute', inset: 0, border: '4px solid transparent', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1.2s linear infinite' }} />
+                <Loader2 size={40} className="animate-spin" style={{ color: 'var(--primary)', opacity: 0.8 }} />
+              </div>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 600 }}>タイムラインを読み込み中...</span>
+            </div>
+          );
+        }
 
-                  {/* Post Content Area */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    
-                    {/* User meta information row */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+        if (posts.length === 0) {
+          return (
+            <div className="glass card" style={{ padding: '60px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+              <AlertCircle size={48} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+              <div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px', color: 'var(--text-main)' }}>まだ投稿がありません</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>最初のひとりごとを投稿してみませんか？</p>
+              </div>
+            </div>
+          );
+        }
+
+        if (filteredPosts.length === 0 && searchQuery) {
+          return (
+            <div className="glass card" style={{ padding: '60px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+              <Search size={48} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+              <div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px', color: 'var(--text-main)' }}>検索結果が見つかりませんでした</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>キーワードを変更してもう一度お試しください。</p>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {filteredPosts.map((post) => {
+              const isAuthor = post.user_id === currentUser.id;
+              const isAdmin = currentUser.role === 'admin';
+              
+              const targetPost = post.repost_id ? getTargetPost(post) : post;
+              const isLiked = targetPost.is_liked === 1;
+              const isAnimating = likeAnimatingPostId === targetPost.id;
+              const isReposted = targetPost.is_reposted === 1;
+
+              return (
+                <div 
+                  key={post.id} 
+                  id={`post-${post.id}`}
+                  className="glass card" 
+                  style={{ 
+                    padding: '20px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: '12px', 
+                    background: 'var(--panel-bg)', 
+                    border: '1px solid var(--glass-border)',
+                    position: 'relative'
+                  }}
+                >
+                  {/* Repost Header Label */}
+                  {post.repost_id && (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '6px', 
+                      fontSize: '0.8rem', 
+                      color: 'var(--primary)', 
+                      fontWeight: 700, 
+                      paddingBottom: '8px', 
+                      borderBottom: '1px solid rgba(255,255,255,0.03)', 
+                      marginBottom: '4px' 
+                    }}>
+                      <Repeat2 size={14} />
                       <span 
                         onClick={() => {
                           triggerHaptic('light');
                           setSelectedUserProfile({ userId: post.user_id, username: post.author_username || '不明な市民', robloxUsername: post.author_roblox_username, avatar: post.author_avatar });
                         }}
-                        style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', cursor: 'pointer', transition: 'color 0.2s' }}
-                        onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-main)'}
+                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
                       >
                         {post.author_username || '不明な市民'}
                       </span>
-                      {post.author_roblox_username && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          @{post.author_roblox_username}
-                        </span>
-                      )}
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>•</span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {formatRelativeTime(post.created_at)}
-                      </span>
+                      <span>さんがリポストしました</span>
                     </div>
+                  )}
 
-                    {/* Message body text */}
-                    <p style={{ 
-                       margin: 0, 
-                       fontSize: '1rem', 
-                       lineHeight: 1.5, 
-                       color: 'var(--text-main)', 
-                       wordBreak: 'break-word',
-                       whiteSpace: 'pre-wrap'
+                  {/* Main Post Grid */}
+                  {post.repost_id && !post.orig_author_username ? (
+                    <div style={{ 
+                      padding: '16px', 
+                      background: 'rgba(255,255,255,0.01)', 
+                      borderRadius: '12px', 
+                      border: '1px dashed var(--glass-border)', 
+                      color: 'var(--text-muted)', 
+                      fontSize: '0.85rem',
+                      textAlign: 'center',
+                      position: 'relative'
                     }}>
-                      {post.content}
-                    </p>
-
-                     {/* Render Images if any attached */}
-                    {renderImageGrid(post.image_data, post.id)}
-
-                    {/* Render Video if attached */}
-                    {post.video_path && (
-                      <div style={{ marginTop: '12px' }}>
-                        <TimelineVideoPlayer 
-                          src={`/api/media?key=${post.video_path}`} 
-                          onPlay={() => incrementPostView(post.id)}
-                          maxHeight="400px"
-                          title={post.content || '動画投稿'}
-                          artist={post.author_username || '不明な市民'}
-                          artwork={post.author_avatar || undefined}
-                        />
-                      </div>
-                    )}
-
-                    {/* Post Stats & Actions Bar */}
-                    <div style={{ display: 'flex', gap: '32px', marginTop: '16px', color: 'var(--text-muted)' }}>
-                      {/* Like Action */}
-                      <button
-                        onClick={() => handleLikeToggle(post)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: 0,
-                          color: isLiked ? '#ff5252' : 'var(--text-muted)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'color 0.2s',
-                        }}
-                      >
-                        <Heart 
-                          size={18} 
-                          fill={isLiked ? '#ff5252' : 'none'}
+                      この投稿は削除されました。
+                      
+                      {/* Repost can still be deleted */}
+                      {(isAuthor || isAdmin) && (
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
                           style={{
-                            transform: isAnimating ? 'scale(1.4)' : 'scale(1)',
-                            transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            background: 'none',
+                            border: 'none',
+                            padding: '4px',
+                            color: 'rgba(255,82,82,0.5)',
+                            cursor: 'pointer',
+                            transition: 'color 0.2s',
                           }}
-                        />
-                        <span>{post.likes_count}</span>
-                      </button>
-
-                      {/* Comment Action (Bottom Sheet / Overlay Modal Trigger) */}
-                      <button
-                        onClick={() => handleCommentIconClick(post.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: 0,
-                          color: 'var(--text-muted)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'color 0.2s',
+                          onMouseEnter={(e) => e.currentTarget.style.color = '#ff5252'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,82,82,0.5)'}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', width: '100%' }}>
+                      {/* Author Avatar */}
+                      <img 
+                        src={targetPost.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(targetPost.author_username || 'P')}&background=00c166&color=fff`} 
+                        alt="Author Avatar" 
+                        onError={(e) => handleAvatarError(e, targetPost.author_username || 'P')}
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setSelectedUserProfile({ userId: targetPost.user_id, username: targetPost.author_username || '不明な市民', robloxUsername: targetPost.author_roblox_username, avatar: targetPost.author_avatar });
                         }}
-                      >
-                        <MessageSquare size={18} />
-                        <span>{post.comments_count}</span>
-                      </button>
+                        style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff', objectFit: 'cover', flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }} 
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                      />
+                      {/* Post Content Area */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        
+                        {/* User meta information row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                          <span 
+                            onClick={() => {
+                              triggerHaptic('light');
+                              setSelectedUserProfile({ userId: targetPost.user_id, username: targetPost.author_username || '不明な市民', robloxUsername: targetPost.author_roblox_username, avatar: targetPost.author_avatar });
+                            }}
+                            style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', cursor: 'pointer', transition: 'color 0.2s' }}
+                            onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-main)'}
+                          >
+                            {targetPost.author_username || '不明な市民'}
+                          </span>
+                          {targetPost.author_roblox_username && (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              @{targetPost.author_roblox_username}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>•</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            {formatRelativeTime(targetPost.created_at)}
+                          </span>
+                        </div>
 
-                      {/* Views Count (BarChart2) */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          color: 'var(--text-muted)'
-                        }}
-                      >
-                        <BarChart2 size={18} style={{ color: 'var(--text-muted)' }} />
-                        <span>{(post.views_count || 0).toLocaleString()}</span>
+                        {/* Message body text */}
+                        <p style={{ 
+                           margin: 0, 
+                           fontSize: '1rem', 
+                           lineHeight: 1.5, 
+                           color: 'var(--text-main)', 
+                           wordBreak: 'break-word',
+                           whiteSpace: 'pre-wrap'
+                        }}>
+                          {highlightText(targetPost.content, searchQuery)}
+                        </p>
+
+                        {/* Render URL Link Preview if matching */}
+                        {renderLinkPreview(targetPost.content)}
+
+                        {/* Render Images if any attached */}
+                        {renderImageGrid(targetPost.image_data, targetPost.id)}
+
+                        {/* Render Video if attached */}
+                        {targetPost.video_path && (
+                          <div style={{ marginTop: '12px' }}>
+                            <TimelineVideoPlayer 
+                              src={`/api/media?key=${targetPost.video_path}`} 
+                              onPlay={() => incrementPostView(targetPost.id)}
+                              maxHeight="400px"
+                              title={targetPost.content || '動画投稿'}
+                              artist={targetPost.author_username || '不明な市民'}
+                              artwork={targetPost.author_avatar || undefined}
+                            />
+                          </div>
+                        )}
+
+                        {/* Post Stats & Actions Bar */}
+                        <div style={{ display: 'flex', gap: '32px', marginTop: '16px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                          {/* Like Action */}
+                          <button
+                            onClick={(e) => {
+                              triggerParticleBurst(e.clientX, e.clientY, 'like');
+                              handleLikeToggle(targetPost);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              color: isLiked ? '#ff5252' : 'var(--text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'color 0.2s',
+                            }}
+                          >
+                            <Heart 
+                              size={18} 
+                              fill={isLiked ? '#ff5252' : 'none'}
+                              style={{
+                                transform: isAnimating ? 'scale(1.4)' : 'scale(1)',
+                                transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                              }}
+                            />
+                            <span>{targetPost.likes_count}</span>
+                          </button>
+
+                          {/* Comment Action */}
+                          <button
+                            onClick={() => handleCommentIconClick(targetPost.id)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              color: 'var(--text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'color 0.2s',
+                            }}
+                          >
+                            <MessageSquare size={18} />
+                            <span>{targetPost.comments_count}</span>
+                          </button>
+
+                          {/* Repost Action (New Repeat2) */}
+                          <button
+                            onClick={() => handleRepostToggle(post)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              color: isReposted ? 'var(--primary)' : 'var(--text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'color 0.2s',
+                            }}
+                            onMouseEnter={e => { 
+                              if (!isReposted) e.currentTarget.style.color = 'var(--primary)';
+                              const icon = e.currentTarget.querySelector('svg');
+                              if (icon) icon.style.transform = isReposted ? 'rotate(200deg) scale(1.15)' : 'rotate(30deg) scale(1.15)';
+                            }}
+                            onMouseLeave={e => { 
+                              if (!isReposted) e.currentTarget.style.color = 'var(--text-muted)';
+                              const icon = e.currentTarget.querySelector('svg');
+                              if (icon) icon.style.transform = isReposted ? 'rotate(180deg) scale(1)' : 'none';
+                            }}
+                          >
+                            <Repeat2 
+                              size={18} 
+                              style={{
+                                transform: isReposted ? 'rotate(180deg)' : 'none',
+                                transition: 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                              }}
+                            />
+                            <span>{targetPost.reposts_count || 0}</span>
+                          </button>
+
+                          {/* Views Count (BarChart2) */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              color: 'var(--text-muted)'
+                            }}
+                          >
+                            <BarChart2 size={18} style={{ color: 'var(--text-muted)' }} />
+                            <span>{(targetPost.views_count || 0).toLocaleString()}</span>
+                          </div>
+
+                          {/* Share Action (Share2) */}
+                          <button
+                            onClick={() => handleSharePost(targetPost)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              color: 'var(--text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'color 0.2s',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                          >
+                            <Share2 size={18} />
+                            <span>共有</span>
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Share Action (Share2) */}
-                      <button
-                        onClick={() => handleSharePost(post)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: 0,
-                          color: 'var(--text-muted)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'color 0.2s',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-                      >
-                        <Share2 size={18} />
-                        <span>共有</span>
-                      </button>
+                      {/* Delete Button (Visible to owner or admins) */}
+                      {(isAuthor || isAdmin) && (
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          style={{
+                            position: 'absolute',
+                            top: '16px',
+                            right: '16px',
+                            background: 'none',
+                            border: 'none',
+                            padding: '4px',
+                            color: 'rgba(255,82,82,0.5)',
+                            cursor: 'pointer',
+                            transition: 'color 0.2s',
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.color = '#ff5252'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,82,82,0.5)'}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
-                  </div>
-
-                  {/* Delete Button (Visible to owner or admins) */}
-                  {(isAuthor || isAdmin) && (
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      style={{
-                        position: 'absolute',
-                        top: '16px',
-                        right: '16px',
-                        background: 'none',
-                        border: 'none',
-                        padding: '4px',
-                        color: 'rgba(255,82,82,0.5)',
-                        cursor: 'pointer',
-                        transition: 'color 0.2s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#ff5252'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,82,82,0.5)'}
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Floating Bottom Sheet (Mobile) / Centered Modal (PC) for Comments Replies */}
       {expandedPostId && activePost && createPortal(
@@ -1715,6 +2926,23 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                 {comment.content}
                               </p>
 
+                              {/* Attached Images */}
+                              {renderImageGrid(comment.image_data, activePost.id)}
+
+                              {/* Attached Video */}
+                              {comment.video_path && (
+                                <div style={{ marginTop: '8px', marginBottom: '8px' }}>
+                                  <TimelineVideoPlayer 
+                                    src={`/api/media?key=${comment.video_path}`} 
+                                    onPlay={() => incrementPostView(activePost.id)}
+                                    maxHeight="300px"
+                                    title={comment.content || '返信動画'}
+                                    artist={comment.author_username || '不明な市民'}
+                                    artwork={comment.author_avatar || undefined}
+                                  />
+                                </div>
+                              )}
+
                               {/* Action Bar */}
                               <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                                 {/* Like */}
@@ -1737,6 +2965,19 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                   <Heart size={13} fill={isCommentLiked ? '#ff5252' : 'none'} />
                                   <span>{comment.likes_count || 0}</span>
                                 </button>
+
+                                {/* Views Count */}
+                                <span style={{ 
+                                  color: 'var(--text-muted)', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '4px', 
+                                  fontSize: '0.75rem',
+                                  fontWeight: 500
+                                }}>
+                                  <BarChart2 size={13} style={{ opacity: 0.8 }} />
+                                  <span>{comment.views_count || 0}</span>
+                                </span>
 
                                 {/* Reply */}
                                 <button
@@ -1834,6 +3075,23 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                         {sub.content}
                                       </p>
 
+                                      {/* Attached Images */}
+                                      {renderImageGrid(sub.image_data, activePost.id)}
+
+                                      {/* Attached Video */}
+                                      {sub.video_path && (
+                                        <div style={{ marginTop: '6px', marginBottom: '6px' }}>
+                                          <TimelineVideoPlayer 
+                                            src={`/api/media?key=${sub.video_path}`} 
+                                            onPlay={() => incrementPostView(activePost.id)}
+                                            maxHeight="240px"
+                                            title={sub.content || '返信動画'}
+                                            artist={sub.author_username || '不明な市民'}
+                                            artwork={sub.author_avatar || undefined}
+                                          />
+                                        </div>
+                                      )}
+
                                       {/* Sub Actions */}
                                       <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                                         {/* Like */}
@@ -1856,6 +3114,19 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                           <Heart size={11} fill={isSubLiked ? '#ff5252' : 'none'} />
                                           <span>{sub.likes_count || 0}</span>
                                         </button>
+
+                                        {/* Views Count */}
+                                        <span style={{ 
+                                          color: 'var(--text-muted)', 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          gap: '3px', 
+                                          fontSize: '0.7rem',
+                                          fontWeight: 500
+                                        }}>
+                                          <BarChart2 size={11} style={{ opacity: 0.8 }} />
+                                          <span>{sub.views_count || 0}</span>
+                                        </span>
 
                                         {/* Reply */}
                                         <button
@@ -1983,6 +3254,96 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             </div>
           )}
 
+          {/* Selected Comment Images Preview Container */}
+          {newCommentImages.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${newCommentImages.length === 1 ? 1 : 2}, 1fr)`, gap: '8px', marginTop: '4px' }}>
+              {newCommentImages.map((img, i) => (
+                <div key={i} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', height: newCommentImages.length === 1 ? '160px' : '80px', border: '1px solid var(--glass-border)' }}>
+                  <img src={img} alt={`Comment Select ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCommentImage(i)}
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      background: 'rgba(0,0,0,0.65)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '22px',
+                      height: '22px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Selected Comment Video Preview Container */}
+          {selectedCommentVideoFile && commentVideoPreviewUrl && (
+            <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', height: '160px', border: '1px solid var(--glass-border)', marginTop: '4px', background: '#000' }}>
+              <video 
+                src={commentVideoPreviewUrl} 
+                controls
+                playsInline 
+                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} 
+              />
+              <div style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: '8px',
+                background: 'rgba(0,0,0,0.65)',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '0.7rem',
+                fontWeight: 600
+              }}>
+                動画: {(selectedCommentVideoFile.size / (1024 * 1024)).toFixed(1)}MB
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveCommentVideo}
+                style={{
+                  position: 'absolute',
+                  top: '4px',
+                  right: '4px',
+                  background: 'rgba(0,0,0,0.65)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '22px',
+                  height: '22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Optimizing and uploading status */}
+          {(isCompressingCommentVideo || (isSubmittingComment && !isCompressingCommentVideo)) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px', marginTop: '2px' }}>
+              <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)' }} />
+              <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>
+                {isCompressingCommentVideo ? '動画を最適化中...' : 'アップロード中...'}
+              </span>
+            </div>
+          )}
+
           <form onSubmit={(e) => handleCreateComment(activePost.id, e)} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <img
               src={currentUser.avatar}
@@ -1990,6 +3351,38 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               onError={(e) => handleAvatarError(e, currentUser.username)}
               style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff', objectFit: 'cover', flexShrink: 0 }}
             />
+            
+            <button
+              type="button"
+              onClick={() => commentFileInputRef.current?.click()}
+              disabled={newCommentImages.length >= 4 || selectedCommentVideoFile !== null || isSubmittingComment}
+              style={{
+                background: 'rgba(0,193,102,0.08)',
+                border: '1px solid rgba(0,193,102,0.15)',
+                borderRadius: '10px',
+                width: '42px',
+                height: '42px',
+                color: 'var(--primary)',
+                cursor: (newCommentImages.length >= 4 || selectedCommentVideoFile !== null || isSubmittingComment) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: (newCommentImages.length >= 4 || selectedCommentVideoFile !== null || isSubmittingComment) ? 0.5 : 1,
+                flexShrink: 0
+              }}
+            >
+              <ImageIcon size={18} />
+            </button>
+            
+            <input 
+              type="file" 
+              ref={commentFileInputRef} 
+              onChange={handleCommentFileSelect}
+              multiple 
+              accept="image/*,video/*" 
+              style={{ display: 'none' }} 
+            />
+
             <input
               type="text"
               value={newCommentText}
@@ -2007,9 +3400,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 outline: 'none',
               }}
             />
+            
             <button
               type="submit"
-              disabled={isSubmittingComment || !newCommentText.trim()}
+              disabled={isSubmittingComment || (!newCommentText.trim() && newCommentImages.length === 0 && !selectedCommentVideoFile)}
               style={{
                 background: 'var(--primary)',
                 border: 'none',
@@ -2020,8 +3414,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: theme === 'light' ? '#fff' : '#000',
-                cursor: !newCommentText.trim() ? 'not-allowed' : 'pointer',
-                opacity: !newCommentText.trim() ? 0.5 : 1,
+                cursor: (!newCommentText.trim() && newCommentImages.length === 0 && !selectedCommentVideoFile) ? 'not-allowed' : 'pointer',
+                opacity: (!newCommentText.trim() && newCommentImages.length === 0 && !selectedCommentVideoFile) ? 0.5 : 1,
                 flexShrink: 0
               }}
             >
@@ -2157,7 +3551,17 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             </div>
 
             {/* Profile info block */}
-            <div style={{ padding: '24px', paddingTop: '0', position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ 
+              padding: '24px', 
+              paddingTop: '0', 
+              position: 'relative', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '16px',
+              transition: 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              opacity: profileFade ? 1 : 0,
+              transform: profileFade ? 'translateY(0)' : 'translateY(8px)'
+            }}>
               {/* Avatar offset */}
               <div style={{ position: 'relative', marginTop: '-45px', marginBottom: '8px', display: 'inline-block', width: '90px' }}>
                 <img 
@@ -2178,88 +3582,609 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
               {/* User Names */}
               <div>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
-                  {selectedUserProfile.username || '不明な市民'}
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <span>{selectedUserProfile.username || '不明な市民'}</span>
+                  {profileInfo?.isFollower && selectedUserProfile.userId !== currentUser.id && (
+                    <span style={{ 
+                      fontSize: '0.7rem', 
+                      fontWeight: 700, 
+                      padding: '2px 8px', 
+                      borderRadius: '6px', 
+                      background: theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.04)', 
+                      color: 'var(--text-muted)', 
+                      border: '1px solid var(--glass-border)',
+                      display: 'inline-block',
+                      lineHeight: '1.4'
+                    }}>
+                      フォローされています
+                    </span>
+                  )}
                 </h3>
-                {selectedUserProfile.robloxUsername && (
-                  <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>Roblox:</span>
-                    <strong style={{ color: 'var(--primary)' }}>@{selectedUserProfile.robloxUsername}</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {selectedUserProfile.robloxUsername && (
+                    <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>Roblox:</span>
+                      <strong style={{ color: 'var(--primary)' }}>@{selectedUserProfile.robloxUsername}</strong>
+                    </div>
+                  )}
+                  {/* Follow / Follower Counts */}
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    <span 
+                      style={{ cursor: 'pointer', transition: 'color 0.2s' }}
+                      onClick={() => { triggerHaptic('light'); fetchFollowList(selectedUserProfile.userId, 'following'); }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                      onMouseLeave={e => e.currentTarget.style.color = ''}
+                    >
+                      <strong style={{ color: 'inherit', fontWeight: 800 }}>{followingCount}</strong> <span style={{ color: 'inherit' }}>フォロー</span>
+                    </span>
+                    <span 
+                      style={{ cursor: 'pointer', transition: 'color 0.2s' }}
+                      onClick={() => { triggerHaptic('light'); fetchFollowList(selectedUserProfile.userId, 'followers'); }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                      onMouseLeave={e => e.currentTarget.style.color = ''}
+                    >
+                      <strong style={{ color: 'inherit', fontWeight: 800 }}>{followerCount}</strong> <span style={{ color: 'inherit' }}>フォロワー</span>
+                    </span>
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Role & Verification badge */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: 800, 
-                  padding: '5px 12px', 
-                  borderRadius: '20px', 
-                  background: profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
-                    ? 'rgba(0, 193, 102, 0.15)'
-                    : 'rgba(255,255,255,0.05)',
-                  color: profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
-                    ? 'var(--primary)'
-                    : 'var(--text-muted)',
-                  border: `1px solid ${
-                    profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
-                      ? 'rgba(0, 193, 102, 0.2)'
-                      : 'var(--glass-border)'
-                  }`
-                }}>
-                  {profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning') ? '認可市民 (Official Citizen)' : '一般メンバー'}
-                </span>
+              {/* Role & Verification badge / Follow Action Row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    fontWeight: 800, 
+                    padding: '5px 12px', 
+                    borderRadius: '20px', 
+                    background: profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
+                      ? 'rgba(0, 193, 102, 0.15)'
+                      : 'rgba(255,255,255,0.05)',
+                    color: profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
+                      ? 'var(--primary)'
+                      : 'var(--text-muted)',
+                    border: `1px solid ${
+                      profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning')
+                        ? 'rgba(0, 193, 102, 0.2)'
+                        : 'var(--glass-border)'
+                    }`
+                  }}>
+                    {profileVehicles.some(v => v.status === 'approved' || v.status === 'approved_warning') ? '認可市民 (Official Citizen)' : '一般メンバー'}
+                  </span>
+                </div>
+
+                {selectedUserProfile.userId !== currentUser.id && (
+                  <button
+                    onClick={async () => {
+                      triggerHaptic('medium');
+                      const nextState = !isFollowing;
+                      setIsFollowing(nextState);
+                      
+                      // Optimistic count update
+                      if (profileInfo) {
+                        setProfileInfo(prev => prev ? {
+                          ...prev,
+                          isFollowing: nextState,
+                          followerCount: Math.max(0, prev.followerCount + (nextState ? 1 : -1))
+                        } : null);
+                      }
+
+                      try {
+                        const res = await fetch('/api/profile', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            followerId: currentUser.id,
+                            followingId: selectedUserProfile.userId,
+                            action: nextState ? 'follow' : 'unfollow'
+                          })
+                        });
+                        if (!res.ok) {
+                          setIsFollowing(!nextState);
+                          if (profileInfo) {
+                            setProfileInfo(prev => prev ? {
+                              ...prev,
+                              isFollowing: !nextState,
+                              followerCount: Math.max(0, prev.followerCount + (nextState ? -1 : 1))
+                            } : null);
+                          }
+                        }
+                      } catch (err) {
+                        console.error("Follow toggling failed:", err);
+                        setIsFollowing(!nextState);
+                        if (profileInfo) {
+                          setProfileInfo(prev => prev ? {
+                            ...prev,
+                            isFollowing: !nextState,
+                            followerCount: Math.max(0, prev.followerCount + (nextState ? -1 : 1))
+                          } : null);
+                        }
+                      }
+                    }}
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      ...(isFollowing ? {
+                        background: 'var(--primary)',
+                        color: theme === 'light' ? '#fff' : '#000',
+                        border: '1px solid var(--primary)',
+                      } : {
+                        background: 'transparent',
+                        color: 'var(--text-main)',
+                        border: '1px solid var(--glass-border)',
+                      })
+                    }}
+                  >
+                    {isFollowing ? '✓ フォロー中' : '+ フォロー'}
+                  </button>
+                )}
               </div>
 
               {/* Divider */}
-              <div style={{ height: '1px', background: 'var(--glass-border)', margin: '8px 0' }} />
+              <div style={{ height: '1px', background: 'var(--glass-border)', margin: '4px 0' }} />
 
-              {/* Vehicles Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '4px', height: '14px', background: 'var(--primary)', borderRadius: '2px' }} />
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  登録車両リスト
-                </h4>
-                <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px', color: 'var(--text-muted)' }}>
-                  {profileVehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length}台認可
-                </span>
-              </div>
-
-              {/* Vehicles List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px', minHeight: '60px' }}>
-                {loadingProfileVehicles ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px', gap: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    <Loader2 size={16} className="animate-spin" /> 車両を取得中...
+              {/* Bio / 自己紹介 Section */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '4px', height: '14px', background: 'var(--primary)', borderRadius: '2px' }} />
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                      自己紹介
+                    </h4>
                   </div>
-                ) : profileVehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length === 0 ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', border: '1px dashed var(--glass-border)', borderRadius: '16px' }}>
-                    認可済みの登録車両はありません。
+                  {selectedUserProfile.userId === currentUser.id && !isEditingBio && (
+                    <button 
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setDraftBio(bioText || '');
+                        setIsEditingBio(true);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary)',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                    >
+                      編集
+                    </button>
+                  )}
+                </div>
+                
+                {isEditingBio ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ position: 'relative' }}>
+                      <textarea
+                        value={draftBio}
+                        onChange={e => setDraftBio(e.target.value.substring(0, 100))}
+                        placeholder="自己紹介を書いてみましょう（最大100文字）"
+                        maxLength={100}
+                        style={{
+                          width: '100%',
+                          minHeight: '80px',
+                          padding: '12px 14px 28px 14px', 
+                          background: 'rgba(0,0,0,0.2)',
+                          borderRadius: '16px',
+                          border: '1px solid var(--primary)',
+                          fontSize: '0.88rem',
+                          color: 'var(--text-main)',
+                          outline: 'none',
+                          resize: 'none',
+                          lineHeight: 1.4
+                        }}
+                        autoFocus
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '8px',
+                        right: '12px',
+                        fontSize: '0.75rem',
+                        color: draftBio.length >= 100 ? 'var(--primary)' : 'var(--text-muted)',
+                        fontWeight: 600
+                      }}>
+                        {draftBio.length} / 100
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setIsEditingBio(false);
+                        }}
+                        style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          padding: '6px 14px',
+                          borderRadius: '20px',
+                          background: 'transparent',
+                          color: 'var(--text-muted)',
+                          border: '1px solid var(--glass-border)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        キャンセル
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          triggerHaptic('medium');
+                          const trimmed = draftBio.trim().substring(0, 100);
+                          setBioText(trimmed);
+                          setIsEditingBio(false);
+                          
+                          try {
+                            await fetch('/api/profile', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                userId: currentUser.id,
+                                bio: trimmed,
+                                action: 'update_bio'
+                              })
+                            });
+                            if (profileInfo) {
+                              setProfileInfo(prev => prev ? { ...prev, bio: trimmed } : null);
+                            }
+                          } catch (err) {
+                            console.error("Save bio failed:", err);
+                          }
+                        }}
+                        style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          padding: '6px 14px',
+                          borderRadius: '20px',
+                          background: 'var(--primary)',
+                          color: theme === 'light' ? '#fff' : '#000',
+                          border: '1px solid var(--primary)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        保存
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  profileVehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').map(v => (
-                    <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                          {v.year} {v.maker} {v.model}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                          <span style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700 }}>{v.plate}</span>
-                          <span>•</span>
-                          <span>{v.color}</span>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700 }}>認可済み</span>
-                    </div>
-                  ))
+                  <div style={{ 
+                    padding: '12px 14px', 
+                    background: 'rgba(255,255,255,0.02)', 
+                    borderRadius: '16px', 
+                    border: '1px solid var(--glass-border)',
+                    fontSize: '0.88rem',
+                    color: bioText ? 'var(--text-main)' : 'var(--text-muted)',
+                    lineHeight: 1.4,
+                    whiteSpace: 'pre-wrap',
+                    minHeight: '44px'
+                  }}>
+                    {bioText || (selectedUserProfile.userId === currentUser.id 
+                      ? '自己紹介を書いてみましょう。（「編集」から設定できます）' 
+                      : 'この市民はまだ自己紹介を書いていません。')}
+                  </div>
                 )}
               </div>
+
+              {/* Divider */}
+              <div style={{ height: '1px', background: 'var(--glass-border)', margin: '4px 0' }} />
+
+              {/* Personal Posts Feed */}
+              {(() => {
+                const userPosts = posts.filter(p => p.user_id === selectedUserProfile.userId);
+                return (
+                  <>
+                    {/* Personal Posts Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '4px', height: '14px', background: 'var(--primary)', borderRadius: '2px' }} />
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                        最近の投稿 ({userPosts.length})
+                      </h4>
+                    </div>
+
+                    {/* Personal Posts Feed */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px', minHeight: '80px' }}>
+                      {userPosts.length === 0 ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', border: '1px dashed var(--glass-border)', borderRadius: '16px' }}>
+                          投稿はまだありません。
+                        </div>
+                      ) : (
+                        userPosts.map(p => {
+                          const targetPost = p.repost_id ? getTargetPost(p) : p;
+                          return (
+                            <div 
+                              key={p.id} 
+                              onClick={() => {
+                                triggerHaptic('light');
+                                handleCommentIconClick(targetPost.id);
+                                setSelectedUserProfile(null);
+                              }}
+                              style={{ 
+                                padding: '12px 14px', 
+                                background: 'rgba(255,255,255,0.015)', 
+                                borderRadius: '16px', 
+                                border: '1px solid var(--glass-border)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                                e.currentTarget.style.borderColor = 'var(--primary)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.015)';
+                                e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                e.currentTarget.style.transform = 'none';
+                              }}
+                            >
+                              {p.repost_id && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700, marginBottom: '2px' }}>
+                                  <Repeat2 size={11} />
+                                  <span>{targetPost.author_username || '不明な市民'} さんの投稿をリポスト</span>
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                  {formatRelativeTime(p.created_at)}
+                                </span>
+                              </div>
+                              {p.repost_id && !targetPost.author_username ? (
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                  この投稿は削除されました
+                                </p>
+                              ) : (
+                                <>
+                                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>
+                                    {highlightText(targetPost.content, searchQuery)}
+                                  </p>
+                                  {targetPost.image_data && (
+                                    <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', marginTop: '4px' }}>
+                                      {parseImages(targetPost.image_data).map((url, index) => (
+                                        <img 
+                                          key={index} 
+                                          src={url} 
+                                          alt="attachment" 
+                                          style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', border: '1px solid var(--glass-border)' }} 
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
 
             </div>
           </div>
         </div>,
         document.body
       )}
+
+      {/* Follow List Modal overlay */}
+      {followListModal && createPortal(
+        <div 
+          onClick={() => setFollowListModal(null)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            background: 'rgba(10,12,16,0.6)', 
+            backdropFilter: 'blur(10px)',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 10000, 
+            padding: '16px'
+          }}
+          className="animate-fade"
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="glass card"
+            style={{ 
+              width: '100%',
+              maxWidth: '400px',
+              borderRadius: '20px',
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 0,
+              maxHeight: '80vh'
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--glass-border)'
+            }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                {followListModal.type === 'following' ? 'フォロー中' : 'フォロワー'}
+              </h3>
+              <button
+                onClick={() => setFollowListModal(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* List Body */}
+            <div style={{ 
+              padding: '12px 16px', 
+              overflowY: 'auto', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '8px',
+              minHeight: '120px'
+            }}>
+              {loadingFollowList ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[1, 2, 3].map(i => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.005)',
+                        border: '1px solid transparent'
+                      }}
+                    >
+                      <div className="skeleton" style={{ width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0 }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '6px' }}>
+                        <div className="skeleton skeleton-text" style={{ width: '40%', height: '14px' }} />
+                        <div className="skeleton skeleton-text" style={{ width: '25%', height: '10px' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : followListModal.list.length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  {followListModal.type === 'following' ? 'フォローしている市民はいません。' : 'フォロワーはいません。'}
+                </div>
+              ) : (
+                followListModal.list.map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setSelectedUserProfile({
+                        userId: item.id,
+                        username: item.username,
+                        robloxUsername: item.roblox_username,
+                        avatar: item.avatar
+                      });
+                      setFollowListModal(null);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      background: 'rgba(255,255,255,0.01)',
+                      border: '1px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    className="hover-card"
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                      e.currentTarget.style.borderColor = 'var(--glass-border)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.01)';
+                      e.currentTarget.style.borderColor = 'transparent';
+                    }}
+                  >
+                    <img
+                      src={item.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username || 'P')}&background=00c166&color=fff`}
+                      alt="Avatar"
+                      onError={(e) => handleAvatarError(e, item.username || 'P')}
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '10px',
+                        objectFit: 'cover',
+                        background: '#fff'
+                      }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}>
+                        {item.username || '不明な市民'}
+                      </div>
+                      {item.roblox_username && (
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          @{item.roblox_username}
+                        </div>
+                      )}
+                    </div>
+                    <ChevronRight size={16} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 3D Particle Burst Overlay */}
+      {clickParticles.map(p => (
+        <span
+          key={p.id}
+          style={{
+            position: 'fixed',
+            left: p.x,
+            top: p.y,
+            pointerEvents: 'none',
+            zIndex: 99999,
+            fontSize: '18px',
+            color: p.color,
+            animation: 'burstFade 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards',
+            '--tx': `${Math.cos(p.angle) * p.velocity}px`,
+            '--ty': `${Math.sin(p.angle) * p.velocity - 60}px`
+          } as React.CSSProperties}
+        >
+          {p.char}
+        </span>
+      ))}
+
+      {/* Particle Burst Animations Style Sheet */}
+      <style>{`
+        @keyframes burstFade {
+          0% {
+            opacity: 1;
+            transform: translate(-50%, -50%) translate(0, 0) scale(0.6);
+            filter: drop-shadow(0 0 4px currentColor);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1.4);
+            filter: drop-shadow(0 0 8px currentColor);
+          }
+        }
+      `}</style>
 
     </div>
   );
