@@ -22,7 +22,8 @@ import {
   Repeat2,
   Search,
   Bookmark,
-  Pin
+  Pin,
+  TrendingUp
 } from 'lucide-react';
 import { compressImage, compressVideo } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
@@ -2231,9 +2232,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const followerCount = profileInfo ? profileInfo.followerCount : 0;
 
   return (
-    <div className="animate-fade" style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
-      
-      {/* Floating Refresh Indicator when reloading in background */}
+    <div 
+      className="animate-fade" 
+      style={{ 
+        maxWidth: isMobile ? '640px' : '980px', 
+        margin: '0 auto', 
+        display: isMobile ? 'flex' : 'grid', 
+        gridTemplateColumns: isMobile ? undefined : '1fr 300px', 
+        flexDirection: isMobile ? 'column' : undefined,
+        gap: '24px', 
+        alignItems: 'flex-start',
+        position: 'relative' 
+      }}
+    >
+      {/* Main Column */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0 }}>
+        {/* Floating Refresh Indicator when reloading in background */}
       {isLoading && posts.length > 0 && (
         <div style={{
           position: 'fixed',
@@ -2373,6 +2387,55 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         >
           <span>フォロー中</span>
           {activeFeedTab === 'following' && (
+            <div 
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '40px',
+                height: '4px',
+                background: 'var(--primary)',
+                borderRadius: '2px 2px 0 0',
+                boxShadow: '0 -2px 10px var(--primary-glow)'
+              }}
+            />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => { triggerHaptic('light'); setActiveFeedTab('bookmarks'); }}
+          style={{
+            flex: 1,
+            background: activeFeedTab === 'bookmarks' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+            border: 'none',
+            padding: '14px 0',
+            color: activeFeedTab === 'bookmarks' ? 'var(--text-main)' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+          onMouseEnter={e => {
+            if (activeFeedTab !== 'bookmarks') {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+              e.currentTarget.style.color = 'var(--text-main)';
+            }
+          }}
+          onMouseLeave={e => {
+            if (activeFeedTab !== 'bookmarks') {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }
+          }}
+        >
+          <span>ブックマーク</span>
+          {activeFeedTab === 'bookmarks' && (
             <div 
               style={{
                 position: 'absolute',
@@ -3424,6 +3487,36 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                             <Share2 size={18} />
                             <span>共有</span>
                           </button>
+
+                          {/* Bookmark Action */}
+                          <button
+                            onClick={() => handleBookmarkToggle(targetPost)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              color: targetPost.is_bookmarked === 1 ? 'var(--primary)' : 'var(--text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'color 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (targetPost.is_bookmarked !== 1) e.currentTarget.style.color = 'var(--primary)';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (targetPost.is_bookmarked !== 1) e.currentTarget.style.color = 'var(--text-muted)';
+                            }}
+                          >
+                            <Bookmark 
+                              size={18} 
+                              fill={targetPost.is_bookmarked === 1 ? 'var(--primary)' : 'none'}
+                            />
+                            <span>保存</span>
+                          </button>
                         </div>
                       </div>
 
@@ -3456,6 +3549,66 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           </div>
         );
       })()}
+      </div>
+
+      {/* Trends Sidebar (Visible on Desktop) */}
+      {!isMobile && (
+        <div 
+          className="glass card" 
+          style={{ 
+            position: 'sticky',
+            top: '88px',
+            padding: '20px', 
+            background: 'var(--panel-bg)', 
+            border: '1px solid var(--glass-border)',
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            width: '100%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            boxSizing: 'border-box'
+          }}
+        >
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={18} style={{ color: 'var(--primary)' }} />
+            <span>今日のトレンド</span>
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '4px' }}>
+            {trends.length === 0 ? (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>トレンドはありません</span>
+            ) : (
+              trends.map((t, idx) => (
+                <div 
+                  key={idx}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setSearchQuery(t.tag);
+                  }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    cursor: 'pointer',
+                    gap: '2px',
+                    transition: 'opacity 0.2s',
+                    padding: '4px 0'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.opacity = 0.8;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.opacity = 1;
+                  }}
+                >
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{idx + 1} • トレンド</span>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>{t.tag}</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t.count}件のポスト</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Floating Bottom Sheet (Mobile) / Centered Modal (PC) for Comments Replies */}
       {expandedPostId && activePost && createPortal(
