@@ -1,4 +1,5 @@
-// API for retrieving search autocomplete suggestions (Users & Keywords) with Japanese Kana/Romaji fuzzy matching
+// API for retrieving search autocomplete suggestions (Users & Keywords)
+// With a self-learning local D1 cache and Google Transliterate API fallback
 // Path: functions/api/search-suggestions.ts
 
 const romajiToKanaMap: Record<string, string> = {
@@ -79,7 +80,6 @@ function romajiToHiragana(str: string): string {
     const regex = new RegExp(key, 'g');
     res = res.replace(regex, romajiToKanaMap[key]);
   }
-  // Fallback for single 'n'
   res = res.replace(/n/g, 'ん');
   return res;
 }
@@ -94,6 +94,43 @@ function kanaToRomaji(str: string): string {
   }
   return res;
 }
+
+// Common portal vocabulary seeds for pre-populating the cache
+const seedData = [
+  { kana: 'とよた', candidates: ['豊田', 'トヨタ', 'Toyota', 'toyota'] },
+  { kana: 'かどう', candidates: ['稼働', 'かどう', 'kadou', '稼働中'] },
+  { kana: 'のうしゃ', candidates: ['納車', 'のうしゃ', 'nousha'] },
+  { kana: 'しんさ', candidates: ['審査', 'しんさ', 'shinsa'] },
+  { kana: 'とうろく', candidates: ['登録', 'とうろく', 'touroku'] },
+  { kana: 'けいさつ', candidates: ['警察', 'けいさつ', 'keisatsu'] },
+  { kana: 'しみん', candidates: ['市民', 'しみん', 'shimin'] },
+  { kana: 'せいび', candidates: ['整備', 'せいび', 'seibi'] },
+  { kana: 'めんきょ', candidates: ['免許', 'めんきょ', 'menkyo'] },
+  { kana: 'にっさん', candidates: ['日産', 'ニッサン', 'nissan'] },
+  { kana: 'ほんだ', candidates: ['本田', 'ホンダ', 'honda'] },
+  { kana: 'じこ', candidates: ['事故', 'じこ', 'jiko'] },
+  { kana: 'いはん', candidates: ['違反', 'いはん', 'ihan'] },
+  { kana: 'しゃりょう', candidates: ['車両', 'しゃりょう', 'sharyou'] }
+];
+
+const ensureSearchDictionaryTable = async (db: any) => {
+  // Create search dictionary cache table
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS search_dictionary (
+      kana TEXT PRIMARY KEY,
+      candidates TEXT NOT NULL
+    );
+  `).run();
+
+  // Seed table if empty
+  const countRes = await db.prepare("SELECT COUNT(*) as count FROM search_dictionary").first();
+  if (countRes && countRes.count === 0) {
+    const stmt = db.prepare("INSERT OR IGNORE INTO search_dictionary (kana, candidates) VALUES (?, ?)");
+    for (const item of seedData) {
+      await stmt.bind(item.kana, JSON.stringify(item.candidates)).run();
+    }
+  }
+};
 
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const url = new URL(request.url);
@@ -110,28 +147,76 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
   try {
     const db = env.D1_DB;
+    await ensureSearchDictionaryTable(db);
+
     const trimmed = query.trim();
-
-    // Generate query variations for fuzzy Japanese search
-    const queryVariants = new Set<string>();
-    queryVariants.add(trimmed);
-
     const hira = toHiragana(trimmed);
     const kata = toKatakana(trimmed);
     const romajiFromKana = kanaToRomaji(hira);
     const hiraFromRomaji = romajiToHiragana(trimmed);
     const kataFromRomaji = toKatakana(hiraFromRomaji);
 
+    // We normalize search query into unified Hiragana for cache lookup
+    const normalizedHira = hira || hiraFromRomaji;
+
+    let transliteratedCandidates: string[] = [];
+
+    if (normalizedHira) {
+      // 1. Try D1 cache lookup
+      const cached = await db.prepare("SELECT candidates FROM search_dictionary WHERE kana = ?").bind(normalizedHira).first();
+      if (cached) {
+        try {
+          transliteratedCandidates = JSON.parse(cached.candidates);
+        } catch (e) {
+          console.error("Failed to parse cached candidates:", e);
+        }
+      } else {
+        // 2. Fetch from Google Transliterate API on cache miss
+        const googleUrl = `https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${encodeURIComponent(normalizedHira)}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 600); // 600ms timeout
+        
+        try {
+          const res = await fetch(googleUrl, { signal: controller.signal });
+          if (res.ok) {
+            const data = await res.json() as any[];
+            if (Array.isArray(data) && data[0] && Array.isArray(data[0][1])) {
+              const rawCandidates = data[0][1].map((c: any) => String(c).trim()).filter(Boolean);
+              transliteratedCandidates = Array.from(new Set(rawCandidates));
+              
+              // Dynamically cache the learned results into D1
+              await db.prepare("INSERT OR REPLACE INTO search_dictionary (kana, candidates) VALUES (?, ?)")
+                .bind(normalizedHira, JSON.stringify(transliteratedCandidates))
+                .run();
+            }
+          }
+        } catch (err: any) {
+          console.warn("Google Transliterate API timeout/error, falling back to local conversions:", err.message);
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+    }
+
+    // 3. Assemble all query variations
+    const queryVariants = new Set<string>();
+    queryVariants.add(trimmed);
     queryVariants.add(hira);
     queryVariants.add(kata);
     queryVariants.add(romajiFromKana);
     queryVariants.add(hiraFromRomaji);
     queryVariants.add(kataFromRomaji);
 
-    // Remove empty variations
+    for (const c of transliteratedCandidates) {
+      queryVariants.add(c);
+      queryVariants.add(toHiragana(c));
+      queryVariants.add(toKatakana(c));
+      queryVariants.add(kanaToRomaji(toHiragana(c)));
+    }
+
     const cleanVariants = Array.from(queryVariants).filter(v => v.length > 0);
 
-    // 1. Search matching users (citizens) using OR conditions for each variant
+    // 4. Search users in D1
     const userConditions: string[] = [];
     const userBinds: any[] = [];
     for (const variant of cleanVariants) {
@@ -144,7 +229,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     const userQuery = `SELECT id, username, roblox_username, avatar FROM users WHERE ${userConditions.join(" OR ")} LIMIT 5`;
     const { results: users } = await db.prepare(userQuery).bind(...userBinds).all();
 
-    // 2. Search matching posts to suggest keywords/tags
+    // 5. Search post contents in D1
     const postConditions: string[] = [];
     const postBinds: any[] = [];
     for (const variant of cleanVariants) {
@@ -155,10 +240,8 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     const postQuery = `SELECT content FROM timeline_posts WHERE ${postConditions.join(" OR ")} LIMIT 10`;
     const { results: posts } = await db.prepare(postQuery).bind(...postBinds).all();
 
-    // Extract suggested search terms from matching posts:
+    // Extract tags/keywords from matches
     const keywordsSet = new Set<string>();
-    
-    // Always include the query itself as the first candidate
     keywordsSet.add(trimmed);
 
     for (const post of posts as any[]) {
@@ -192,7 +275,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     return new Response(JSON.stringify({ users, keywords }), {
       headers: { 
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=10' // Slight caching
+        'Cache-Control': 'public, max-age=10'
       }
     });
   } catch (e: any) {
