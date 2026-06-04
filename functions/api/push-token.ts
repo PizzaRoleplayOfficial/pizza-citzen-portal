@@ -41,6 +41,10 @@ export const ensurePushTokenTable = async (db: any) => {
       console.log("Migration: Adding column 'timeline_new_post_enabled' to 'user_push_tokens' table...");
       await db.prepare("ALTER TABLE user_push_tokens ADD COLUMN timeline_new_post_enabled INTEGER DEFAULT 1").run();
     }
+    if (!cols.some(c => c.name === 'device_id')) {
+      console.log("Migration: Adding column 'device_id' to 'user_push_tokens' table...");
+      await db.prepare("ALTER TABLE user_push_tokens ADD COLUMN device_id TEXT").run();
+    }
   } catch (e: any) {
     console.error("FCM Token table migration check failed:", e.message);
   }
@@ -53,6 +57,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       userId, 
       token, 
       platform, 
+      deviceId,
       resultsEnabled, 
       adminEnabled, 
       adminEditEnabled,
@@ -77,14 +82,25 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     const tcEnabled = timelineCommentEnabled === undefined || timelineCommentEnabled === null ? 1 : (timelineCommentEnabled ? 1 : 0);
     const tnEnabled = timelineNewPostEnabled === undefined || timelineNewPostEnabled === null ? 1 : (timelineNewPostEnabled ? 1 : 0);
 
+    // デバイス重複の排除 (同じデバイスID、または古いトークンのレコードを事前削除)
+    if (deviceId) {
+      await env.D1_DB.prepare(
+        "DELETE FROM user_push_tokens WHERE device_id = ? OR token = ?"
+      ).bind(deviceId, token).run();
+    } else {
+      await env.D1_DB.prepare(
+        "DELETE FROM user_push_tokens WHERE token = ?"
+      ).bind(token).run();
+    }
+
     await env.D1_DB.prepare(`
       INSERT OR REPLACE INTO user_push_tokens (
-        user_id, token, platform, 
+        user_id, token, platform, device_id,
         results_enabled, admin_enabled, admin_edit_enabled, 
         timeline_like_enabled, timeline_comment_enabled, timeline_new_post_enabled, 
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `).bind(userId, token, platform, rEnabled, aEnabled, aeEnabled, tlEnabled, tcEnabled, tnEnabled).run();
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).bind(userId, token, platform, deviceId || null, rEnabled, aEnabled, aeEnabled, tlEnabled, tcEnabled, tnEnabled).run();
 
     return new Response(JSON.stringify({ success: true, message: 'Push token registered successfully' }), {
       headers: { 'Content-Type': 'application/json' }

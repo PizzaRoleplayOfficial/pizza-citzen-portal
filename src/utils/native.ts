@@ -277,6 +277,22 @@ export const updateBackgroundPollCache = async (vehicles: any[]) => {
 };
 
 /**
+ * 端末固有の永続化デバイスIDを取得または作成します。
+ */
+export const getOrCreateDeviceId = (): string => {
+  let id = localStorage.getItem('gvvr_device_id');
+  if (!id) {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      id = crypto.randomUUID();
+    } else {
+      id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+    localStorage.setItem('gvvr_device_id', id);
+  }
+  return id;
+};
+
+/**
  * FCMプッシュ通知の登録を行い、トークンを取得してサーバーへ登録します。
  */
 export const registerPushNotifications = async (
@@ -309,6 +325,7 @@ export const registerPushNotifications = async (
 
       try {
         const platform = Capacitor.getPlatform();
+        const deviceId = getOrCreateDeviceId();
         const resultsEnabled = localStorage.getItem('gvvr_push_results') !== 'false';
         const adminEnabled = localStorage.getItem('gvvr_push_admin') !== 'false';
         const adminEditEnabled = localStorage.getItem('gvvr_push_admin_edit') !== 'false';
@@ -323,6 +340,7 @@ export const registerPushNotifications = async (
             userId,
             token: token.value,
             platform,
+            deviceId,
             resultsEnabled,
             adminEnabled,
             adminEditEnabled,
