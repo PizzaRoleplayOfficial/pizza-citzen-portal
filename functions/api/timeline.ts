@@ -66,8 +66,43 @@ const ensureTimelineTables = async (db: any) => {
     );
   `).run();
 
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS timeline_polls (
+      post_id TEXT PRIMARY KEY,
+      options TEXT NOT NULL,
+      expires_at DATETIME NOT NULL
+    );
+  `).run();
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS timeline_poll_votes (
+      user_id TEXT,
+      post_id TEXT,
+      option_index INTEGER,
+      PRIMARY KEY (user_id, post_id)
+    );
+  `).run();
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS timeline_pins (
+      user_id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL
+    );
+  `).run();
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS timeline_bookmarks (
+      user_id TEXT,
+      post_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, post_id)
+    );
+  `).run();
+
   console.log("Timeline database schema check complete.");
 };
+
+export { ensureTimelineTables };
 
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const url = new URL(request.url);
@@ -109,23 +144,42 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         ) THEN 1 ELSE 0 END as is_liked,
         CASE WHEN EXISTS (
           SELECT 1 FROM timeline_posts WHERE repost_id = COALESCE(p.repost_id, p.id) AND user_id = ?
-        ) THEN 1 ELSE 0 END as is_reposted
+        ) THEN 1 ELSE 0 END as is_reposted,
+        CASE WHEN EXISTS (
+          SELECT 1 FROM timeline_bookmarks WHERE post_id = COALESCE(p.repost_id, p.id) AND user_id = ?
+        ) THEN 1 ELSE 0 END as is_bookmarked,
+        -- Pinned status
+        CASE WHEN pin.post_id IS NOT NULL THEN 1 ELSE 0 END as is_pinned,
+        -- Poll data
+        poll.options as poll_options,
+        poll.expires_at as poll_expires_at,
+        (SELECT option_index FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND user_id = ?) as user_voted_option,
+        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id)) as poll_total_votes,
+        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 0) as poll_option_0_votes,
+        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 1) as poll_option_1_votes,
+        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 2) as poll_option_2_votes,
+        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 3) as poll_option_3_votes
       FROM timeline_posts p
       LEFT JOIN users u ON p.user_id = u.id
       LEFT JOIN timeline_posts orig ON p.repost_id = orig.id
       LEFT JOIN users orig_u ON orig.user_id = orig_u.id
+      LEFT JOIN timeline_pins pin ON pin.post_id = p.id AND pin.user_id = p.user_id
+      LEFT JOIN timeline_polls poll ON poll.post_id = COALESCE(p.repost_id, p.id)
     `;
 
     const feed = url.searchParams.get('feed') || 'all';
     
     const conditions: string[] = [];
-    const bindParams: any[] = [userId, userId];
+    const bindParams: any[] = [userId, userId, userId, userId];
 
     if (postId) {
       conditions.push("p.id = ?");
       bindParams.push(postId);
     } else if (feed === 'following') {
       conditions.push("p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)");
+      bindParams.push(userId);
+    } else if (feed === 'bookmarks') {
+      conditions.push("p.id IN (SELECT post_id FROM timeline_bookmarks WHERE user_id = ?)");
       bindParams.push(userId);
     }
 
@@ -156,7 +210,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     const body = await request.json() as any;
-    const { userId, content, image_data, video_path, repostId } = body;
+    const { userId, content, image_data, video_path, repostId, poll } = body;
 
     if (!userId || (!content && !repostId)) {
       return new Response(JSON.stringify({ error: 'ユーザーIDと投稿内容、またはリポスト対象IDが必要です。' }), {
@@ -180,6 +234,17 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     await env.D1_DB.prepare(
       "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path, repost_id) VALUES (?, ?, ?, ?, ?, ?, ?)"
     ).bind(id, userId, content || "", image_data || null, initialViews, video_path || null, repostId || null).run();
+
+    // Insert poll if option data is provided
+    if (poll && Array.isArray(poll.options) && poll.options.length >= 2) {
+      const durationMinutes = poll.durationMinutes || 1440; // Default 1 day (1440 mins)
+      const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
+      const optionsArray = poll.options.map((opt: string) => ({ text: opt }));
+      
+      await env.D1_DB.prepare(
+        "INSERT INTO timeline_polls (post_id, options, expires_at) VALUES (?, ?, ?)"
+      ).bind(id, JSON.stringify(optionsArray), expiresAt).run();
+    }
 
     return new Response(JSON.stringify({ success: true, id }), {
       headers: { 'Content-Type': 'application/json' }
@@ -223,6 +288,10 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
     await env.D1_DB.prepare("DELETE FROM timeline_posts WHERE id = ?").bind(id).run();
     await env.D1_DB.prepare("DELETE FROM timeline_likes WHERE post_id = ?").bind(id).run();
     await env.D1_DB.prepare("DELETE FROM timeline_comments WHERE post_id = ?").bind(id).run();
+    await env.D1_DB.prepare("DELETE FROM timeline_polls WHERE post_id = ?").bind(id).run();
+    await env.D1_DB.prepare("DELETE FROM timeline_poll_votes WHERE post_id = ?").bind(id).run();
+    await env.D1_DB.prepare("DELETE FROM timeline_pins WHERE post_id = ?").bind(id).run();
+    await env.D1_DB.prepare("DELETE FROM timeline_bookmarks WHERE post_id = ?").bind(id).run();
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }

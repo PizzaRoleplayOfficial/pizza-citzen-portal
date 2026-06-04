@@ -20,7 +20,9 @@ import {
   Car,
   ChevronRight,
   Repeat2,
-  Search
+  Search,
+  Bookmark,
+  Pin
 } from 'lucide-react';
 import { compressImage, compressVideo } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
@@ -62,6 +64,16 @@ interface TimelinePost {
   orig_author_username?: string | null;
   orig_author_avatar?: string | null;
   orig_author_roblox_username?: string | null;
+  is_bookmarked?: number;
+  is_pinned?: number;
+  poll_options?: string | null;
+  poll_expires_at?: string | null;
+  user_voted_option?: number | null;
+  poll_total_votes?: number;
+  poll_option_0_votes?: number;
+  poll_option_1_votes?: number;
+  poll_option_2_votes?: number;
+  poll_option_3_votes?: number;
 }
 
 interface TimelineComment {
@@ -922,10 +934,132 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     };
   }, [selectedVideoFile]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'following'>('all');
+  const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'following' | 'bookmarks'>('all');
   const [searchSuggestions, setSearchSuggestions] = useState<{ users: any[]; keywords: string[] }>({ users: [], keywords: [] });
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Poll composer and Trends states
+  const [showPollComposer, setShowPollComposer] = useState(false);
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  const [pollDuration, setPollDuration] = useState(1440); // 1 day
+  const [trends, setTrends] = useState<{ tag: string; count: number }[]>([]);
+
+  // Fetch trending hashtags
+  const fetchTrends = async () => {
+    try {
+      const res = await fetch('/api/timeline/trends');
+      if (res.ok) {
+        const data = await res.json();
+        setTrends(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch trends:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrends();
+    const interval = setInterval(fetchTrends, 45000); // refresh every 45s
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll voting helper
+  const handleVote = async (postId: string, optionIndex: number) => {
+    triggerHaptic('light');
+    // Optimistic vote update locally
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        const updated = { ...p };
+        updated.user_voted_option = optionIndex;
+        updated.poll_total_votes = (updated.poll_total_votes || 0) + 1;
+        const key = `poll_option_${optionIndex}_votes` as keyof TimelinePost;
+        updated[key] = ((updated[key] as number) || 0) + 1;
+        return updated;
+      }
+      return p;
+    }));
+
+    try {
+      const res = await fetch('/api/timeline/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, postId, optionIndex })
+      });
+      if (!res.ok) {
+        fetchPosts(true); // revert
+      }
+    } catch (err) {
+      console.error("Vote failed:", err);
+      fetchPosts(true);
+    }
+  };
+
+  // Bookmark toggle helper
+  const handleBookmarkToggle = async (post: TimelinePost) => {
+    triggerHaptic('light');
+    const isBookmarked = post.is_bookmarked === 1;
+    const action = isBookmarked ? 'unbookmark' : 'bookmark';
+
+    // Optimistic update
+    setPosts(prev => prev.map(p => {
+      if (p.id === post.id) {
+        return { ...p, is_bookmarked: isBookmarked ? 0 : 1 };
+      }
+      return p;
+    }));
+
+    try {
+      const res = await fetch('/api/timeline/bookmark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, postId: post.id, action })
+      });
+      if (!res.ok) {
+        // revert on error
+        setPosts(prev => prev.map(p => {
+          if (p.id === post.id) {
+            return { ...p, is_bookmarked: isBookmarked ? 1 : 0 };
+          }
+          return p;
+        }));
+      }
+    } catch (err) {
+      console.error("Bookmark toggle failed:", err);
+    }
+  };
+
+  // Pinned post toggle helper
+  const handlePinToggle = async (post: TimelinePost) => {
+    triggerHaptic('medium');
+    const isPinned = post.is_pinned === 1;
+    const action = isPinned ? 'unpin' : 'pin';
+
+    // Optimistic update (Only one pinned post allowed per user)
+    setPosts(prev => prev.map(p => {
+      if (p.user_id === currentUser.id) {
+        if (p.id === post.id) {
+          return { ...p, is_pinned: isPinned ? 0 : 1 };
+        } else {
+          return { ...p, is_pinned: 0 }; // unpin others
+        }
+      }
+      return p;
+    }));
+
+    try {
+      const res = await fetch('/api/timeline/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, postId: post.id, action })
+      });
+      if (!res.ok) {
+        fetchPosts(true); // revert
+      }
+    } catch (err) {
+      console.error("Pin toggle failed:", err);
+    }
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeZoomImage, setActiveZoomImage] = useState<string | null>(null);
@@ -970,6 +1104,16 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [draftBio, setDraftBio] = useState('');
   const [profileFade, setProfileFade] = useState(true);
+
+  const charCount = newPostContent.length;
+  const maxChars = 280;
+  const percentage = Math.min((charCount / maxChars) * 100, 100);
+  const strokeColor = charCount >= 280 ? '#ff3b30' : charCount >= 240 ? '#ffa500' : 'var(--primary)';
+  
+  const hasPollOptions = showPollComposer && pollOptions.filter(o => o.trim()).length >= 2;
+  const isPostEmpty = !newPostContent.trim() && newPostImages.length === 0 && !selectedVideoFile && !hasPollOptions;
+  const isPollInvalid = showPollComposer && (pollOptions.filter(o => o.trim()).length < 2 || pollOptions.some(o => !o.trim()));
+  const isSubmitDisabled = isSubmitting || isPostEmpty || isPollInvalid || charCount > 280;
 
   // Deep Linking Sync - Sync active modals to browser URL query search parameters
   useEffect(() => {
@@ -1514,7 +1658,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPostContent.trim()) return;
+    const hasPoll = showPollComposer && pollOptions.filter(o => o.trim()).length >= 2;
+    if (!newPostContent.trim() && newPostImages.length === 0 && !selectedVideoFile && !hasPoll) return;
 
     triggerHaptic('medium');
     setIsSubmitting(true);
@@ -1553,6 +1698,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         }
       }
 
+      const pollData = hasPoll ? {
+        options: pollOptions.filter(o => o.trim()),
+        durationMinutes: pollDuration
+      } : null;
+
       const res = await fetch('/api/timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1560,7 +1710,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           userId: currentUser.id,
           content: newPostContent,
           image_data: newPostImages.length > 0 ? JSON.stringify(newPostImages) : null,
-          video_path: videoPath
+          video_path: videoPath,
+          poll: pollData
         })
       });
 
@@ -1568,6 +1719,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         setNewPostContent('');
         setNewPostImages([]);
         setSelectedVideoFile(null);
+        setShowPollComposer(false);
+        setPollOptions(['', '']);
+        setPollDuration(1440);
         await fetchPosts();
       } else {
         const err = await res.json() as any;
@@ -2538,6 +2692,120 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           </div>
         </div>
 
+        {showPollComposer && (
+          <div 
+            className="glass" 
+            style={{ 
+              marginTop: '12px', 
+              padding: '16px', 
+              borderRadius: '12px', 
+              background: 'rgba(255,255,255,0.02)', 
+              border: '1px solid var(--glass-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>アンケート</span>
+              <button 
+                type="button" 
+                onClick={() => {
+                  triggerHaptic('light');
+                  setShowPollComposer(false);
+                }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}
+              >
+                削除
+              </button>
+            </div>
+
+            {pollOptions.map((opt, idx) => (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  placeholder={`選択肢 ${idx + 1}`}
+                  value={opt}
+                  onChange={(e) => {
+                    const newOpts = [...pollOptions];
+                    newOpts[idx] = e.target.value;
+                    setPollOptions(newOpts);
+                  }}
+                  maxLength={25}
+                  style={{
+                    flex: 1,
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: 'var(--input-text)',
+                    fontSize: '0.85rem',
+                    outline: 'none'
+                  }}
+                />
+                {pollOptions.length > 2 && (
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setPollOptions(pollOptions.filter((_, i) => i !== idx));
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#ff5252', cursor: 'pointer' }}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {pollOptions.length < 4 && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  triggerHaptic('light');
+                  setPollOptions([...pollOptions, '']);
+                }}
+                style={{ 
+                  alignSelf: 'flex-start',
+                  background: 'none', 
+                  border: 'none', 
+                  color: 'var(--primary)', 
+                  cursor: 'pointer', 
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  padding: '4px 0'
+                }}
+              >
+                + 選択肢を追加
+              </button>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>投票期間:</span>
+              <select 
+                value={pollDuration} 
+                onChange={(e) => setPollDuration(Number(e.target.value))}
+                style={{
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  color: 'var(--input-text)',
+                  fontSize: '0.8rem',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value={60}>1時間</option>
+                <option value={360}>6時間</option>
+                <option value={1440}>1日</option>
+                <option value={4320}>3日</option>
+                <option value={10080}>7日</option>
+              </select>
+            </div>
+          </div>
+        )}
+
         <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: '4px 0' }} />
 
         {/* Creator Actions Toolbar */}
@@ -2546,20 +2814,20 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={newPostImages.length >= 4 || selectedVideoFile !== null}
+              disabled={newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer}
               style={{
                 background: 'rgba(0,193,102,0.08)',
                 border: '1px solid rgba(0,193,102,0.15)',
                 borderRadius: '10px',
                 padding: '10px 14px',
                 color: 'var(--primary)',
-                cursor: (newPostImages.length >= 4 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
+                cursor: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                opacity: (newPostImages.length >= 4 || selectedVideoFile !== null) ? 0.5 : 1
+                opacity: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 0.5 : 1
               }}
             >
               <ImageIcon size={18} />
@@ -2575,6 +2843,32 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               accept="image/*,video/*" 
               style={{ display: 'none' }} 
             />
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setShowPollComposer(!showPollComposer);
+              }}
+              disabled={newPostImages.length > 0 || selectedVideoFile !== null}
+              style={{
+                background: showPollComposer ? 'rgba(0,193,102,0.15)' : 'rgba(0,193,102,0.08)',
+                border: '1px solid rgba(0,193,102,0.15)',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                color: 'var(--primary)',
+                cursor: (newPostImages.length > 0 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                opacity: (newPostImages.length > 0 || selectedVideoFile !== null) ? 0.5 : 1
+              }}
+            >
+              <BarChart2 size={18} style={{ transform: 'rotate(90deg)' }} />
+              <span>アンケート</span>
+            </button>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -2592,13 +2886,41 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               </div>
             )}
 
-            <span style={{ fontSize: '0.8rem', color: newPostContent.length > 250 ? 'var(--error)' : 'var(--text-muted)' }}>
-              {newPostContent.length} / 280
-            </span>
+            {/* Premium Character Progress Ring */}
+            {charCount > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width={30} height={30} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+                  <circle
+                    cx={15}
+                    cy={15}
+                    r={11}
+                    fill="transparent"
+                    stroke="rgba(255,255,255,0.06)"
+                    strokeWidth={2.5}
+                  />
+                  <circle
+                    cx={15}
+                    cy={15}
+                    r={11}
+                    fill="transparent"
+                    stroke={strokeColor}
+                    strokeWidth={2.5}
+                    strokeDasharray={2 * Math.PI * 11}
+                    strokeDashoffset={2 * Math.PI * 11 - (percentage / 100) * 2 * Math.PI * 11}
+                    style={{ transition: 'stroke-dashoffset 0.1s ease, stroke 0.1s ease' }}
+                  />
+                </svg>
+                {charCount >= 240 && (
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: strokeColor }}>
+                    {maxChars - charCount}
+                  </span>
+                )}
+              </div>
+            )}
 
             <button
               type="submit"
-              disabled={isSubmitting || !newPostContent.trim()}
+              disabled={isSubmitDisabled}
               className="btn btn-primary"
               style={{
                 padding: '10px 20px',
@@ -2607,8 +2929,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                cursor: !newPostContent.trim() ? 'not-allowed' : 'pointer',
-                opacity: !newPostContent.trim() ? 0.6 : 1
+                cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
+                opacity: isSubmitDisabled ? 0.6 : 1
               }}
             >
               {isSubmitting ? (
@@ -2845,6 +3167,134 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                             />
                           </div>
                         )}
+
+                        {(() => {
+                          let pollOptionsList: { text: string }[] = [];
+                          try {
+                            if (targetPost.poll_options) {
+                              pollOptionsList = JSON.parse(targetPost.poll_options);
+                            }
+                          } catch (e) {
+                            console.error("Failed to parse poll options:", e);
+                          }
+                          if (pollOptionsList.length === 0) return null;
+
+                          const isPollExpired = targetPost.poll_expires_at ? new Date(targetPost.poll_expires_at) < new Date() : false;
+                          const hasVoted = targetPost.user_voted_option !== null && targetPost.user_voted_option !== undefined;
+                          const pollVotes = [
+                            targetPost.poll_option_0_votes || 0,
+                            targetPost.poll_option_1_votes || 0,
+                            targetPost.poll_option_2_votes || 0,
+                            targetPost.poll_option_3_votes || 0
+                          ];
+                          const totalVotes = targetPost.poll_total_votes || 0;
+
+                          return (
+                            <div 
+                              style={{ 
+                                marginTop: '12px', 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '8px', 
+                                maxWidth: '480px' 
+                              }}
+                            >
+                              {pollOptionsList.map((opt, idx) => {
+                                const votes = pollVotes[idx] || 0;
+                                const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                                const maxVotes = Math.max(...pollOptionsList.map((_, i) => pollVotes[i] || 0));
+                                const isWinner = isPollExpired && votes === maxVotes && maxVotes > 0;
+                                const showResults = hasVoted || isPollExpired;
+                                const isUserChoice = targetPost.user_voted_option === idx;
+
+                                return (
+                                  <div 
+                                    key={idx}
+                                    onClick={() => {
+                                      if (showResults) return;
+                                      handleVote(targetPost.id, idx);
+                                    }}
+                                    style={{
+                                      position: 'relative',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      border: '1px solid var(--glass-border)',
+                                      cursor: showResults ? 'default' : 'pointer',
+                                      padding: '12px 16px',
+                                      background: 'rgba(255, 255, 255, 0.02)',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      transition: 'border-color 0.2s, background 0.2s'
+                                    }}
+                                    onMouseEnter={e => {
+                                      if (!showResults) e.currentTarget.style.borderColor = 'var(--primary)';
+                                    }}
+                                    onMouseLeave={e => {
+                                      if (!showResults) e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                    }}
+                                  >
+                                    {showResults && (
+                                      <div 
+                                        style={{
+                                          position: 'absolute',
+                                          left: 0,
+                                          top: 0,
+                                          bottom: 0,
+                                          width: `${percent}%`,
+                                          background: isUserChoice ? 'rgba(0, 193, 102, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                                          zIndex: 0,
+                                          transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+                                        }}
+                                      />
+                                    )}
+                                    
+                                    <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                      <span style={{ 
+                                        fontWeight: isUserChoice || isWinner ? 700 : 500,
+                                        color: isWinner ? 'var(--primary)' : 'var(--text-main)',
+                                        fontSize: '0.9rem',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                      }}>
+                                        {opt.text}
+                                      </span>
+                                      {isUserChoice && (
+                                        <span style={{
+                                          fontSize: '0.75rem',
+                                          fontWeight: 700,
+                                          color: 'var(--primary)',
+                                          background: 'rgba(0,193,102,0.1)',
+                                          padding: '2px 6px',
+                                          borderRadius: '4px'
+                                        }}>
+                                          投票済み
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {showResults && (
+                                      <span style={{ 
+                                        zIndex: 1, 
+                                        fontWeight: isUserChoice || isWinner ? 700 : 500,
+                                        color: isWinner ? 'var(--primary)' : 'var(--text-main)',
+                                        fontSize: '0.9rem' 
+                                      }}>
+                                        {percent}%
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                <span>{totalVotes.toLocaleString()} 票</span>
+                                <span>•</span>
+                                <span>{isPollExpired ? '最終結果' : '投票受付中'}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {/* Post Stats & Actions Bar */}
                         <div style={{ display: 'flex', gap: '32px', marginTop: '16px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
@@ -3124,6 +3574,133 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                       />
                     </div>
                   )}
+
+                  {(() => {
+                    let pollOptionsList: { text: string }[] = [];
+                    try {
+                      if (activePost.poll_options) {
+                        pollOptionsList = JSON.parse(activePost.poll_options);
+                      }
+                    } catch (e) {
+                      console.error("Failed to parse poll options:", e);
+                    }
+                    if (pollOptionsList.length === 0) return null;
+
+                    const isPollExpired = activePost.poll_expires_at ? new Date(activePost.poll_expires_at) < new Date() : false;
+                    const hasVoted = activePost.user_voted_option !== null && activePost.user_voted_option !== undefined;
+                    const pollVotes = [
+                      activePost.poll_option_0_votes || 0,
+                      activePost.poll_option_1_votes || 0,
+                      activePost.poll_option_2_votes || 0,
+                      activePost.poll_option_3_votes || 0
+                    ];
+                    const totalVotes = activePost.poll_total_votes || 0;
+
+                    return (
+                      <div 
+                        style={{ 
+                          marginTop: '12px', 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '8px'
+                        }}
+                      >
+                        {pollOptionsList.map((opt, idx) => {
+                          const votes = pollVotes[idx] || 0;
+                          const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                          const maxVotes = Math.max(...pollOptionsList.map((_, i) => pollVotes[i] || 0));
+                          const isWinner = isPollExpired && votes === maxVotes && maxVotes > 0;
+                          const showResults = hasVoted || isPollExpired;
+                          const isUserChoice = activePost.user_voted_option === idx;
+
+                          return (
+                            <div 
+                              key={idx}
+                              onClick={() => {
+                                if (showResults) return;
+                                handleVote(activePost.id, idx);
+                              }}
+                              style={{
+                                position: 'relative',
+                                borderRadius: '10px',
+                                overflow: 'hidden',
+                                border: '1px solid var(--glass-border)',
+                                cursor: showResults ? 'default' : 'pointer',
+                                padding: '12px 16px',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                transition: 'border-color 0.2s, background 0.2s'
+                              }}
+                              onMouseEnter={e => {
+                                    if (!showResults) e.currentTarget.style.borderColor = 'var(--primary)';
+                              }}
+                              onMouseLeave={e => {
+                                    if (!showResults) e.currentTarget.style.borderColor = 'var(--glass-border)';
+                              }}
+                            >
+                              {showResults && (
+                                <div 
+                                  style={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: `${percent}%`,
+                                    background: isUserChoice ? 'rgba(0, 193, 102, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                                    zIndex: 0,
+                                    transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+                                  }}
+                                />
+                              )}
+                              
+                              <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                <span style={{ 
+                                  fontWeight: isUserChoice || isWinner ? 700 : 500,
+                                  color: isWinner ? 'var(--primary)' : 'var(--text-main)',
+                                  fontSize: '0.88rem',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {opt.text}
+                                </span>
+                                {isUserChoice && (
+                                  <span style={{
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    color: 'var(--primary)',
+                                    background: 'rgba(0,193,102,0.1)',
+                                    padding: '1px 5px',
+                                    borderRadius: '4px'
+                                  }}>
+                                    投票済み
+                                  </span>
+                                )}
+                              </div>
+
+                              {showResults && (
+                                <span style={{ 
+                                  zIndex: 1, 
+                                  fontWeight: isUserChoice || isWinner ? 700 : 500,
+                                  color: isWinner ? 'var(--primary)' : 'var(--text-main)',
+                                  fontSize: '0.88rem' 
+                                }}>
+                                  {percent}%
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <div style={{ display: 'flex', gap: '8px', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          <span>{totalVotes.toLocaleString()} 票</span>
+                          <span>•</span>
+                          <span>{isPollExpired ? '最終結果' : '投票受付中'}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
