@@ -125,8 +125,8 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       conditions.push("p.id = ?");
       bindParams.push(postId);
     } else if (feed === 'following') {
-      conditions.push("(p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR p.user_id = ?)");
-      bindParams.push(userId, userId);
+      conditions.push("p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)");
+      bindParams.push(userId);
     }
 
     if (conditions.length > 0) {
