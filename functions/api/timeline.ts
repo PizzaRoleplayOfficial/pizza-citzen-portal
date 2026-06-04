@@ -116,16 +116,27 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       LEFT JOIN users orig_u ON orig.user_id = orig_u.id
     `;
 
-    let results;
+    const feed = url.searchParams.get('feed') || 'all';
+    
+    const conditions: string[] = [];
+    const bindParams: any[] = [userId, userId];
+
     if (postId) {
-      query += ` WHERE p.id = ? ORDER BY p.created_at DESC `;
-      const stmt = await env.D1_DB.prepare(query).bind(userId, userId, postId).all();
-      results = stmt.results;
-    } else {
-      query += ` ORDER BY p.created_at DESC `;
-      const stmt = await env.D1_DB.prepare(query).bind(userId, userId).all();
-      results = stmt.results;
+      conditions.push("p.id = ?");
+      bindParams.push(postId);
+    } else if (feed === 'following') {
+      conditions.push("(p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR p.user_id = ?)");
+      bindParams.push(userId, userId);
     }
+
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
+    }
+
+    query += " ORDER BY p.created_at DESC";
+
+    const stmt = await env.D1_DB.prepare(query).bind(...bindParams).all();
+    const results = stmt.results;
     
     return new Response(JSON.stringify(results), {
       headers: { 

@@ -922,6 +922,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     };
   }, [selectedVideoFile]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'following'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeZoomImage, setActiveZoomImage] = useState<string | null>(null);
@@ -1193,7 +1194,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const fetchPosts = async (isBackground = false) => {
     if (!isBackground) setIsLoading(true);
     try {
-      const res = await fetch(`/api/timeline?userId=${currentUser.id}`);
+      const res = await fetch(`/api/timeline?userId=${currentUser.id}&feed=${activeFeedTab}`);
       if (res.ok) {
         const data = await res.json();
         setPosts(Array.isArray(data) ? data : []);
@@ -1227,14 +1228,14 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       fetchPosts(true);
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeFeedTab]);
 
   // Fetch posts in background immediately when the detail modal is closed to sync views/comments/likes count
   useEffect(() => {
     if (!expandedPostId) {
       fetchPosts(true);
     }
-  }, [expandedPostId]);
+  }, [expandedPostId, activeFeedTab]);
 
   // Poll active reply thread comments every 1 second when a thread is expanded
   useEffect(() => {
@@ -2079,6 +2080,120 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           style={{ padding: '10px 16px' }}
         >
           <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
+        </button>
+      </div>
+
+      {/* Recommended vs Following Feed Tab Bar (X style) */}
+      <div 
+        className="glass"
+        style={{
+          display: 'flex',
+          width: '100%',
+          borderBottom: '1px solid var(--glass-border)',
+          background: 'var(--panel-bg)',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          padding: '2px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => { triggerHaptic('light'); setActiveFeedTab('all'); }}
+          style={{
+            flex: 1,
+            background: activeFeedTab === 'all' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+            border: 'none',
+            padding: '14px 0',
+            color: activeFeedTab === 'all' ? 'var(--text-main)' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+          onMouseEnter={e => {
+            if (activeFeedTab !== 'all') {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+              e.currentTarget.style.color = 'var(--text-main)';
+            }
+          }}
+          onMouseLeave={e => {
+            if (activeFeedTab !== 'all') {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }
+          }}
+        >
+          <span>おすすめ</span>
+          {activeFeedTab === 'all' && (
+            <div 
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '40px',
+                height: '4px',
+                background: 'var(--primary)',
+                borderRadius: '2px 2px 0 0',
+                boxShadow: '0 -2px 10px var(--primary-glow)'
+              }}
+            />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => { triggerHaptic('light'); setActiveFeedTab('following'); }}
+          style={{
+            flex: 1,
+            background: activeFeedTab === 'following' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+            border: 'none',
+            padding: '14px 0',
+            color: activeFeedTab === 'following' ? 'var(--text-main)' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+          onMouseEnter={e => {
+            if (activeFeedTab !== 'following') {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+              e.currentTarget.style.color = 'var(--text-main)';
+            }
+          }}
+          onMouseLeave={e => {
+            if (activeFeedTab !== 'following') {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }
+          }}
+        >
+          <span>フォロー中</span>
+          {activeFeedTab === 'following' && (
+            <div 
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '40px',
+                height: '4px',
+                background: 'var(--primary)',
+                borderRadius: '2px 2px 0 0',
+                boxShadow: '0 -2px 10px var(--primary-glow)'
+              }}
+            />
+          )}
         </button>
       </div>
 
