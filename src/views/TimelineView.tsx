@@ -923,6 +923,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   }, [selectedVideoFile]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'following'>('all');
+  const [searchSuggestions, setSearchSuggestions] = useState<{ users: any[]; keywords: string[] }>({ users: [], keywords: [] });
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeZoomImage, setActiveZoomImage] = useState<string | null>(null);
@@ -1220,6 +1223,42 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       if (!isBackground) setIsCommentsLoading(prev => ({ ...prev, [postId]: false }));
     }
   };
+
+  // Fetch search suggestions with debouncing (300ms)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchSuggestions({ users: [], keywords: [] });
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search-suggestions?q=${encodeURIComponent(searchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSearchSuggestions(data || { users: [], keywords: [] });
+        }
+      } catch (err) {
+        console.error("Failed to fetch search suggestions:", err);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  // Click outside search suggestions dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Poll timeline posts every 1 second for real-time likes, views and new posts
   useEffect(() => {
@@ -2197,71 +2236,194 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         </button>
       </div>
 
-      {/* Sleek Glassmorphic Search Bar */}
-      <div style={{ position: 'relative', width: '100%' }}>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="タイムライン内を検索（キーワード、Roblox名、市民名）..."
-          style={{
-            width: '100%',
-            padding: '12px 16px 12px 46px',
-            borderRadius: '14px',
-            background: 'var(--panel-bg)',
-            border: '1px solid var(--glass-border)',
-            color: 'var(--text-main)',
-            fontSize: '0.95rem',
-            outline: 'none',
-            transition: 'all 0.2s ease',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-          }}
-          onFocus={e => {
-            e.currentTarget.style.borderColor = 'var(--primary)';
-            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,193,102,0.15), inset 0 2px 4px rgba(0,0,0,0.1)';
-          }}
-          onBlur={e => {
-            e.currentTarget.style.borderColor = 'var(--glass-border)';
-            e.currentTarget.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.1)';
-          }}
-        />
-        <Search 
-          size={18} 
-          style={{ 
-            position: 'absolute', 
-            left: '16px', 
-            top: '50%', 
-            transform: 'translateY(-50%)', 
-            color: searchQuery ? 'var(--primary)' : 'var(--text-muted)',
-            transition: 'color 0.2s ease',
-            pointerEvents: 'none'
-          }} 
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => { triggerHaptic('light'); setSearchQuery(''); }}
+      {/* Sleek Glassmorphic Search Bar with suggestions */}
+      <div ref={searchContainerRef} style={{ position: 'relative', width: '100%', zIndex: 100 }}>
+        <div style={{ position: 'relative', width: '100%' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="タイムライン内を検索（キーワード、Roblox名、市民名）..."
+            style={{
+              width: '100%',
+              padding: '12px 16px 12px 46px',
+              borderRadius: '14px',
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-main)',
+              fontSize: '0.95rem',
+              outline: 'none',
+              transition: 'all 0.2s ease',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+            }}
+            onFocus={e => {
+              setIsSearchFocused(true);
+              e.currentTarget.style.borderColor = 'var(--primary)';
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,193,102,0.15), inset 0 2px 4px rgba(0,0,0,0.1)';
+            }}
+            onBlur={e => {
+              e.currentTarget.style.borderColor = 'var(--glass-border)';
+              e.currentTarget.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.1)';
+            }}
+          />
+          <Search 
+            size={18} 
+            style={{ 
+              position: 'absolute', 
+              left: '16px', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              color: searchQuery ? 'var(--primary)' : 'var(--text-muted)',
+              transition: 'color 0.2s ease',
+              pointerEvents: 'none'
+            }} 
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => { triggerHaptic('light'); setSearchQuery(''); }}
+              style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Suggestion Dropdown List (X-style) */}
+        {isSearchFocused && searchQuery.trim().length >= 1 && (
+          <div
+            className="glass"
             style={{
               position: 'absolute',
-              right: '16px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '4px',
+              top: 'calc(100% + 8px)',
+              left: 0,
+              right: 0,
+              background: 'var(--glass-bg)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '16px',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+              overflow: 'hidden',
+              maxHeight: '380px',
+              overflowY: 'auto',
+              zIndex: 9999,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '50%',
-              transition: 'background 0.2s'
+              flexDirection: 'column',
+              animation: 'fadeIn 0.15s ease-out'
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
-            <X size={14} />
-          </button>
+            {/* 1. Keyword search suggestions */}
+            {searchSuggestions.keywords.map((kw, i) => (
+              <div
+                key={`kw-${i}`}
+                onClick={() => {
+                  triggerHaptic('light');
+                  setSearchQuery(kw);
+                  setIsSearchFocused(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  color: 'var(--text-main)',
+                  transition: 'background 0.2s',
+                  borderBottom: '1px solid rgba(255,255,255,0.03)'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <Search size={16} style={{ color: 'var(--text-muted)' }} />
+                <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{kw}</span>
+              </div>
+            ))}
+
+            {/* Separator if both keywords and users match */}
+            {searchSuggestions.keywords.length > 0 && searchSuggestions.users.length > 0 && (
+              <div style={{ height: '1px', background: 'var(--glass-border)', margin: '4px 0' }} />
+            )}
+
+            {/* 2. User accounts suggestions (Citizens) */}
+            {searchSuggestions.users.map((u) => (
+              <div
+                key={`u-${u.id}`}
+                onClick={() => {
+                  triggerHaptic('light');
+                  setSelectedUserProfile({
+                    userId: u.id,
+                    username: u.username,
+                    robloxUsername: u.roblox_username,
+                    avatar: u.avatar
+                  });
+                  setIsSearchFocused(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  borderBottom: '1px solid rgba(255,255,255,0.03)'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <img
+                  src={u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=00c166&color=fff`}
+                  alt={u.username}
+                  style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'cover', background: '#fff' }}
+                  onError={e => handleAvatarError(e, u.username)}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {u.username}
+                  </span>
+                  {u.roblox_username && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      @{u.roblox_username}
+                    </span>
+                  )}
+                </div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(0,193,102,0.1)',
+                  color: 'var(--primary)',
+                  fontWeight: 700
+                }}>
+                  市民
+                </div>
+              </div>
+            ))}
+
+            {/* 3. Empty state */}
+            {searchSuggestions.keywords.length === 0 && searchSuggestions.users.length === 0 && (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                一致する候補が見つかりませんでした
+              </div>
+            )}
+          </div>
         )}
       </div>
 
