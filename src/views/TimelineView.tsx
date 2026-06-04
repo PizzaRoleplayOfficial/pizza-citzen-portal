@@ -2872,8 +2872,14 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: '4px 0' }} />
 
         {/* Creator Actions Toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          gap: '8px',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -2882,7 +2888,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 background: 'rgba(0,193,102,0.08)',
                 border: '1px solid rgba(0,193,102,0.15)',
                 borderRadius: '10px',
-                padding: '10px 14px',
+                padding: isMobile ? '10px 12px' : '10px 14px',
                 color: 'var(--primary)',
                 cursor: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 'not-allowed' : 'pointer',
                 display: 'flex',
@@ -2890,13 +2896,23 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                opacity: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 0.5 : 1
+                opacity: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 0.5 : 1,
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
             >
-              <ImageIcon size={18} />
-              <span>
-                {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
-              </span>
+              <ImageIcon size={18} style={{ flexShrink: 0 }} />
+              {isMobile ? (
+                <>
+                  {newPostImages.length > 0 && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>({newPostImages.length})</span>}
+                  {selectedVideoFile !== null && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>(1)</span>}
+                  {newPostImages.length === 0 && selectedVideoFile === null && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>メディア</span>}
+                </>
+              ) : (
+                <span>
+                  {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
+                </span>
+              )}
             </button>
             <input 
               type="file" 
@@ -2918,7 +2934,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 background: showPollComposer ? 'rgba(0,193,102,0.15)' : 'rgba(0,193,102,0.08)',
                 border: '1px solid rgba(0,193,102,0.15)',
                 borderRadius: '10px',
-                padding: '10px 14px',
+                padding: isMobile ? '10px 12px' : '10px 14px',
                 color: 'var(--primary)',
                 cursor: (newPostImages.length > 0 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
                 display: 'flex',
@@ -2926,55 +2942,57 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                opacity: (newPostImages.length > 0 || selectedVideoFile !== null) ? 0.5 : 1
+                opacity: (newPostImages.length > 0 || selectedVideoFile !== null) ? 0.5 : 1,
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
             >
-              <BarChart2 size={18} style={{ transform: 'rotate(90deg)' }} />
+              <BarChart2 size={18} style={{ transform: 'rotate(90deg)', flexShrink: 0 }} />
               <span>アンケート</span>
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flexShrink: 0, marginLeft: 'auto' }}>
             {isCompressingVideo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--primary)' }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}>動画を720pに最適化中...</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, whiteSpace: 'nowrap' }}>圧縮中...</span>
               </div>
             )}
 
             {isSubmitting && !isCompressingVideo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--primary)' }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>アップロード中...</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>送信中...</span>
               </div>
             )}
 
             {/* Premium Character Progress Ring */}
             {charCount > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width={30} height={30} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                <svg width={24} height={24} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
                   <circle
-                    cx={15}
-                    cy={15}
-                    r={11}
+                    cx={12}
+                    cy={12}
+                    r={9}
                     fill="transparent"
                     stroke="rgba(255,255,255,0.06)"
-                    strokeWidth={2.5}
+                    strokeWidth={2}
                   />
                   <circle
-                    cx={15}
-                    cy={15}
-                    r={11}
+                    cx={12}
+                    cy={12}
+                    r={9}
                     fill="transparent"
                     stroke={strokeColor}
-                    strokeWidth={2.5}
-                    strokeDasharray={2 * Math.PI * 11}
-                    strokeDashoffset={2 * Math.PI * 11 - (percentage / 100) * 2 * Math.PI * 11}
+                    strokeWidth={2}
+                    strokeDasharray={2 * Math.PI * 9}
+                    strokeDashoffset={2 * Math.PI * 9 - (percentage / 100) * 2 * Math.PI * 9}
                     style={{ transition: 'stroke-dashoffset 0.1s ease, stroke 0.1s ease' }}
                   />
                 </svg>
                 {charCount >= 240 && (
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: strokeColor }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: strokeColor }}>
                     {maxChars - charCount}
                   </span>
                 )}
@@ -2986,24 +3004,26 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               disabled={isSubmitDisabled}
               className="btn btn-primary"
               style={{
-                padding: '10px 20px',
+                padding: isMobile ? '10px 16px' : '10px 20px',
                 borderRadius: '10px',
                 fontSize: '0.9rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
-                opacity: isSubmitDisabled ? 0.6 : 1
+                opacity: isSubmitDisabled ? 0.6 : 1,
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 size={16} className="animate-spin" style={{ flexShrink: 0 }} />
                   <span>送信中...</span>
                 </>
               ) : (
                 <>
-                  <Send size={16} />
+                  <Send size={16} style={{ flexShrink: 0 }} />
                   <span>ポスト</span>
                 </>
               )}
