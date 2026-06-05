@@ -6,6 +6,19 @@ import { Browser } from '@capacitor/browser';
 export const LandingView = () => {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const mouseRef = React.useRef({ x: 0, y: 0, active: false });
+  const [scrollY, setScrollY] = React.useState(0);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  const canvasOpacity = Math.max(0, 1 - scrollY / 600);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -23,6 +36,13 @@ export const LandingView = () => {
     };
     window.addEventListener('resize', handleResize);
 
+    const colors = [
+      'rgba(255, 255, 255, ', // 白
+      'rgba(0, 193, 102, ',   // 緑
+      'rgba(0, 210, 252, ',   // 水色
+      'rgba(255, 215, 0, ',   // 金
+    ];
+
     // Particle class definition
     class Particle {
       x: number;
@@ -30,57 +50,107 @@ export const LandingView = () => {
       vx: number;
       vy: number;
       radius: number;
+      baseAlpha: number;
       alpha: number;
+      colorBase: string;
+      twinkleSpeed: number;
+      twinklePhase: number;
+      depth: number;
 
       constructor() {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
-        this.vx = (Math.random() - 0.5) * 0.4;
-        this.vy = (Math.random() - 0.5) * 0.4;
-        this.radius = Math.random() * 1.5 + 0.5;
-        this.alpha = Math.random() * 0.5 + 0.3;
+        this.vx = (Math.random() - 0.5) * 0.2;
+        this.vy = (Math.random() - 0.5) * 0.2;
+        this.radius = Math.random() * 2.0 + 0.6;
+        this.baseAlpha = Math.random() * 0.4 + 0.3;
+        this.alpha = this.baseAlpha;
+        this.colorBase = colors[Math.floor(Math.random() * colors.length)];
+        this.twinkleSpeed = 0.001 + Math.random() * 0.003;
+        this.twinklePhase = Math.random() * Math.PI * 2;
+        this.depth = Math.random() * 0.5 + 0.1;
       }
 
-      update() {
+      update(time: number) {
         this.x += this.vx;
         this.y += this.vy;
 
-        if (this.x < 0 || this.x > width) this.vx *= -1;
-        if (this.y < 0 || this.y > height) this.vy *= -1;
+        // Wrap around borders
+        if (this.x < 0) this.x += width;
+        if (this.x > width) this.x -= width;
+        if (this.y < 0) this.y += height;
+        if (this.y > height) this.y -= height;
+
+        // Twinkle effect using sine wave
+        this.alpha = Math.max(0.1, Math.min(0.9, this.baseAlpha + Math.sin(time * this.twinkleSpeed + this.twinklePhase) * 0.25));
       }
 
-      draw() {
+      draw(mouseX: number, mouseY: number, sY: number) {
         if (!ctx) return;
+
+        // Parallax offset
+        const offsetX = mouseX * this.depth;
+        const offsetY = (mouseY + sY) * this.depth;
+        
+        let drawX = (this.x - offsetX) % width;
+        let drawY = (this.y - offsetY) % height;
+        if (drawX < 0) drawX += width;
+        if (drawY < 0) drawY += height;
+
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 193, 102, ${this.alpha})`;
+        ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `${this.colorBase}${this.alpha})`;
         ctx.fill();
+
+        // Glow style for gold/white stars
+        if (this.colorBase.includes('255, 215, 0') || this.colorBase.includes('255, 255, 255')) {
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = this.colorBase.includes('215') ? '#ffd700' : '#ffffff';
+        } else {
+          ctx.shadowBlur = 0;
+        }
       }
     }
 
-    const particles: Particle[] = Array.from({ length: 40 }, () => new Particle());
+    const particles: Particle[] = Array.from({ length: 45 }, () => new Particle());
+    const startTime = performance.now();
 
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
+      const currentTime = performance.now() - startTime;
 
-      // Draw active connections
       const maxDistance = 100;
+      
+      // Precompute screen positions including scroll & mouse offset
+      const coords = particles.map(p => {
+        const offsetX = mouseRef.current.x * p.depth;
+        const offsetY = (mouseRef.current.y + window.scrollY) * p.depth;
+        let px = (p.x - offsetX) % width;
+        let py = (p.y - offsetY) % height;
+        if (px < 0) px += width;
+        if (py < 0) py += height;
+        return { px, py };
+      });
+
       for (let i = 0; i < particles.length; i++) {
         const p1 = particles[i];
-        p1.update();
-        p1.draw();
+        p1.update(currentTime);
+        p1.draw(mouseRef.current.x, mouseRef.current.y, window.scrollY);
+
+        const { px: px1, py: py1 } = coords[i];
 
         // Connect with mouse
         if (mouseRef.current.active) {
-          const dx = p1.x - mouseRef.current.x;
-          const dy = p1.y - mouseRef.current.y;
+          const dx = px1 - mouseRef.current.x;
+          const dy = py1 - mouseRef.current.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < 120) {
             ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
+            ctx.moveTo(px1, py1);
             ctx.lineTo(mouseRef.current.x, mouseRef.current.y);
-            ctx.strokeStyle = `rgba(0, 193, 102, ${(1 - dist / 120) * 0.18})`;
+            ctx.strokeStyle = `rgba(0, 193, 102, ${(1 - dist / 120) * 0.15})`;
             ctx.lineWidth = 0.5;
+            ctx.shadowBlur = 0;
             ctx.stroke();
           }
         }
@@ -88,16 +158,18 @@ export const LandingView = () => {
         // Connect with other particles
         for (let j = i + 1; j < particles.length; j++) {
           const p2 = particles[j];
-          const dx = p1.x - p2.x;
-          const dy = p1.y - p2.y;
+          const { px: px2, py: py2 } = coords[j];
+          const dx = px1 - px2;
+          const dy = py1 - py2;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < maxDistance) {
             ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(0, 193, 102, ${(1 - dist / maxDistance) * 0.08})`;
-            ctx.lineWidth = 0.5;
+            ctx.moveTo(px1, py1);
+            ctx.lineTo(px2, py2);
+            ctx.strokeStyle = p1.colorBase + `${(1 - dist / maxDistance) * 0.08})`;
+            ctx.lineWidth = 0.4;
+            ctx.shadowBlur = 0;
             ctx.stroke();
           }
         }
@@ -152,7 +224,8 @@ export const LandingView = () => {
           width: '100%', 
           height: '100%', 
           pointerEvents: 'none', 
-          zIndex: 0 
+          zIndex: 0,
+          opacity: canvasOpacity
         }} 
       />
 

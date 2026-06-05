@@ -38,7 +38,8 @@ import {
   Info,
   MessageSquare,
   Bell,
-  Heart
+  Heart,
+  AlertTriangle
 } from 'lucide-react';
 import { isNative } from './utils/native';
 import { 
@@ -251,7 +252,8 @@ export default function App() {
   const isMobile = useIsMobile();
 
   const [holoPos, setHoloPos] = useState({ x: 50, y: 50, active: false });
-  const [inAppToast, setInAppToast] = useState<{ title: string; desc: string; action: () => void } | null>(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [inAppToast, setInAppToast] = useState<{ title: string; desc: string; type?: 'success' | 'warning' | 'error' | 'info'; action?: () => void } | null>(null);
 
   // Auto close toast after 4.5 seconds
   useEffect(() => {
@@ -261,6 +263,23 @@ export default function App() {
     }, 4500);
     return () => clearTimeout(timer);
   }, [inAppToast]);
+
+  // Listen for global custom events to show toast notifications
+  useEffect(() => {
+    const handleGlobalToast = (e: Event) => {
+      const customEvent = e as CustomEvent<{ title: string; desc: string; type?: 'success' | 'warning' | 'error' | 'info'; action?: () => void }>;
+      if (customEvent.detail) {
+        setInAppToast({
+          title: customEvent.detail.title,
+          desc: customEvent.detail.desc,
+          type: customEvent.detail.type || 'info',
+          action: customEvent.detail.action
+        });
+      }
+    };
+    window.addEventListener('gv-toast', handleGlobalToast);
+    return () => window.removeEventListener('gv-toast', handleGlobalToast);
+  }, []);
 
   // Notifications related states (v2.2.0)
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -2509,14 +2528,20 @@ export default function App() {
               <div 
                 onMouseMove={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  setHoloPos({
-                    x: ((e.clientX - rect.left) / rect.width) * 100,
-                    y: ((e.clientY - rect.top) / rect.height) * 100,
-                    active: true
-                  });
+                  const x = ((e.clientX - rect.left) / rect.width) * 100;
+                  const y = ((e.clientY - rect.top) / rect.height) * 100;
+                  setHoloPos({ x, y, active: true });
+                  
+                  // Calculate 3D tilt offset
+                  const cardX = e.clientX - rect.left - rect.width / 2;
+                  const cardY = e.clientY - rect.top - rect.height / 2;
+                  const rotateX = -(cardY / (rect.height / 2)) * 6; // Max 6 degrees tilt
+                  const rotateY = (cardX / (rect.width / 2)) * 6;
+                  setTilt({ x: rotateX, y: rotateY });
                 }}
                 onMouseLeave={() => {
                   setHoloPos(prev => ({ ...prev, active: false }));
+                  setTilt({ x: 0, y: 0 });
                 }}
                 style={{
                   position: 'relative',
@@ -2551,7 +2576,11 @@ export default function App() {
                   gap: '32px',
                   alignItems: 'center',
                   flex: 1.4,
-                  minWidth: 0
+                  minWidth: 0,
+                  transformStyle: 'preserve-3d',
+                  transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(${holoPos.active ? '1.025' : '1'}, ${holoPos.active ? '1.025' : '1'}, 1)`,
+                  transition: 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease, border-color 0.2s ease',
+                  backfaceVisibility: 'hidden'
                 }}
               >
                 {/* ホログラフィック箔押し (Holographic Foil Shine Overlay) */}
@@ -2561,9 +2590,10 @@ export default function App() {
                     inset: 0,
                     pointerEvents: 'none',
                     zIndex: 2,
-                    opacity: theme === 'dark' ? 0.08 : 0.04,
+                    opacity: theme === 'dark' ? 0.15 : 0.08,
                     mixBlendMode: 'color-dodge',
-                    background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(0, 193, 102, 0.4) 30%, rgba(0, 160, 204, 0.4) 60%, transparent 100%)`,
+                    background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255, 255, 255, 0.95) 0%, rgba(0, 193, 102, 0.4) 25%, rgba(0, 160, 204, 0.4) 50%, rgba(255, 0, 128, 0.3) 75%, transparent 100%),
+                                linear-gradient(${135 + holoPos.x / 2}deg, rgba(255, 0, 128, 0.15) 0%, rgba(0, 255, 128, 0.15) 25%, rgba(0, 128, 255, 0.15) 50%, rgba(255, 255, 0, 0.15) 75%, rgba(255, 0, 128, 0.15) 100%)`,
                     transition: 'opacity 0.3s ease'
                   }} />
                 )}
@@ -4115,7 +4145,7 @@ export default function App() {
       {inAppToast && (
         <div 
           onClick={() => {
-            inAppToast.action();
+            if (inAppToast.action) inAppToast.action();
             setInAppToast(null);
           }}
           className="glass card"
@@ -4127,8 +4157,12 @@ export default function App() {
             width: 'calc(100% - 32px)',
             maxWidth: '400px',
             padding: '16px 20px',
-            background: 'rgba(10, 12, 16, 0.8)',
+            background: 'rgba(10, 12, 16, 0.85)',
             border: '1px solid var(--glass-border)',
+            borderLeft: inAppToast.type === 'success' ? '4px solid #00c166' :
+                        inAppToast.type === 'warning' ? '4px solid #ffb142' :
+                        inAppToast.type === 'error' ? '4px solid #ff5252' :
+                        '4px solid #00d2fc',
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
             borderRadius: '16px',
             zIndex: 99999,
@@ -4144,20 +4178,34 @@ export default function App() {
             width: '40px',
             height: '40px',
             borderRadius: '12px',
-            background: 'rgba(0,193,102,0.15)',
+            background: inAppToast.type === 'success' ? 'rgba(0,193,102,0.12)' :
+                        inAppToast.type === 'warning' ? 'rgba(255,177,66,0.12)' :
+                        inAppToast.type === 'error' ? 'rgba(255,82,82,0.12)' :
+                        'rgba(0,210,252,0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--primary)',
+            color: inAppToast.type === 'success' ? '#00c166' :
+                   inAppToast.type === 'warning' ? '#ffb142' :
+                   inAppToast.type === 'error' ? '#ff5252' :
+                   '#00d2fc',
             flexShrink: 0
           }}>
-            <Bell size={20} />
+            {inAppToast.type === 'success' ? <CheckCircle2 size={20} /> :
+             inAppToast.type === 'warning' ? <AlertTriangle size={20} /> :
+             inAppToast.type === 'error' ? <XCircle size={20} /> :
+             <Info size={20} />}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inAppToast.title}</div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>{inAppToast.desc}</div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700, flexShrink: 0 }}>表示</div>
+          <div style={{ fontSize: '0.75rem', color: inAppToast.type === 'success' ? '#00c166' :
+                                                      inAppToast.type === 'warning' ? '#ffb142' :
+                                                      inAppToast.type === 'error' ? '#ff5252' :
+                                                      '#00d2fc', fontWeight: 700, flexShrink: 0 }}>
+            {inAppToast.action ? '表示' : '閉じる'}
+          </div>
         </div>
       )}
 

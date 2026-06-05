@@ -54,6 +54,7 @@ interface TimelinePost {
   comments_count: number;
   is_liked: number;
   views_count?: number;
+  orig_views_count?: number;
   repost_id?: string | null;
   reposts_count?: number;
   is_reposted?: number;
@@ -875,6 +876,10 @@ const highlightText = (text: string, highlight: string) => {
 };
 
 export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onClearTargetPost }: TimelineViewProps) => {
+  const showToast = (title: string, desc: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
+    window.dispatchEvent(new CustomEvent('gv-toast', { detail: { title, desc, type } }));
+  };
+
   const [posts, setPosts] = useState<TimelinePost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
@@ -1369,6 +1374,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   });
 
+  const viewedPostIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    viewedPostIdsRef.current = viewedPostIds;
+  }, [viewedPostIds]);
+
   // Keep track of comments viewed in this session to prevent duplicate views count increments
   const [viewedCommentIds, setViewedCommentIds] = useState<string[]>(() => {
     try {
@@ -1379,16 +1389,27 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   });
 
-  const incrementCommentView = async (postId: string, commentId: string) => {
-    if (viewedCommentIds.includes(commentId)) return;
+  const viewedCommentIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    viewedCommentIdsRef.current = viewedCommentIds;
+  }, [viewedCommentIds]);
 
-    // Add to viewed comments in session
-    const updated = [...viewedCommentIds, commentId];
-    setViewedCommentIds(updated);
-    try {
-      sessionStorage.setItem('gvvr_viewed_comments', JSON.stringify(updated));
-    } catch (err) {
-      console.warn('Failed to save viewed comments to sessionStorage:', err);
+  const incrementCommentView = async (postId: string, commentId: string) => {
+    const comments = postComments[postId] || [];
+    const comment = comments.find(c => c.id === commentId);
+    const hasBeenViewed = viewedCommentIdsRef.current.includes(commentId);
+    if (hasBeenViewed && comment && (comment.views_count || 0) > 0) return;
+
+    if (!hasBeenViewed) {
+      // Add to viewed comments in session synchronously
+      viewedCommentIdsRef.current.push(commentId);
+      const updated = [...viewedCommentIdsRef.current];
+      setViewedCommentIds(updated);
+      try {
+        sessionStorage.setItem('gvvr_viewed_comments', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Failed to save viewed comments to sessionStorage:', err);
+      }
     }
 
     // Optimistic Update
@@ -1425,11 +1446,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     if (!expandedPostId) return;
     const comments = postComments[expandedPostId] || [];
     comments.forEach(c => {
-      if (!viewedCommentIds.includes(c.id)) {
+      if (!viewedCommentIdsRef.current.includes(c.id)) {
         incrementCommentView(expandedPostId, c.id);
       }
     });
   }, [postComments, expandedPostId]);
+
+  // Automatically trigger views count updates for loaded posts in the timeline
+  useEffect(() => {
+    if (posts.length === 0) return;
+    posts.forEach(p => {
+      const targetId = p.repost_id || p.id;
+      if (!viewedPostIdsRef.current.includes(targetId)) {
+        incrementPostView(targetId);
+      }
+    });
+  }, [posts]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1655,7 +1687,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
 
     if (newPostImages.length + fileList.length > 4) {
-      alert("添付できる画像は最大4枚までです。");
+      showToast("上限エラー", "添付できる画像は最大4枚までです。", "warning");
       return;
     }
 
@@ -1665,7 +1697,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       setNewPostImages(prev => [...prev, ...base64Images]);
     } catch (err) {
       console.error("Image compression failed:", err);
-      alert("画像の圧縮に失敗しました。");
+      showToast("エラー", "画像の圧縮に失敗しました。", "error");
     }
     
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -1703,7 +1735,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
 
     if (newCommentImages.length + fileList.length > 4) {
-      alert("添付できる画像は最大4枚までです。");
+      showToast("上限エラー", "添付できる画像は最大4枚までです。", "warning");
       return;
     }
 
@@ -1713,7 +1745,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       setNewCommentImages(prev => [...prev, ...base64Images]);
     } catch (err) {
       console.error("Comment image compression failed:", err);
-      alert("画像の圧縮に失敗しました。");
+      showToast("エラー", "画像の圧縮に失敗しました。", "error");
     }
     
     if (commentFileInputRef.current) commentFileInputRef.current.value = '';
@@ -1738,7 +1770,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
     const files = imageItems.map(item => item.getAsFile()).filter(f => f !== null) as File[];
     if (newPostImages.length + files.length > 4) {
-      alert("画像は最大4枚までです。");
+      showToast("上限エラー", "画像は最大4枚までです。", "warning");
       return;
     }
 
@@ -1788,7 +1820,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         } catch (compressErr: any) {
           setIsCompressingVideo(false);
           setIsSubmitting(false);
-          alert(compressErr.message || "動画の圧縮またはアップロードに失敗しました。");
+          showToast("エラー", compressErr.message || "動画の圧縮またはアップロードに失敗しました。", "error");
           return;
         }
       }
@@ -1820,11 +1852,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         await fetchPosts();
       } else {
         const err = await res.json() as any;
-        alert(err.error || "投稿に失敗しました。");
+        showToast("エラー", err.error || "投稿に失敗しました。", "error");
       }
     } catch (err) {
       console.error("Post creation error:", err);
-      alert("ネットワークエラーが発生しました。");
+      showToast("エラー", "ネットワークエラーが発生しました。", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -1846,7 +1878,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           setExpandedPostId(null);
         }
       } else {
-        alert("削除権限がないか、エラーが発生しました。");
+        showToast("エラー", "削除権限がないか、エラーが発生しました。", "error");
       }
     } catch (err) {
       console.error("Post deletion failed:", err);
@@ -1970,29 +2002,47 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       likes_count: post.likes_count, // Already COALESCE'd in API
       comments_count: post.comments_count, // Already COALESCE'd in API
       is_liked: post.is_liked, // Already COALESCE'd in API
-      views_count: post.views_count,
+      views_count: post.orig_views_count !== undefined ? post.orig_views_count : post.views_count,
       reposts_count: post.reposts_count,
       is_reposted: post.is_reposted
     };
   };
 
   const incrementPostView = async (postId: string) => {
-    // If already viewed in this session, do not increment again
-    if (viewedPostIds.includes(postId)) return;
+    const post = posts.find(p => p.id === postId || p.repost_id === postId);
+    const hasBeenViewed = viewedPostIdsRef.current.includes(postId);
+    
+    // Determine the current view count in our state
+    let currentViewCount = 0;
+    if (post) {
+      if (post.repost_id === postId) {
+        currentViewCount = post.orig_views_count || 0;
+      } else {
+        currentViewCount = post.views_count || 0;
+      }
+    }
 
-    // Add to viewed posts in session
-    const updated = [...viewedPostIds, postId];
-    setViewedPostIds(updated);
-    try {
-      sessionStorage.setItem('gvvr_viewed_posts', JSON.stringify(updated));
-    } catch (err) {
-      console.warn('Failed to save viewed posts to sessionStorage:', err);
+    if (hasBeenViewed && post && currentViewCount > 0) return;
+
+    if (!hasBeenViewed) {
+      // Add to viewed posts in session synchronously
+      viewedPostIdsRef.current.push(postId);
+      const updated = [...viewedPostIdsRef.current];
+      setViewedPostIds(updated);
+      try {
+        sessionStorage.setItem('gvvr_viewed_posts', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Failed to save viewed posts to sessionStorage:', err);
+      }
     }
 
     // Optimistic Update
     setPosts(prev => prev.map(p => {
       if (p.id === postId) {
         return { ...p, views_count: (p.views_count || 0) + 1 };
+      }
+      if (p.repost_id === postId) {
+        return { ...p, orig_views_count: (p.orig_views_count || 0) + 1 };
       }
       return p;
     }));
@@ -2056,10 +2106,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const fallbackCopyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      alert("投稿のリンクをクリップボードにコピーしました！\n（※新しいアプリ版APKをインストールすると、OS標準の共有画面が使用可能になります）");
+      showToast("リンクコピー", "投稿のリンクをクリップボードにコピーしました！", "success");
     } catch (err) {
       console.error("Clipboard copy failed:", err);
-      alert("共有リンクのコピーに失敗しました。");
+      showToast("エラー", "共有リンクのコピーに失敗しました。", "error");
     }
   };
 
@@ -2106,7 +2156,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         } catch (compressErr: any) {
           setIsCompressingCommentVideo(false);
           setIsSubmittingComment(false);
-          alert(compressErr.message || "動画の圧縮またはアップロードに失敗しました。");
+          showToast("エラー", compressErr.message || "動画の圧縮またはアップロードに失敗しました。", "error");
           return;
         }
       }
@@ -2140,11 +2190,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         }));
       } else {
         const err = await res.json() as any;
-        alert(err.error || "返信の投稿に失敗しました。");
+        showToast("エラー", err.error || "返信の投稿に失敗しました。", "error");
       }
     } catch (err) {
       console.error("Comment submission failed:", err);
-      alert("通信エラーが発生しました。");
+      showToast("エラー", "通信エラーが発生しました。", "error");
     } finally {
       setIsSubmittingComment(false);
     }
@@ -2219,7 +2269,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           return p;
         }));
       } else {
-        alert("削除権限がないか、エラーが発生しました。");
+        showToast("エラー", "削除権限がないか、エラーが発生しました。", "error");
       }
     } catch (err) {
       console.error("Comment deletion failed:", err);

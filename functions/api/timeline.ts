@@ -138,6 +138,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         orig_u.username as orig_author_username,
         orig_u.avatar as orig_author_avatar,
         orig_u.roblox_username as orig_author_roblox_username,
+        orig.views_count as orig_views_count,
         -- Counts and statuses (uses original post ID if it's a repost)
         (SELECT COUNT(*) FROM timeline_likes WHERE post_id = COALESCE(p.repost_id, p.id)) as likes_count,
         (SELECT COUNT(*) FROM timeline_comments WHERE post_id = COALESCE(p.repost_id, p.id)) as comments_count,
