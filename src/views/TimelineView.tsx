@@ -915,6 +915,85 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }, 850);
   };
 
+  // Render post content with clickable hashtags & term highlighting
+  const renderPostContent = (content: string, highlight: string) => {
+    if (!content) return null;
+
+    // Split content by hashtags (starting with # followed by non-whitespace/non-hash characters)
+    const hashtagRegex = /(#[^\s#]+)/g;
+    const parts = content.split(hashtagRegex);
+
+    return (
+      <span>
+        {parts.map((part, i) => {
+          if (hashtagRegex.test(part)) {
+            const cleanTag = part.trim();
+            const isHighlighted = highlight.trim() && cleanTag.toLowerCase().includes(highlight.toLowerCase().trim());
+            return (
+              <span
+                key={`tag-${i}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerHaptic('light');
+                  setSearchQuery(cleanTag);
+                  setActiveFeedTab('all');
+                  setExpandedPostId(null);
+                  setSelectedUserProfile(null);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  showToast('トレンド検索', `「${cleanTag}」でタイムラインを絞り込みました。`, 'info');
+                }}
+                style={{
+                  color: 'var(--primary)',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: isHighlighted ? 'rgba(0, 193, 102, 0.25)' : 'transparent',
+                  padding: isHighlighted ? '1px 3px' : '0',
+                  borderRadius: isHighlighted ? '4px' : '0',
+                  transition: 'opacity 0.2s',
+                  display: 'inline-block'
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                {part}
+              </span>
+            );
+          } else {
+            if (!highlight.trim()) {
+              return <span key={`text-${i}`}>{part}</span>;
+            }
+
+            const searchRegex = new RegExp(`(${highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+            const subparts = part.split(searchRegex);
+
+            return (
+              <span key={`text-${i}`}>
+                {subparts.map((subpart, j) => 
+                  searchRegex.test(subpart) ? (
+                    <mark
+                      key={`mark-${j}`}
+                      style={{
+                        background: 'rgba(0, 193, 102, 0.25)',
+                        color: 'var(--primary)',
+                        padding: '1px 3px',
+                        borderRadius: '4px',
+                        fontWeight: 700
+                      }}
+                    >
+                      {subpart}
+                    </mark>
+                  ) : (
+                    subpart
+                  )
+                )}
+              </span>
+            );
+          }
+        })}
+      </span>
+    );
+  };
+
   // URL Link Preview Generator
   const renderLinkPreview = (text: string) => {
     if (!text) return null;
@@ -2642,7 +2721,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           {searchQuery && (
             <button
               type="button"
-              onClick={() => { triggerHaptic('light'); setSearchQuery(''); }}
+              onClick={() => { 
+                triggerHaptic('light'); 
+                setSearchQuery(''); 
+                showToast('検索解除', 'タイムラインの絞り込みを解除しました。', 'info');
+              }}
               style={{
                 position: 'absolute',
                 right: '16px',
@@ -2698,7 +2781,12 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 onClick={() => {
                   triggerHaptic('light');
                   setSearchQuery(kw);
+                  setActiveFeedTab('all');
+                  setExpandedPostId(null);
+                  setSelectedUserProfile(null);
                   setIsSearchFocused(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  showToast('キーワード検索', `「${kw}」でタイムラインを絞り込みました。`, 'info');
                 }}
                 style={{
                   display: 'flex',
@@ -3372,7 +3460,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                            wordBreak: 'break-word',
                            whiteSpace: 'pre-wrap'
                         }}>
-                          {highlightText(targetPost.content, searchQuery)}
+                          {renderPostContent(targetPost.content, searchQuery)}
                         </p>
 
                         {/* Render URL Link Preview if matching */}
@@ -3748,6 +3836,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   onClick={() => {
                     triggerHaptic('light');
                     setSearchQuery(t.tag);
+                    setActiveFeedTab('all');
+                    setExpandedPostId(null);
+                    setSelectedUserProfile(null);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    showToast('トレンド検索', `「${t.tag}」でタイムラインを絞り込みました。`, 'info');
                   }}
                   style={{
                     display: 'flex',
@@ -3875,7 +3968,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     )}
                   </div>
                   <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>
-                    {activePost.content}
+                    {renderPostContent(activePost.content, searchQuery)}
                   </p>
                   {renderImageGrid(activePost.image_data, activePost.id)}
 
@@ -4094,7 +4187,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                               </div>
 
                               <p style={{ margin: '4px 0 8px', fontSize: '0.9rem', color: 'var(--text-main)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-                                {comment.content}
+                                {renderPostContent(comment.content, searchQuery)}
                               </p>
 
                               {/* Attached Images */}
@@ -5119,7 +5212,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                               ) : (
                                 <>
                                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>
-                                    {highlightText(targetPost.content, searchQuery)}
+                                    {renderPostContent(targetPost.content, searchQuery)}
                                   </p>
                                   {targetPost.image_data && (
                                     <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', marginTop: '4px' }}>

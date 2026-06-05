@@ -1,7 +1,7 @@
 {
   "name": "gv-vehicle-registry",
   "private": true,
-  "version": "2.2.33",
+  "version": "2.2.34",
   "type": "module",
   "scripts": {
     "dev": "vite",
