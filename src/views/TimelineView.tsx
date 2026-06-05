@@ -116,22 +116,90 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
   const containerRef = useRef<HTMLDivElement>(null);
   const lastUpdatedTimeRef = useRef<number>(0);
 
-  // Synchronize fullscreen state for custom styles
+  // Synchronize fullscreen state for custom styles and handle back gesture
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    const checkIsFullscreen = () => {
+      return document.fullscreenElement === containerRef.current ||
+             (document as any).webkitFullscreenElement === containerRef.current ||
+             (document as any).mozFullScreenElement === containerRef.current ||
+             (document as any).msFullscreenElement === containerRef.current ||
+             (videoRef.current && (videoRef.current as any).webkitDisplayingFullscreen);
     };
+
+    const handleFullscreenEnter = () => {
+      setIsFullscreen(true);
+      // Push state to history so back gesture exits fullscreen instead of navigating
+      if (window.history.state?.videoFullscreen !== src) {
+        window.history.pushState({ videoFullscreen: src }, '');
+      }
+    };
+
+    const handleFullscreenExit = () => {
+      setIsFullscreen(false);
+      // If exited fullscreen by clicking the button/UI, and the top history state is ours, go back to remove it
+      if (window.history.state?.videoFullscreen === src) {
+        window.history.back();
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      const active = checkIsFullscreen();
+      if (active) {
+        handleFullscreenEnter();
+      } else {
+        handleFullscreenExit();
+      }
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      // If we popped out of the fullscreen state, exit fullscreen
+      if (checkIsFullscreen()) {
+        if (!e.state || e.state.videoFullscreen !== src) {
+          const video = videoRef.current;
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            (document as any).webkitExitFullscreen();
+          } else if ((document as any).msExitFullscreen) {
+            (document as any).msExitFullscreen();
+          } else if (video && (video as any).webkitExitFullscreen) {
+            (video as any).webkitExitFullscreen();
+          } else if (video && (video as any).webkitExitFullScreen) {
+            (video as any).webkitExitFullScreen();
+          }
+        }
+      }
+    };
+
+    // Standard Fullscreen API events on the container
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    // iOS/Webkit specific native fullscreen events on the video element itself
+    const video = videoRef.current;
+    if (video) {
+      video.addEventListener('webkitbeginfullscreen', handleFullscreenEnter);
+      video.addEventListener('webkitendfullscreen', handleFullscreenExit);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      
+      if (video) {
+        video.removeEventListener('webkitbeginfullscreen', handleFullscreenEnter);
+        video.removeEventListener('webkitendfullscreen', handleFullscreenExit);
+      }
+
+      window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [src]);
 
   // Auto-hide controls after 3 seconds of playing
   useEffect(() => {
@@ -237,14 +305,40 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
   const toggleFullscreen = (e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHaptic('medium');
-    if (containerRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
+    const container = containerRef.current;
+    const video = videoRef.current;
+    
+    if (container) {
+      const isCurrentlyFullscreen = document.fullscreenElement || 
+                                    (document as any).webkitFullscreenElement || 
+                                    (document as any).mozFullScreenElement || 
+                                    (document as any).msFullscreenElement ||
+                                    (video && (video as any).webkitDisplayingFullscreen);
+                                    
+      if (isCurrentlyFullscreen) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          (document as any).mozCancelFullScreen();
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen();
+        } else if (video && (video as any).webkitExitFullscreen) {
+          (video as any).webkitExitFullscreen();
+        }
       } else {
-        const container = containerRef.current;
-        container.requestFullscreen?.() || 
-        (container as any).webkitRequestFullscreen?.() || 
-        (container as any).msRequestFullscreen?.();
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          (container as any).webkitRequestFullscreen();
+        } else if ((container as any).mozRequestFullScreen) {
+          (container as any).mozRequestFullScreen();
+        } else if ((container as any).msRequestFullscreen) {
+          (container as any).msRequestFullscreen();
+        } else if (video && (video as any).webkitEnterFullscreen) {
+          (video as any).webkitEnterFullscreen();
+        }
       }
     }
   };
