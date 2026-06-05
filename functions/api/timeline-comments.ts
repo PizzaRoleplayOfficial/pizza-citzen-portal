@@ -35,6 +35,9 @@ const ensureCommentsTable = async (db: any) => {
       console.log("Adding views_count column to timeline_comments table...");
       await db.prepare("ALTER TABLE timeline_comments ADD COLUMN views_count INTEGER DEFAULT 0").run();
     }
+
+    // Ensure no NULL views_count values exist (safely migrate any existing legacy rows)
+    await db.prepare("UPDATE timeline_comments SET views_count = 0 WHERE views_count IS NULL").run();
   } catch (err: any) {
     console.error("Error checking/adding columns to timeline_comments:", err.message);
   }
@@ -217,7 +220,7 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
       ).bind(commentId, userId).run();
     } else if (action === 'view') {
       await env.D1_DB.prepare(
-        "UPDATE timeline_comments SET views_count = views_count + 1 WHERE id = ?"
+        "UPDATE timeline_comments SET views_count = COALESCE(views_count, 0) + 1 WHERE id = ?"
       ).bind(commentId).run();
     } else {
       return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });

@@ -24,6 +24,9 @@ const ensureTimelineTables = async (db: any) => {
       console.log("Adding views_count column to timeline_posts table...");
       await db.prepare("ALTER TABLE timeline_posts ADD COLUMN views_count INTEGER DEFAULT 0").run();
     }
+    
+    // Ensure no NULL views_count values exist (safely migrate any existing legacy rows)
+    await db.prepare("UPDATE timeline_posts SET views_count = 0 WHERE views_count IS NULL").run();
 
     const hasVideoPath = tableInfo.results.some((col: any) => col.name === 'video_path');
     if (!hasVideoPath) {
@@ -345,13 +348,20 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
         "DELETE FROM timeline_likes WHERE post_id = ? AND user_id = ?"
       ).bind(postId, userId).run();
     } else if (action === 'view') {
-      const result = await env.D1_DB.prepare(
-        "INSERT OR IGNORE INTO timeline_views (post_id, user_id) VALUES (?, ?)"
-      ).bind(postId, userId).run();
-      
-      if (result.meta?.changes > 0) {
+      // Check if this user has already viewed this post
+      const existing = await env.D1_DB.prepare(
+        "SELECT 1 FROM timeline_views WHERE post_id = ? AND user_id = ?"
+      ).bind(postId, userId).first();
+
+      if (!existing) {
+        // Insert view record uniquely
         await env.D1_DB.prepare(
-          "UPDATE timeline_posts SET views_count = views_count + 1 WHERE id = ?"
+          "INSERT OR IGNORE INTO timeline_views (post_id, user_id) VALUES (?, ?)"
+        ).bind(postId, userId).run();
+
+        // Increment the post views count (safely using COALESCE)
+        await env.D1_DB.prepare(
+          "UPDATE timeline_posts SET views_count = COALESCE(views_count, 0) + 1 WHERE id = ?"
         ).bind(postId).run();
       }
     } else {
