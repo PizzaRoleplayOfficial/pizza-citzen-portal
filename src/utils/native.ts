@@ -2,11 +2,17 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { PushNotifications, Token, PushNotificationSchema, ActionPerformed } from '@capacitor/push-notifications';
+import { compressImage } from './helpers';
 
 export interface PixelHapticsPlugin {
-  trigger(options: { type: 'tick' | 'selection' | 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' }): Promise<void>;
+  trigger(options: { type: 'tick' | 'selection' | 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'segment_tick' | 'segment_frequent' | 'drag_start' | 'gesture_start' | 'gesture_end' }): Promise<void>;
 }
 const PixelHaptics = registerPlugin<PixelHapticsPlugin>('PixelHaptics');
+
+export interface PhotoPickerPlugin {
+  pickImages(options: { maxSelectionCount: number }): Promise<{ paths: string[] }>;
+}
+const PhotoPicker = registerPlugin<PhotoPickerPlugin>('PhotoPicker');
 
 
 /**
@@ -19,7 +25,7 @@ export const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() 
  * ブラウザ上などのネイティブ以外の環境では何も行いません。
  */
 export const triggerHaptic = async (
-  type: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error'
+  type: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'segment_tick' | 'segment_frequent' | 'drag_start' | 'gesture_start' | 'gesture_end'
 ) => {
   if (!isNative) return;
   
@@ -29,7 +35,7 @@ export const triggerHaptic = async (
     // Android 環境かつ自作プラグインが有効な場合、Pixel/Android向け極限ハプティクスを使用
     if (platform === 'android') {
       try {
-        let nativeType: 'tick' | 'selection' | 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' = 'tick';
+        let nativeType: 'tick' | 'selection' | 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'segment_tick' | 'segment_frequent' | 'drag_start' | 'gesture_start' | 'gesture_end' = 'tick';
         switch (type) {
           case 'light':
             nativeType = 'tick'; // CLOCK_TICK（Pixel本来のチクタク極小触覚）
@@ -49,6 +55,13 @@ export const triggerHaptic = async (
           case 'error':
             nativeType = 'error'; // REJECT (ブルブル連打)
             break;
+          case 'segment_tick':
+          case 'segment_frequent':
+          case 'drag_start':
+          case 'gesture_start':
+          case 'gesture_end':
+            nativeType = type;
+            break;
         }
         await PixelHaptics.trigger({ type: nativeType });
         return;
@@ -60,17 +73,26 @@ export const triggerHaptic = async (
     // iOS または Android でカスタムプラグインが失敗した場合の標準フォールバック
     switch (type) {
       case 'light':
+      case 'segment_tick':
+      case 'gesture_start':
         // 従来の Light よりさらに繊細で微細な「コトッ」とした感触を得るために Selection 触覚を使用
         await Haptics.selectionStart();
         await Haptics.selectionChanged();
         break;
       case 'medium':
+      case 'drag_start':
+      case 'gesture_end':
         // 従来の Medium は強すぎるため、マイルドで軽快な Light に変更
         await Haptics.impact({ style: ImpactStyle.Light });
         break;
       case 'heavy':
         // 従来の Heavy も強すぎるため、しっかり感じつつも上品な Medium に変更
         await Haptics.impact({ style: ImpactStyle.Medium });
+        break;
+      case 'segment_frequent':
+        // 高頻度な微小振動のシミュレート
+        await Haptics.selectionStart();
+        await Haptics.selectionChanged();
         break;
       case 'success':
         // 成功時は「コトコトコトッ」と3つの超微細タップが流れるように（間隔60msの極小Selection連打）
@@ -97,6 +119,77 @@ export const triggerHaptic = async (
     }
   } catch (err) {
     console.error('Haptics trigger failed:', err);
+  }
+};
+
+/**
+ * ネイティブの写真ピッカーを起動し、選択された画像を圧縮してBase64形式の配列で返します。
+ */
+export const pickImagesNative = async (maxCount: number = 1): Promise<string[]> => {
+  if (!isNative) {
+    throw new Error('Not running on a native platform');
+  }
+
+  try {
+    const result = await PhotoPicker.pickImages({ maxSelectionCount: maxCount });
+    if (!result || !result.paths || result.paths.length === 0) {
+      return [];
+    }
+
+    const base64List = await Promise.all(
+      result.paths.map(async (uri) => {
+        try {
+          const webUrl = Capacitor.convertFileSrc(uri);
+          const res = await fetch(webUrl);
+          const blob = await res.blob();
+          const file = new File([blob], 'image.jpeg', { type: blob.type || 'image/jpeg' });
+          return await compressImage(file);
+        } catch (innerErr) {
+          console.error('Failed to convert/compress native image URI:', uri, innerErr);
+          throw innerErr;
+        }
+      })
+    );
+
+    return base64List;
+  } catch (err) {
+    console.error('pickImagesNative failed:', err);
+    throw err;
+  }
+};
+
+/**
+ * ネイティブの写真ピッカーを起動し、選択された画像を JavaScript の File オブジェクトの配列として返します。
+ */
+export const pickImageFilesNative = async (maxCount: number = 1): Promise<File[]> => {
+  if (!isNative) {
+    throw new Error('Not running on a native platform');
+  }
+
+  try {
+    const result = await PhotoPicker.pickImages({ maxSelectionCount: maxCount });
+    if (!result || !result.paths || result.paths.length === 0) {
+      return [];
+    }
+
+    const fileList = await Promise.all(
+      result.paths.map(async (uri) => {
+        try {
+          const webUrl = Capacitor.convertFileSrc(uri);
+          const res = await fetch(webUrl);
+          const blob = await res.blob();
+          return new File([blob], 'image.jpeg', { type: blob.type || 'image/jpeg' });
+        } catch (innerErr) {
+          console.error('Failed to convert native image URI to File:', uri, innerErr);
+          throw innerErr;
+        }
+      })
+    );
+
+    return fileList;
+  } catch (err) {
+    console.error('pickImageFilesNative failed:', err);
+    throw err;
   }
 };
 

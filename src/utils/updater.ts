@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.54'; // 2.2.54 (LiveProgress: fix start/update/stop cycle for all trackers)
+export const CURRENT_VERSION = '2.2.55'; // 2.2.55 (Android 15/16 features: Edge-to-Edge, Rich Haptics, Photo Picker, Predictive Back)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

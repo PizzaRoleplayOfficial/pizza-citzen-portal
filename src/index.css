@@ -4,6 +4,10 @@
 
 :root {
   color-scheme: dark;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   --primary: #00ff88;
   --primary-glow: rgba(0, 255, 136, 0.4);
   --secondary: #00d4ff;
@@ -106,6 +110,31 @@ body {
 
 .animate-fade {
   animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Page transitions for Predictive Back Gesture */
+@keyframes slide-out-right {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(30%); opacity: 0; }
+}
+
+@keyframes slide-in-from-left {
+  from { transform: translateX(-20%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.view-slide-out {
+  animation: slide-out-right 0.35s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
+}
+
+.view-slide-in {
+  animation: slide-in-from-left 0.35s cubic-bezier(0.32, 0.94, 0.6, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-slide-out, .view-slide-in {
+    animation: none !important;
+  }
 }
 
 /* Typography */

@@ -33,6 +33,41 @@ public class PixelHapticsPlugin extends Plugin {
                             // CLOCK_TICK is the ultimate ultra-micro tick (reserved for ultra-delicate actions)
                             success = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
                             break;
+                        case "segment_tick":
+                            if (Build.VERSION.SDK_INT >= 35) {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_TICK);
+                            } else {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                            }
+                            break;
+                        case "segment_frequent":
+                            if (Build.VERSION.SDK_INT >= 35) {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK);
+                            } else {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                            }
+                            break;
+                        case "drag_start":
+                            if (Build.VERSION.SDK_INT >= 35) {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.DRAG_START);
+                            } else {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                            }
+                            break;
+                        case "gesture_start":
+                            if (Build.VERSION.SDK_INT >= 35) {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.GESTURE_START);
+                            } else {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                            }
+                            break;
+                        case "gesture_end":
+                            if (Build.VERSION.SDK_INT >= 35) {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END);
+                            } else {
+                                success = view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                            }
+                            break;
                         case "light":
                             // Tuning: Upgraded to KEYBOARD_TAP to feel Gboard-style premium tactile click (stronger but crisp)
                             success = view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);

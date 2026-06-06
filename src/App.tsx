@@ -42,7 +42,7 @@ import {
   Heart,
   AlertTriangle
 } from 'lucide-react';
-import { isNative } from './utils/native';
+import { isNative, pickImagesNative, pickImageFilesNative } from './utils/native';
 import { 
   checkLatestRelease, 
   downloadAndInstallApk, 
@@ -221,6 +221,7 @@ export default function App() {
 
   const initialParsed = getInitialHashState();
   const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline'>(initialParsed.view);
+  const [isNavigatingBack, setIsNavigatingBack] = useState<boolean>(false);
 
   const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog'>(
     initialParsed.adminTab || (sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard'
@@ -635,6 +636,15 @@ export default function App() {
       triggerHaptic('light');
     }
   }, [view, adminTab, isLoading]);
+
+  useEffect(() => {
+    if (isNavigatingBack) {
+      const timer = setTimeout(() => {
+        setIsNavigatingBack(false);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [view, adminTab, isNavigatingBack]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -1134,15 +1144,18 @@ export default function App() {
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       const backHandler = CapApp.addListener('backButton', (data) => {
+        triggerHaptic('gesture_start');
         const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
         if (isAnyModalOpen) {
           // モーダルが開いている場合は履歴を戻ってモーダルを閉じる
           window.history.back();
         } else if (view === 'admin' && adminTab !== 'dashboard') {
           // 管理パネルでサブメニューを開いている場合は、履歴を戻る（ダッシュボードトップに戻る）
+          setIsNavigatingBack(true);
           window.history.back();
         } else if (view !== 'home') {
           // それ以外のホーム以外の画面なら履歴を戻る
+          setIsNavigatingBack(true);
           window.history.back();
         } else {
           // ホーム画面かつモーダルなしの場合はアプリを終了する
@@ -2286,7 +2299,7 @@ export default function App() {
         </nav>
 
         {/* Content Area Skeleton */}
-        <main className="container" style={{ padding: '60px 40px', maxWidth: '1400px', flex: 1 }}>
+        <main className={`container ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} style={{ padding: '60px 40px', maxWidth: '1400px', flex: 1 }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             {/* Header / Avatar Block */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '40px' }}>
@@ -2524,7 +2537,7 @@ export default function App() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: isMobile ? '100vh' : 'calc(100vh - 48px)', position: 'relative', zIndex: 1 }}>
 
       {isMobile && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(16px + var(--safe-top))', paddingBottom: '16px', paddingLeft: 'calc(16px + var(--safe-left))', paddingRight: 'calc(16px + var(--safe-right))', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             {view === 'admin' && (
               <button 
@@ -2637,7 +2650,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px clamp(16px, 1.5vw, 32px)', flex: 1, minWidth: 0, margin: 0 }}>
+      <main className={`container ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} style={{ padding: isMobile ? '30px calc(16px + var(--safe-right)) calc(110px + var(--safe-bottom)) calc(16px + var(--safe-left))' : '0px clamp(16px, 1.5vw, 32px)', flex: 1, minWidth: 0, margin: 0 }}>
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
@@ -3330,7 +3343,7 @@ export default function App() {
       </main>
 
       {isMobile && (
-        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px calc(8px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(8px + var(--safe-left))', zIndex: 1000 }}>
           <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <Home size={24} />
             <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ホーム</span>
@@ -3353,7 +3366,7 @@ export default function App() {
       )}
 
       {showAddModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))' }}>
           <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '680px', padding: isMobile ? '20px' : '40px', borderRadius: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
 
             <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>{editingVehicleId ? '車両情報の修正' : '新規車両の登録'}</h2>
@@ -3378,6 +3391,7 @@ export default function App() {
                     onClick={() => {
                       setFormData(prev => ({ ...prev, game_type: 'gv', maker: '', model: '' }));
                       loadCatalog('gv');
+                      triggerHaptic('segment_tick');
                     }}
                     style={{
                       flex: 1,
@@ -3403,6 +3417,7 @@ export default function App() {
                     onClick={() => {
                       setFormData(prev => ({ ...prev, game_type: 'rc', maker: '', model: '' }));
                       loadCatalog('rc');
+                      triggerHaptic('segment_tick');
                     }}
                     style={{
                       flex: 1,
@@ -3558,7 +3573,31 @@ export default function App() {
                    {parseImages(formData.image_data).length < 4 && (
                      <div style={{ width: '120px', height: '120px', flexShrink: 0, borderRadius: '12px', border: '2px dashed rgba(255,255,255,0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', background: 'var(--input-bg)' }}>
                        <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}><ImageIcon size={24} style={{ margin: '0 auto 4px' }}/>追加 ({parseImages(formData.image_data).length}/4)</div>
-                       <input type="file" multiple accept="image/*" onChange={handleImageUpload} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                       {isNative ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const existing = parseImages(formData.image_data);
+                              const remaining = 4 - existing.length;
+                              if (remaining <= 0) return;
+                              setIsLoading(true);
+                              try {
+                                const base64Images = await pickImagesNative(remaining);
+                                if (base64Images.length > 0) {
+                                  const combined = [...existing, ...base64Images];
+                                  setFormData({ ...formData, image_data: JSON.stringify(combined) });
+                                }
+                              } catch (err) {
+                                console.error("Native pick images failed:", err);
+                              } finally {
+                                setIsLoading(false);
+                              }
+                            }}
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', background: 'transparent' }}
+                          />
+                        ) : (
+                          <input type="file" multiple accept="image/*" onChange={handleImageUpload} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                        )}
                      </div>
                    )}
                  </div>
@@ -3584,7 +3623,7 @@ export default function App() {
       )}
 
       {showTrailerModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))', overflowY: 'auto' }}>
           <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '560px', padding: isMobile ? '20px' : '40px', borderRadius: '24px' }}>
 
             <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '4px' }}>🚛 トレーラーを追加</h2>
@@ -3596,7 +3635,10 @@ export default function App() {
                 <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                   <button
                     type="button"
-                    onClick={() => setTrailerFormData(prev => ({ ...prev, game_type: 'gv' }))}
+                    onClick={() => {
+                      setTrailerFormData(prev => ({ ...prev, game_type: 'gv' }));
+                      triggerHaptic('segment_tick');
+                    }}
                     style={{
                       flex: 1,
                       padding: '10px 16px',
@@ -3618,7 +3660,10 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setTrailerFormData(prev => ({ ...prev, game_type: 'rc' }))}
+                    onClick={() => {
+                      setTrailerFormData(prev => ({ ...prev, game_type: 'rc' }));
+                      triggerHaptic('segment_tick');
+                    }}
                     style={{
                       flex: 1,
                       padding: '10px 16px',
@@ -3843,7 +3888,7 @@ export default function App() {
 
       {showBetaAutoFillModal && (
 
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))' }}>
           <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '500px', padding: '40px', borderRadius: '24px', textAlign: 'center' }}>
             <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>✨ 自動入力 (Beta)</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
@@ -3877,12 +3922,29 @@ export default function App() {
                 <ImageIcon size={48} style={{ color: 'var(--text-muted)' }} />
                 <div style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>ここをクリックして画像を選択</div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>または、スクショ画像をペースト (Ctrl+V) も可能です。</div>
-                <input 
-                  type="file" 
-                  accept="image/jpeg, image/png" 
-                  onChange={handleOCRFileSelect} 
-                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
-                />
+                {isNative ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const files = await pickImageFilesNative(1);
+                        if (files.length > 0) {
+                          handleAutoFillFromImage(files[0]);
+                        }
+                      } catch (err) {
+                        console.error("Native OCR pick failed:", err);
+                      }
+                    }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', background: 'transparent' }}
+                  />
+                ) : (
+                  <input 
+                    type="file" 
+                    accept="image/jpeg, image/png" 
+                    onChange={handleOCRFileSelect} 
+                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
+                  />
+                )}
               </div>
             )}
 
@@ -3901,7 +3963,7 @@ export default function App() {
       )}
 
       {rejectModal.isOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '24px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))' }}>
           <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '520px', padding: '28px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: rejectModal.type === 'vehicle_warning' ? '#FFA114' : 'var(--error)' }}>
@@ -4239,7 +4301,7 @@ export default function App() {
             className="glass card animate-fade"
             style={{
               position: 'fixed',
-              top: isMobile ? 'calc(65px + env(safe-area-inset-top))' : 'auto',
+              top: isMobile ? 'calc(65px + var(--safe-top))' : 'auto',
               bottom: isMobile ? 'auto' : '100px',
               left: isMobile ? '16px' : (sidebarCollapsed ? '100px' : '280px'),
               right: isMobile ? '16px' : 'auto',
@@ -4358,7 +4420,7 @@ export default function App() {
           className="glass card"
           style={{
             position: 'fixed',
-            top: 'calc(16px + env(safe-area-inset-top))',
+            top: 'calc(16px + var(--safe-top))',
             left: '50%',
             transform: 'translateX(-50%)',
             width: 'calc(100% - 32px)',
