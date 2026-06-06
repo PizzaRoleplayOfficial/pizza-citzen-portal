@@ -11,5 +11,31 @@ export const getAvatarFallbackSvg = (name: string): string => {
 export const handleAvatarError = (e: React.SyntheticEvent<HTMLImageElement>, name: string) => {
   const img = e.currentTarget;
   img.onerror = null; // prevent infinite loop
-  img.src = getAvatarFallbackSvg(name);
+
+  const src = img.src;
+  const match = src.match(/\/avatars\/(\d+)\//);
+
+  if (match && match[1]) {
+    const userId = match[1];
+    
+    // Set fallback first (temporary visual fix)
+    img.src = getAvatarFallbackSvg(name);
+
+    fetch(`/api/users/refresh-avatar?userId=${userId}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to refresh');
+        return res.json();
+      })
+      .then((data: any) => {
+        if (data && data.avatar) {
+          img.src = data.avatar;
+        }
+      })
+      .catch(() => {
+        // Fallback is already set
+      });
+  } else {
+    img.src = getAvatarFallbackSvg(name);
+  }
 };
+
