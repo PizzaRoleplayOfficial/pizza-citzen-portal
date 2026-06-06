@@ -376,10 +376,10 @@ export const AdminDashboardView = ({
                   }}
                   className={`admin-nav-btn ${isActive ? 'active' : ''}`}
                 >
-                  <item.icon size={20} style={{ color: isActive ? '#000' : 'var(--text-muted)' }} />
+                  <item.icon size={20} />
                   <span>{item.label}</span>
                   {item.count !== undefined && item.count > 0 && (
-                    <span className="nav-badge" style={isActive ? { background: 'rgba(0,0,0,0.8)', color: '#fff' } : {}}>
+                    <span className="nav-badge">
                       {item.count}
                     </span>
                   )}
