@@ -11,6 +11,7 @@ import {
   BarChart2, 
   AlertCircle, 
   X, 
+  Plus,
   Send,
   Play,
   Pause,
