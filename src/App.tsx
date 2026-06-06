@@ -2275,8 +2275,8 @@ export default function App() {
       minHeight: '100vh',
       display: 'flex',
       flexDirection: isMobile ? 'column' : 'row',
-      padding: isMobile ? '0' : 'clamp(12px, 1.2vw, 28px)',
-      gap: isMobile ? '0' : 'clamp(12px, 1.2vw, 28px)',
+      padding: isMobile ? '0' : 'clamp(16px, 2vw, 48px)',
+      gap: isMobile ? '0' : 'clamp(16px, 1.5vw, 32px)',
       boxSizing: 'border-box',
       width: '100%',
       position: 'relative',
@@ -2318,9 +2318,9 @@ export default function App() {
           border: '1px solid var(--glass-border)',
           display: 'flex',
           flexDirection: 'column',
-          height: 'calc(100vh - clamp(24px, 2.4vw, 56px))',
+          height: 'calc(100vh - clamp(32px, 4vw, 96px))',
           position: 'sticky',
-          top: 'clamp(12px, 1.2vw, 28px)',
+          top: 'clamp(16px, 2vw, 48px)',
           zIndex: 100,
           padding: sidebarCollapsed ? '32px 10px' : '32px 20px',
           flexShrink: 0,
@@ -2579,7 +2579,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px 12px', maxWidth: '100%', margin: isMobile ? '0 auto' : '0', width: '100%' }}>
+      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px 12px', flex: 1, minWidth: 0, margin: 0 }}>
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
