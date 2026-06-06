@@ -2271,17 +2271,24 @@ export default function App() {
   if (!isLoggedIn) return <LandingView />;
 
   return (
-    <div className="app-layout" style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      padding: isMobile ? '0' : 'clamp(12px, 1.2vw, 24px) clamp(40px, 5vw, 120px)',
-      gap: isMobile ? '0' : 'clamp(20px, 2vw, 40px)',
-      boxSizing: 'border-box',
+    <div className="app-wrapper" style={{
+      maxWidth: isMobile ? '100%' : '1200px',
+      margin: '0 auto',
       width: '100%',
-      position: 'relative',
-      overflow: 'visible'
+      minHeight: '100vh',
+      position: 'relative'
     }}>
+      <div className="app-layout" style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        padding: isMobile ? '0' : 'clamp(12px, 1.2vw, 24px) 24px',
+        gap: isMobile ? '0' : 'clamp(16px, 1.5vw, 24px)',
+        boxSizing: 'border-box',
+        width: '100%',
+        position: 'relative',
+        overflow: 'visible'
+      }}>
       {/* Decorative ambient background glows for Glassmorphism depth */}
       {!isMobile && (
         <>
@@ -4373,5 +4380,6 @@ export default function App() {
       `}</style>
 
     </div>
+  </div>
   );
 }
