@@ -74,7 +74,9 @@ interface TimelinePost {
   is_pinned?: number;
   poll_options?: string | null;
   poll_expires_at?: string | null;
+  poll_allow_multiple?: number;
   user_voted_option?: number | null;
+  user_voted_options?: string | null;
   poll_total_votes?: number;
   poll_option_0_votes?: number;
   poll_option_1_votes?: number;
@@ -1157,6 +1159,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [showPollComposer, setShowPollComposer] = useState(false);
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const [pollDuration, setPollDuration] = useState(1440); // 1 day
+  const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
+  const [selectedPollOptions, setSelectedPollOptions] = useState<Record<string, number[]>>({});
   const [trends, setTrends] = useState<{ tag: string; count: number }[]>([]);
 
   // Fetch trending hashtags
@@ -1205,6 +1209,48 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       }
     } catch (err) {
       console.error("Vote failed:", err);
+      fetchPosts(true);
+    }
+  };
+
+  // Multiple choice voting helper
+  const handleMultiVote = async (postId: string) => {
+    triggerHaptic('light');
+    const selected = selectedPollOptions[postId] || [];
+    if (selected.length === 0) return;
+
+    // Optimistic vote update locally
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        const updated = { ...p };
+        updated.user_voted_options = selected.join(',');
+        updated.user_voted_option = selected[0]; // fallback
+        updated.poll_total_votes = (updated.poll_total_votes || 0) + 1;
+        
+        selected.forEach(idx => {
+          const key = `poll_option_${idx}_votes` as keyof TimelinePost;
+          (updated as any)[key] = ((updated[key] as number) || 0) + 1;
+        });
+        return updated;
+      }
+      return p;
+    }));
+
+    try {
+      const res = await fetch('/api/timeline/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          postId,
+          optionIndices: selected
+        })
+      });
+      if (!res.ok) {
+        fetchPosts(true); // revert
+      }
+    } catch (err) {
+      console.error("Multi-vote failed:", err);
       fetchPosts(true);
     }
   };
@@ -1972,7 +2018,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
       const pollData = hasPoll ? {
         options: pollOptions.filter(o => o.trim()),
-        durationMinutes: pollDuration
+        durationMinutes: pollDuration,
+        allowMultiple: pollAllowMultiple
       } : null;
 
       const res = await fetch('/api/timeline', {
@@ -1994,6 +2041,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         setShowPollComposer(false);
         setPollOptions(['', '']);
         setPollDuration(1440);
+        setPollAllowMultiple(false);
         setShowComposerModal(false);
         await fetchPosts();
       } else {
@@ -3234,28 +3282,62 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     </button>
                   )}
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>投票期間:</span>
-                    <select 
-                      value={pollDuration} 
-                      onChange={(e) => setPollDuration(Number(e.target.value))}
-                      style={{
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
-                        borderRadius: '8px',
-                        padding: '6px 12px',
-                        color: 'var(--input-text)',
-                        fontSize: '0.8rem',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value={60}>1時間</option>
-                      <option value={360}>6時間</option>
-                      <option value={1440}>1日</option>
-                      <option value={4320}>3日</option>
-                      <option value={10080}>7日</option>
-                    </select>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>投票期間:</span>
+                      <select 
+                        value={pollDuration} 
+                        onChange={(e) => setPollDuration(Number(e.target.value))}
+                        style={{
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          color: 'var(--input-text)',
+                          fontSize: '0.8rem',
+                          outline: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value={60}>1時間</option>
+                        <option value={360}>6時間</option>
+                        <option value={1440}>1日</option>
+                        <option value={4320}>3日</option>
+                        <option value={10080}>7日</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>複数投票を許可</span>
+                      <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={pollAllowMultiple} 
+                          onChange={(e) => { triggerHaptic('light'); setPollAllowMultiple(e.target.checked); }}
+                          style={{ opacity: 0, width: 0, height: 0 }}
+                        />
+                        <span style={{
+                          position: 'absolute',
+                          cursor: 'pointer',
+                          inset: 0,
+                          backgroundColor: pollAllowMultiple ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                          borderRadius: '34px',
+                          transition: '0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2px'
+                        }}>
+                          <span style={{
+                            height: '16px',
+                            width: '16px',
+                            borderRadius: '50%',
+                            backgroundColor: pollAllowMultiple ? '#000' : 'var(--text-muted)',
+                            transition: '0.2s',
+                            transform: pollAllowMultiple ? 'translateX(18px)' : 'translateX(0px)'
+                          }} />
+                        </span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}
@@ -3694,7 +3776,12 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           if (pollOptionsList.length === 0) return null;
 
                           const isPollExpired = targetPost.poll_expires_at ? new Date(targetPost.poll_expires_at) < new Date() : false;
-                          const hasVoted = targetPost.user_voted_option !== null && targetPost.user_voted_option !== undefined;
+                          const userVotedOptionsList = targetPost.user_voted_options 
+                            ? targetPost.user_voted_options.split(',').map(Number) 
+                            : (targetPost.user_voted_option !== null && targetPost.user_voted_option !== undefined ? [targetPost.user_voted_option] : []);
+                          const hasVoted = userVotedOptionsList.length > 0;
+                          const isMultiple = targetPost.poll_allow_multiple === 1;
+
                           const pollVotes = [
                             targetPost.poll_option_0_votes || 0,
                             targetPost.poll_option_1_votes || 0,
@@ -3719,14 +3806,23 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                 const maxVotes = Math.max(...pollOptionsList.map((_, i) => pollVotes[i] || 0));
                                 const isWinner = isPollExpired && votes === maxVotes && maxVotes > 0;
                                 const showResults = hasVoted || isPollExpired;
-                                const isUserChoice = targetPost.user_voted_option === idx;
+                                const isUserChoice = userVotedOptionsList.includes(idx);
+                                const isSelected = (selectedPollOptions[targetPost.id] || []).includes(idx);
 
                                 return (
                                   <div 
                                     key={idx}
                                     onClick={() => {
                                       if (showResults) return;
-                                      handleVote(targetPost.id, idx);
+                                      if (isMultiple) {
+                                        const selected = selectedPollOptions[targetPost.id] || [];
+                                        const newSelected = selected.includes(idx)
+                                          ? selected.filter(i => i !== idx)
+                                          : [...selected, idx];
+                                        setSelectedPollOptions(prev => ({ ...prev, [targetPost.id]: newSelected }));
+                                      } else {
+                                        handleVote(targetPost.id, idx);
+                                      }
                                     }}
                                     style={{
                                       position: 'relative',
@@ -3764,6 +3860,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                     )}
                                     
                                     <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                      {isMultiple && !showResults && (
+                                        <div style={{
+                                          width: '18px',
+                                          height: '18px',
+                                          borderRadius: '4px',
+                                          border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--text-muted)'}`,
+                                          background: isSelected ? 'var(--primary)' : 'transparent',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          transition: 'all 0.2s',
+                                          flexShrink: 0
+                                        }}>
+                                          {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 900 }}>✓</span>}
+                                        </div>
+                                      )}
                                       <span style={{ 
                                         fontWeight: isUserChoice || isWinner ? 700 : 500,
                                         color: isWinner ? 'var(--primary)' : 'var(--text-main)',
@@ -3801,8 +3913,35 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                   </div>
                                 );
                               })}
+
+                              {isMultiple && !showResults && (
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                                  <button
+                                    type="button"
+                                    disabled={(selectedPollOptions[targetPost.id] || []).length === 0}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMultiVote(targetPost.id);
+                                    }}
+                                    className="btn btn-primary"
+                                    style={{
+                                      padding: '6px 16px',
+                                      borderRadius: '8px',
+                                      fontSize: '0.8rem',
+                                      fontWeight: 700,
+                                      cursor: (selectedPollOptions[targetPost.id] || []).length === 0 ? 'not-allowed' : 'pointer',
+                                      opacity: (selectedPollOptions[targetPost.id] || []).length === 0 ? 0.5 : 1
+                                    }}
+                                  >
+                                    投票する
+                                  </button>
+                                </div>
+                              )}
+
                               <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                                 <span>{totalVotes.toLocaleString()} 票</span>
+                                <span>•</span>
+                                <span>{isMultiple ? '複数投票可' : '単一投票'}</span>
                                 <span>•</span>
                                 <span>{isPollExpired ? '最終結果' : '投票受付中'}</span>
                               </div>
@@ -4196,7 +4335,12 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     if (pollOptionsList.length === 0) return null;
 
                     const isPollExpired = activePost.poll_expires_at ? new Date(activePost.poll_expires_at) < new Date() : false;
-                    const hasVoted = activePost.user_voted_option !== null && activePost.user_voted_option !== undefined;
+                    const userVotedOptionsList = activePost.user_voted_options 
+                      ? activePost.user_voted_options.split(',').map(Number) 
+                      : (activePost.user_voted_option !== null && activePost.user_voted_option !== undefined ? [activePost.user_voted_option] : []);
+                    const hasVoted = userVotedOptionsList.length > 0;
+                    const isMultiple = activePost.poll_allow_multiple === 1;
+
                     const pollVotes = [
                       activePost.poll_option_0_votes || 0,
                       activePost.poll_option_1_votes || 0,
@@ -4220,14 +4364,23 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           const maxVotes = Math.max(...pollOptionsList.map((_, i) => pollVotes[i] || 0));
                           const isWinner = isPollExpired && votes === maxVotes && maxVotes > 0;
                           const showResults = hasVoted || isPollExpired;
-                          const isUserChoice = activePost.user_voted_option === idx;
+                          const isUserChoice = userVotedOptionsList.includes(idx);
+                          const isSelected = (selectedPollOptions[activePost.id] || []).includes(idx);
 
                           return (
                             <div 
                               key={idx}
                               onClick={() => {
                                 if (showResults) return;
-                                handleVote(activePost.id, idx);
+                                if (isMultiple) {
+                                  const selected = selectedPollOptions[activePost.id] || [];
+                                  const newSelected = selected.includes(idx)
+                                    ? selected.filter(i => i !== idx)
+                                    : [...selected, idx];
+                                  setSelectedPollOptions(prev => ({ ...prev, [activePost.id]: newSelected }));
+                                } else {
+                                  handleVote(activePost.id, idx);
+                                }
                               }}
                               style={{
                                 position: 'relative',
@@ -4243,10 +4396,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                 transition: 'border-color 0.2s, background 0.2s'
                               }}
                               onMouseEnter={e => {
-                                    if (!showResults) e.currentTarget.style.borderColor = 'var(--primary)';
+                                if (!showResults) e.currentTarget.style.borderColor = 'var(--primary)';
                               }}
                               onMouseLeave={e => {
-                                    if (!showResults) e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                if (!showResults) e.currentTarget.style.borderColor = 'var(--glass-border)';
                               }}
                             >
                               {showResults && (
@@ -4265,6 +4418,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                               )}
                               
                               <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                {isMultiple && !showResults && (
+                                  <div style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '4px',
+                                    border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--text-muted)'}`,
+                                    background: isSelected ? 'var(--primary)' : 'transparent',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.2s',
+                                    flexShrink: 0
+                                  }}>
+                                    {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 900 }}>✓</span>}
+                                  </div>
+                                )}
                                 <span style={{ 
                                   fontWeight: isUserChoice || isWinner ? 700 : 500,
                                   color: isWinner ? 'var(--primary)' : 'var(--text-main)',
@@ -4302,8 +4471,35 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                             </div>
                           );
                         })}
+
+                        {isMultiple && !showResults && (
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                            <button
+                              type="button"
+                              disabled={(selectedPollOptions[activePost.id] || []).length === 0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMultiVote(activePost.id);
+                              }}
+                              className="btn btn-primary"
+                              style={{
+                                padding: '6px 16px',
+                                borderRadius: '8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                cursor: (selectedPollOptions[activePost.id] || []).length === 0 ? 'not-allowed' : 'pointer',
+                                opacity: (selectedPollOptions[activePost.id] || []).length === 0 ? 0.5 : 1
+                              }}
+                            >
+                              投票する
+                            </button>
+                          </div>
+                        )}
+
                         <div style={{ display: 'flex', gap: '8px', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                           <span>{totalVotes.toLocaleString()} 票</span>
+                          <span>•</span>
+                          <span>{isMultiple ? '複数投票可' : '単一投票'}</span>
                           <span>•</span>
                           <span>{isPollExpired ? '最終結果' : '投票受付中'}</span>
                         </div>

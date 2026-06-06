@@ -43,6 +43,29 @@ const ensureTimelineTables = async (db: any) => {
     console.error("Error checking/adding columns:", err.message);
   }
 
+  // Check/add columns for timeline_polls and check primary key of timeline_poll_votes
+  try {
+    const pollTableInfo = await db.prepare("PRAGMA table_info(timeline_polls)").all();
+    const hasAllowMultiple = pollTableInfo.results.some((col: any) => col.name === 'allow_multiple');
+    if (!hasAllowMultiple) {
+      console.log("Adding allow_multiple column to timeline_polls table...");
+      await db.prepare("ALTER TABLE timeline_polls ADD COLUMN allow_multiple INTEGER DEFAULT 0").run();
+    }
+  } catch (err: any) {
+    console.error("Error checking/adding allow_multiple column:", err.message);
+  }
+
+  try {
+    const voteTableInfo = await db.prepare("PRAGMA table_info(timeline_poll_votes)").all();
+    const optionIndexCol = voteTableInfo.results.find((col: any) => col.name === 'option_index');
+    if (optionIndexCol && optionIndexCol.pk === 0) {
+      console.log("Migrating timeline_poll_votes table to support multiple votes...");
+      await db.prepare("DROP TABLE timeline_poll_votes").run();
+    }
+  } catch (err: any) {
+    console.error("Error checking/migrating timeline_poll_votes table:", err.message);
+  }
+
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS timeline_likes (
       post_id TEXT NOT NULL,
@@ -157,7 +180,9 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         -- Poll data
         poll.options as poll_options,
         poll.expires_at as poll_expires_at,
-        (SELECT option_index FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND user_id = ?) as user_voted_option,
+        poll.allow_multiple as poll_allow_multiple,
+        (SELECT option_index FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND user_id = ? LIMIT 1) as user_voted_option,
+        (SELECT GROUP_CONCAT(option_index) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND user_id = ?) as user_voted_options,
         (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id)) as poll_total_votes,
         (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 0) as poll_option_0_votes,
         (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 1) as poll_option_1_votes,
@@ -174,7 +199,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     const feed = url.searchParams.get('feed') || 'all';
     
     const conditions: string[] = [];
-    const bindParams: any[] = [userId, userId, userId, userId];
+    const bindParams: any[] = [userId, userId, userId, userId, userId];
 
     if (postId) {
       conditions.push("p.id = ?");
@@ -244,10 +269,11 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       const durationMinutes = poll.durationMinutes || 1440; // Default 1 day (1440 mins)
       const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
       const optionsArray = poll.options.map((opt: string) => ({ text: opt }));
+      const allowMultiple = poll.allowMultiple ? 1 : 0;
       
       await env.D1_DB.prepare(
-        "INSERT INTO timeline_polls (post_id, options, expires_at) VALUES (?, ?, ?)"
-      ).bind(id, JSON.stringify(optionsArray), expiresAt).run();
+        "INSERT INTO timeline_polls (post_id, options, expires_at, allow_multiple) VALUES (?, ?, ?, ?)"
+      ).bind(id, JSON.stringify(optionsArray), expiresAt, allowMultiple).run();
     }
 
     return new Response(JSON.stringify({ success: true, id }), {

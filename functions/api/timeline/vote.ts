@@ -5,9 +5,9 @@ import { ensureTimelineTables } from '../timeline';
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     const body = await request.json() as any;
-    const { userId, postId, optionIndex } = body;
+    const { userId, postId, optionIndex, optionIndices } = body;
 
-    if (!userId || !postId || optionIndex === undefined) {
+    if (!userId || !postId || (optionIndex === undefined && !optionIndices)) {
       return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -34,10 +34,22 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       });
     }
 
-    // 2. Insert or replace vote
+    // 2. Clear old votes and insert new vote(s)
     await db.prepare(
-      "INSERT OR REPLACE INTO timeline_poll_votes (user_id, post_id, option_index) VALUES (?, ?, ?)"
-    ).bind(userId, postId, optionIndex).run();
+      "DELETE FROM timeline_poll_votes WHERE user_id = ? AND post_id = ?"
+    ).bind(userId, postId).run();
+
+    if (Array.isArray(optionIndices)) {
+      for (const optIdx of optionIndices) {
+        await db.prepare(
+          "INSERT INTO timeline_poll_votes (user_id, post_id, option_index) VALUES (?, ?, ?)"
+        ).bind(userId, postId, optIdx).run();
+      }
+    } else if (optionIndex !== undefined) {
+      await db.prepare(
+        "INSERT INTO timeline_poll_votes (user_id, post_id, option_index) VALUES (?, ?, ?)"
+      ).bind(userId, postId, optionIndex).run();
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
