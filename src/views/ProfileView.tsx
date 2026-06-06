@@ -1,6 +1,6 @@
 import React from 'react';
 import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info } from 'lucide-react';
-import { triggerHaptic, scheduleLocalNotification, isNative } from '../utils/native';
+import { triggerHaptic, scheduleLocalNotification, isNative, getLiveProgress } from '../utils/native';
 import { CURRENT_VERSION, getLiveUpdate } from '../utils/updater';
 
 interface ProfileViewProps {
@@ -532,10 +532,95 @@ export const ProfileView = ({
                   }
                 }}
                 className="btn btn-primary"
-                style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', width: '100%', cursor: 'pointer', gap: '8px', fontWeight: 'bold' }}
+                style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', width: '100%', cursor: 'pointer', gap: '8px', fontWeight: 'bold', marginBottom: '20px' }}
               >
                 ⚡ Live Update 通知（テスト）を起動
               </button>
+
+              <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '20px', marginBottom: '8px' }}>Android 16 市民申請トラッカー（シミュレータ）</h5>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.4 }}>
+                ※市民申請の審査ステータス変化を、セグメントとマイルストーンでリアルタイム表示するシミュレータです。
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      triggerHaptic('light');
+                      const segments = JSON.stringify([
+                        { weight: 30, color: "#3B82F6" }, // Blue
+                        { weight: 35, color: "#EAB308" }, // Yellow
+                        { weight: 35, color: "#10B981" }  // Green
+                      ]);
+                      const points = JSON.stringify([
+                        { position: 30, color: "#3B82F6" },
+                        { position: 65, color: "#EAB308" }
+                      ]);
+                      await getLiveProgress().start({
+                        title: '市民申請の審査状況',
+                        text: '市民申請を受け付けました。自動採点中...',
+                        progress: 30,
+                        segments,
+                        points
+                      });
+                    } catch (e: any) {
+                      console.error('Failed simulator step 1:', e);
+                      alert('シミュレータ起動に失敗しました: ' + (e.message || e));
+                    }
+                  }}
+                  className="btn glass"
+                  style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(59,130,246,0.03)', cursor: 'pointer', color: 'var(--text-main)' }}
+                >
+                  📄 [シミュレータ] 1. 申請提出 (30%)
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      triggerHaptic('medium');
+                      const segments = JSON.stringify([
+                        { weight: 30, color: "#3B82F6" },
+                        { weight: 35, color: "#EAB308" },
+                        { weight: 35, color: "#10B981" }
+                      ]);
+                      const points = JSON.stringify([
+                        { position: 30, color: "#3B82F6" },
+                        { position: 65, color: "#EAB308" }
+                      ]);
+                      await getLiveProgress().update({
+                        title: '市民申請の審査状況',
+                        text: '自動採点完了 (18/20問)。管理者の最終審査待ち...',
+                        progress: 65,
+                        segments,
+                        points
+                      });
+                    } catch (e: any) {
+                      console.error('Failed simulator step 2:', e);
+                      alert('シミュレータ更新に失敗しました: ' + (e.message || e));
+                    }
+                  }}
+                  className="btn glass"
+                  style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(234,179,8,0.03)', cursor: 'pointer', color: 'var(--text-main)' }}
+                >
+                  📊 [シミュレータ] 2. 自動採点完了 (65%)
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      triggerHaptic('success');
+                      await getLiveProgress().stop();
+                    } catch (e: any) {
+                      console.error('Failed simulator stop:', e);
+                      alert('シミュレータ停止に失敗しました: ' + (e.message || e));
+                    }
+                  }}
+                  className="btn glass"
+                  style={{ padding: '12px 16px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', justifyContent: 'flex-start', border: '1px solid var(--glass-border)', background: 'rgba(239,68,68,0.03)', cursor: 'pointer', color: '#ef4444' }}
+                >
+                  🛑 トラッカー通知を停止
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.46'; // 2.2.46 (すりガラス感・透明度と背景グラデーションぼかしの強化)
+export const CURRENT_VERSION = '2.2.50'; // 2.2.50 (Android 16 Live Updates (Progress-centric notifications) の統合)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

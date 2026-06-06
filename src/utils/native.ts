@@ -428,3 +428,79 @@ export const unregisterPushNotifications = async (userId: string) => {
   }
 };
 
+export interface LiveProgressPlugin {
+  start(options: {
+    title: string;
+    text: string;
+    progress: number;
+    segments?: string;
+    points?: string;
+  }): Promise<{ success: boolean }>;
+  update(options: {
+    title: string;
+    text: string;
+    progress: number;
+    segments?: string;
+    points?: string;
+  }): Promise<{ success: boolean }>;
+  stop(): Promise<{ success: boolean }>;
+}
+const LiveProgress = registerPlugin<LiveProgressPlugin>('LiveProgress');
+
+export const getLiveProgress = () => {
+  return LiveProgress;
+};
+
+/**
+ * ユーザーの市民申請ステータスに応じて Android 16 の進行状況重視通知 (Live Update) を開始・更新・終了します。
+ */
+export const updateApplicationTrackerNotification = (app: any) => {
+  if (!isNative) return;
+
+  try {
+    if (app && app.status === 'pending') {
+      const hasAutoScore = app.auto_score !== undefined && app.auto_score !== null;
+      let progress = 30;
+      let text = '市民申請を受け付けました。自動採点中...';
+
+      if (hasAutoScore) {
+        progress = 65;
+        text = `自動採点完了 (${app.auto_score}/${app.auto_score_max}問)。管理者の最終審査待ち...`;
+      }
+
+      // Segments: Submitted (30%), Waiting Review (35%), Approved/Done (35%)
+      const segments = JSON.stringify([
+        { weight: 30, color: "#3B82F6" }, // Blue
+        { weight: 35, color: "#EAB308" }, // Yellow
+        { weight: 35, color: "#10B981" }  // Green
+      ]);
+
+      // Points (milestones):
+      const points = JSON.stringify([
+        { position: 30, color: "#3B82F6" },
+        { position: 65, color: "#EAB308" }
+      ]);
+
+      LiveProgress.start({
+        title: '市民申請の審査状況',
+        text: text,
+        progress: progress,
+        segments: segments,
+        points: points
+      }).then(() => {
+        console.log('Application LiveProgress tracker started/updated.');
+      }).catch(err => {
+        console.error('Failed to start LiveProgress tracker:', err);
+      });
+    } else {
+      LiveProgress.stop().then(() => {
+        console.log('Application LiveProgress tracker stopped.');
+      }).catch(err => {
+        console.error('Failed to stop LiveProgress tracker:', err);
+      });
+    }
+  } catch (err) {
+    console.error('Error in updateApplicationTrackerNotification:', err);
+  }
+};
+

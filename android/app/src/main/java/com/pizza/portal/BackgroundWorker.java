@@ -144,6 +144,19 @@ public class BackgroundWorker extends Worker {
                             }
                             
                             sendNotification(context, title, body, "application_results_channel", "申請結果通知");
+
+                            // Stop active LiveProgress tracker notification for resolved applications
+                            try {
+                                Intent stopServiceIntent = new Intent(context, LiveProgressService.class);
+                                stopServiceIntent.setAction("STOP");
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    context.startForegroundService(stopServiceIntent);
+                                } else {
+                                    context.startService(stopServiceIntent);
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Failed to stop LiveProgressService from background worker", e);
+                            }
                         }
                     }
                 }

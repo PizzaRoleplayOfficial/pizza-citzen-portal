@@ -86,8 +86,17 @@ public class LiveUpdateService extends Service {
             builder = new Notification.Builder(this);
         }
 
+        String contentText;
+        if (progress < 75) {
+            int downloadPercent = (int) (progress * 100.0 / 75.0);
+            if (downloadPercent > 100) downloadPercent = 100;
+            contentText = "Downloading update... " + downloadPercent + "%";
+        } else {
+            contentText = "Verifying & installing update...";
+        }
+
         builder.setContentTitle("GV Portal Update")
-            .setContentText("Downloading update... " + progress + "%")
+            .setContentText(contentText)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setCategory(Notification.CATEGORY_PROGRESS) // Help OS classify it correctly for Live Update promotion
             .setOngoing(true);
@@ -175,6 +184,47 @@ public class LiveUpdateService extends Service {
                     java.lang.reflect.Method setProgressMethod = 
                         progressStyleClass.getMethod("setProgress", int.class);
                     setProgressMethod.invoke(progressStyle, progress);
+                }
+
+                // Set segments and points inside ProgressStyle via reflection
+                try {
+                    Class<?> segmentClass = Class.forName("android.app.Notification$ProgressStyle$Segment");
+                    java.lang.reflect.Constructor<?> segmentConstructor = segmentClass.getConstructor(int.class);
+                    java.lang.reflect.Method setSegmentColorMethod = segmentClass.getMethod("setColor", int.class);
+
+                    Object dlSegment = segmentConstructor.newInstance(75);
+                    setSegmentColorMethod.invoke(dlSegment, android.graphics.Color.parseColor("#00C166"));
+
+                    Object instSegment = segmentConstructor.newInstance(25);
+                    setSegmentColorMethod.invoke(instSegment, android.graphics.Color.parseColor("#FF9800"));
+
+                    java.util.List<Object> segmentsList = new java.util.ArrayList<>();
+                    segmentsList.add(dlSegment);
+                    segmentsList.add(instSegment);
+
+                    java.lang.reflect.Method setProgressSegmentsMethod = 
+                        progressStyleClass.getMethod("setProgressSegments", java.util.List.class);
+                    setProgressSegmentsMethod.invoke(progressStyle, segmentsList);
+
+                    Class<?> pointClass = Class.forName("android.app.Notification$ProgressStyle$Point");
+                    java.lang.reflect.Constructor<?> pointConstructor = pointClass.getConstructor(int.class);
+                    java.lang.reflect.Method setPointColorMethod = pointClass.getMethod("setColor", int.class);
+
+                    Object dlCompletePoint = pointConstructor.newInstance(75);
+                    setPointColorMethod.invoke(dlCompletePoint, android.graphics.Color.parseColor("#00C166"));
+
+                    Object installPoint = pointConstructor.newInstance(100);
+                    setPointColorMethod.invoke(installPoint, android.graphics.Color.parseColor("#FF9800"));
+
+                    java.util.List<Object> pointsList = new java.util.ArrayList<>();
+                    pointsList.add(dlCompletePoint);
+                    pointsList.add(installPoint);
+
+                    java.lang.reflect.Method setProgressPointsMethod = 
+                        progressStyleClass.getMethod("setProgressPoints", java.util.List.class);
+                    setProgressPointsMethod.invoke(progressStyle, pointsList);
+                } catch (Throwable t) {
+                    Log.w(TAG, "Failed to apply segments/points to LiveUpdate ProgressStyle: " + t.getMessage());
                 }
 
                 // Set tracker icon inside ProgressStyle
@@ -293,7 +343,7 @@ public class LiveUpdateService extends Service {
                 output.write(data, 0, count);
 
                 if (fileLength > 0) {
-                    int progress = (int) (total * 100 / fileLength);
+                    int progress = (int) (total * 74.0 / fileLength);
                     if (progress != lastProgress) {
                         lastProgress = progress;
                         notificationManager.notify(NOTIFICATION_ID, buildProgressNotification(progress));
@@ -311,6 +361,12 @@ public class LiveUpdateService extends Service {
             output.flush();
             output.close();
             input.close();
+
+            // Notify transition to verification & installing phase (100% / second segment)
+            notificationManager.notify(NOTIFICATION_ID, buildProgressNotification(100));
+            try {
+                Thread.sleep(800); // Small pause for user feedback of transition
+            } catch (Exception ignored) {}
 
             // Download finished, launch installer
             triggerApkInstall(apkFile);

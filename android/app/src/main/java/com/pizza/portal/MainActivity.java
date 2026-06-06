@@ -15,6 +15,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PixelHapticsPlugin.class);
         registerPlugin(LiveUpdatePlugin.class);
         registerPlugin(BackgroundPollPlugin.class);
+        registerPlugin(LiveProgressPlugin.class);
 
         super.onCreate(savedInstanceState);
 

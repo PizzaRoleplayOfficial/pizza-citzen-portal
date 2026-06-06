@@ -96,7 +96,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';
 import { VehicleImageGallery } from './components/VehicleImageGallery';
 import { formatDate } from './utils/helpers';
-import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications } from './utils/native';
+import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications, updateApplicationTrackerNotification, getLiveProgress } from './utils/native';
 import { Capacitor } from '@capacitor/core';
 import { handleAvatarError } from './utils/avatarFallback';
 import { App as CapApp } from '@capacitor/app';
@@ -859,8 +859,10 @@ export default function App() {
             }
           }
           localStorage.setItem(`gvvr_citizen_app_status_${currentUser.id}`, app.status);
+          updateApplicationTrackerNotification(app);
         } else {
           localStorage.setItem(`gvvr_citizen_app_status_${currentUser.id}`, 'none');
+          updateApplicationTrackerNotification(null);
         }
         setMyApplication(app);
       }
@@ -1014,6 +1016,9 @@ export default function App() {
       stopBackgroundPoll();
       if (currentUser && currentUser.id) {
         unregisterPushNotifications(currentUser.id);
+      }
+      if (isNative) {
+        getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress on guest load:', err));
       }
     }
   }, [isLoggedIn, currentUser, isLoading]);
