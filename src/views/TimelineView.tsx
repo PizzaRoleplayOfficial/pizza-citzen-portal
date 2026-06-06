@@ -890,6 +890,36 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isCompressingVideo, setIsCompressingVideo] = useState(false);
 
+  // Pull-to-refresh swipe gesture states
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [pullProgress, setPullProgress] = useState(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      setTouchStart(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart !== null && window.scrollY === 0) {
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - touchStart;
+      if (diff > 0) {
+        setPullProgress(Math.min(diff / 2, 80)); // Cap progress at 80px pull
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullProgress >= 60) {
+      triggerHaptic('light');
+      fetchPosts();
+    }
+    setTouchStart(null);
+    setPullProgress(0);
+  };
+
+
   // Click Particle Burst System
   const [clickParticles, setClickParticles] = useState<Array<{ id: string; x: number; y: number; char: string; color: string; angle: number; velocity: number }>>([]);
   
@@ -2491,6 +2521,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   return (
     <div 
       className="animate-fade" 
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       style={{ 
         maxWidth: isMobile ? '640px' : '980px', 
         margin: '0 auto', 
@@ -2504,6 +2537,28 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     >
       {/* Main Column */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0 }}>
+        {/* Pull-to-refresh swipe indicator on mobile */}
+        {isMobile && pullProgress > 0 && (
+          <div style={{
+            height: `${pullProgress}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            transition: touchStart === null ? 'height 0.2s ease' : 'none',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '16px',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--primary)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            gap: '8px'
+          }}>
+            <Loader2 size={16} className={pullProgress >= 60 ? 'animate-spin' : undefined} />
+            {pullProgress >= 60 ? '指を離して更新...' : '下に引っぱって更新...'}
+          </div>
+        )}
+
         {/* Floating Refresh Indicator when reloading in background */}
       {isLoading && posts.length > 0 && (
         <div style={{
@@ -2535,16 +2590,18 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>市民タイムライン</h2>
-          <p style={{ color: 'var(--text-muted)', margin: '4px 0 0' }}>ぴっざぁ市民のひとりごとや写真を共有しよう。</p>
+          <p style={{ color: theme === 'light' ? 'var(--text-muted)' : '#cbd5e1', margin: '4px 0 0' }}>ぴっざぁ市民のひとりごとや写真を共有しよう。</p>
         </div>
-        <button 
-          onClick={() => { triggerHaptic('light'); fetchPosts(); }} 
-          disabled={isLoading}
-          className="btn btn-secondary"
-          style={{ padding: '10px 16px' }}
-        >
-          <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
-        </button>
+        {!isMobile && (
+          <button 
+            onClick={() => { triggerHaptic('light'); fetchPosts(); }} 
+            disabled={isLoading}
+            className="btn btn-secondary"
+            style={{ padding: '10px 16px' }}
+          >
+            <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
+          </button>
+        )}
       </div>
 
       {/* Recommended vs Following Feed Tab Bar (X style) */}
@@ -2717,7 +2774,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="タイムライン内を検索（キーワード、Roblox名、市民名）..."
+            placeholder="タイムライン内を検索..."
             style={{
               width: '100%',
               padding: '12px 16px 12px 46px',
@@ -3146,7 +3203,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           gap: '8px',
           flexWrap: 'wrap'
         }}>
-          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -3155,11 +3212,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 background: 'rgba(0,193,102,0.08)',
                 border: '1px solid rgba(0,193,102,0.15)',
                 borderRadius: '10px',
-                padding: isMobile ? '10px 12px' : '10px 14px',
+                padding: isMobile ? '0 12px' : '0 14px',
+                height: '38px',
                 color: 'var(--primary)',
                 cursor: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
@@ -3201,11 +3260,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 background: showPollComposer ? 'rgba(0,193,102,0.15)' : 'rgba(0,193,102,0.08)',
                 border: '1px solid rgba(0,193,102,0.15)',
                 borderRadius: '10px',
-                padding: isMobile ? '10px 12px' : '10px 14px',
+                padding: isMobile ? '0 12px' : '0 14px',
+                height: '38px',
                 color: 'var(--primary)',
                 cursor: (newPostImages.length > 0 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
@@ -3271,11 +3332,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               disabled={isSubmitDisabled}
               className="btn btn-primary"
               style={{
-                padding: isMobile ? '10px 16px' : '10px 20px',
+                padding: isMobile ? '0 16px' : '0 20px',
+                height: '38px',
                 borderRadius: '10px',
-                fontSize: '0.9rem',
+                fontSize: '0.88rem',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '8px',
                 cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
                 opacity: isSubmitDisabled ? 0.6 : 1,

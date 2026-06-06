@@ -177,6 +177,20 @@ export default function App() {
     localStorage.setItem('gvvr_enter_key_behavior', enterKeyBehavior);
   }, [enterKeyBehavior]);
 
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+
   const getInitialHashState = () => {
     const hash = window.location.hash.replace('#', '');
     const parts = hash.split('/');
@@ -2428,8 +2442,55 @@ export default function App() {
                 </span>
               )}
             </button>
-            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
-            <a href="/api/auth/logout" style={{ color: 'var(--text-muted)' }}><LogOut size={20} /></a>
+            <div ref={profileMenuRef} style={{ position: 'relative' }}>
+              <img
+                src={currentUser.avatar}
+                alt="u"
+                onClick={() => { triggerHaptic('light'); setShowProfileMenu(!showProfileMenu); }}
+                onError={(e) => handleAvatarError(e, currentUser.username)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: '#fff',
+                  objectFit: 'cover',
+                  cursor: 'pointer',
+                  border: showProfileMenu ? '2px solid var(--primary)' : '2px solid transparent',
+                  transition: 'border 0.2s',
+                  display: 'block'
+                }}
+              />
+              {showProfileMenu && (
+                <div className="glass" style={{
+                  position: 'absolute',
+                  top: '40px',
+                  right: 0,
+                  background: 'var(--nav-bg)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '12px',
+                  padding: '8px',
+                  minWidth: '160px',
+                  boxShadow: theme === 'light' ? '0 8px 32px rgba(0,0,0,0.1)' : '0 8px 32px rgba(0,0,0,0.5)',
+                  zIndex: 200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px'
+                }}>
+                  <div style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {currentUser.roblox_username || currentUser.username}
+                  </div>
+                  <button onClick={() => { triggerHaptic('light'); setView('apply'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <ClipboardList size={14} /> 市民申請
+                  </button>
+                  <button onClick={() => { triggerHaptic('light'); setView('profile'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <UserIcon size={14} /> 設定
+                  </button>
+                  <a href="/api/auth/logout" style={{ textDecoration: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--error)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <LogOut size={14} /> ログアウト
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -3132,11 +3193,6 @@ export default function App() {
             <Home size={24} />
             <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ホーム</span>
           </button>
-          <button onClick={() => setView('apply')} style={{ background: 'none', border: 'none', color: view === 'apply' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', position: 'relative', cursor: 'pointer' }}>
-            <ClipboardList size={24} />
-            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>市民申請</span>
-            {(!myApplication || myApplication.status === 'rejected') && <span style={{ position: 'absolute', top: 0, right: 'calc(50% - 16px)', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />}
-          </button>
           <button onClick={() => setView('garage')} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <LayoutDashboard size={24} />
             <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ガレージ</span>
@@ -3151,10 +3207,6 @@ export default function App() {
               <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>管理パネル</span>
             </button>
           )}
-          <button onClick={() => setView('profile')} style={{ background: 'none', border: 'none', color: view === 'profile' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
-            <UserIcon size={24} />
-            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>設定</span>
-          </button>
         </nav>
       )}
 
