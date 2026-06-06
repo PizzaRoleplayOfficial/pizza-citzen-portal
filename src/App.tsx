@@ -4159,6 +4159,8 @@ export default function App() {
         </div>
       )}
 
+      </div>
+
       {/* ====== Notifications Center Dropdown ====== */}
       {showNotifications && (
         <>
@@ -4370,7 +4372,6 @@ export default function App() {
         }
       `}</style>
 
-      </div>
     </div>
   );
 }
