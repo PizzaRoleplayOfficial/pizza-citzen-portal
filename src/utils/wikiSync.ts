@@ -2,7 +2,7 @@ import { CatalogData } from "../types";
 
 export const fetchWikiCatalog = async (
   gameType: "gv" | "rc",
-  onProgress: (msg: string) => void
+  onProgress: (msg: string, progress?: number) => void
 ): Promise<CatalogData> => {
   // 1. Fetch all pages in Category:Vehicles
   const domain = gameType === "rc" ? "rensselaer-county.fandom.com" : "greenville-wisconsin.fandom.com";
@@ -29,13 +29,14 @@ export const fetchWikiCatalog = async (
       (t: string) => !t.includes("Category:") && !t.includes("Template:")
     );
 
-  onProgress(`全 ${titles.length} 件の車両データを解析中...`);
+  onProgress(`全 ${titles.length} 件の車両データを解析中...`, 0);
 
   // Batch size for generator API
   const batchSize = 50;
   for (let i = 0; i < titles.length; i += batchSize) {
     const batch = titles.slice(i, i + batchSize);
-    onProgress(`解析中: ${i} / ${titles.length} ...`);
+    const progressPercent = Math.round((i / titles.length) * 75);
+    onProgress(`解析中: ${i} / ${titles.length} ...`, progressPercent);
 
     const genUrl = `${baseUrl}?action=query&prop=revisions&rvprop=content&rvslots=main&titles=${encodeURIComponent(
       batch.join("|")

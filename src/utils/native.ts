@@ -504,3 +504,51 @@ export const updateApplicationTrackerNotification = (app: any) => {
   }
 };
 
+/**
+ * ユーザーの車両登録申請ステータスに応じて Android 16 の進行状況重視通知 (Live Update) を開始・終了します。
+ */
+export const updateVehicleTrackerNotification = (vehicles: any[]) => {
+  if (!isNative) return;
+
+  try {
+    const pendingVehicles = Array.isArray(vehicles) ? vehicles.filter((v: any) => v.status === 'pending') : [];
+
+    if (pendingVehicles.length > 0) {
+      // 最も新しい申請中の車両を取得
+      const pendingVehicle = pendingVehicles[pendingVehicles.length - 1];
+      const carName = `${pendingVehicle.year}年式 ${pendingVehicle.maker} ${pendingVehicle.model}`;
+      
+      // Segments: Submitted (50%), Approved/Done (50%)
+      const segments = JSON.stringify([
+        { weight: 50, color: "#3B82F6" }, // Submitted (Blue)
+        { weight: 50, color: "#10B981" }  // Approved/Done (Green)
+      ]);
+      const points = JSON.stringify([
+        { position: 50, color: "#3B82F6" }
+      ]);
+
+      const text = `車両「${carName}」（ナンバー: ${pendingVehicle.plate}）の申請を確認中...`;
+
+      LiveProgress.start({
+        title: '車両登録の審査状況',
+        text: text,
+        progress: 50,
+        segments: segments,
+        points: points
+      }).then(() => {
+        console.log('Vehicle LiveProgress tracker started/updated.');
+      }).catch(err => {
+        console.error('Failed to start vehicle LiveProgress tracker:', err);
+      });
+    } else {
+      LiveProgress.stop().then(() => {
+        console.log('Vehicle LiveProgress tracker stopped.');
+      }).catch(err => {
+        console.error('Failed to stop vehicle LiveProgress tracker:', err);
+      });
+    }
+  } catch (err) {
+    console.error('Error in updateVehicleTrackerNotification:', err);
+  }
+};
+

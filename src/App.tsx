@@ -96,7 +96,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';
 import { VehicleImageGallery } from './components/VehicleImageGallery';
 import { formatDate } from './utils/helpers';
-import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications, updateApplicationTrackerNotification, getLiveProgress } from './utils/native';
+import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications, updateApplicationTrackerNotification, getLiveProgress, updateVehicleTrackerNotification } from './utils/native';
 import { Capacitor } from '@capacitor/core';
 import { handleAvatarError } from './utils/avatarFallback';
 import { App as CapApp } from '@capacitor/app';
@@ -816,6 +816,7 @@ export default function App() {
           });
           localStorage.setItem(`gvvr_vehicle_statuses_${currentUser.id}`, JSON.stringify(newCache));
           setVehicles(list);
+          updateVehicleTrackerNotification(list);
         }
         updateBackgroundPollCache(list);
       }
@@ -2127,14 +2128,48 @@ export default function App() {
     if (!confirm(`${gameName} のWikiから最新の車両データを取得し、カタログを更新しますか？\n（この処理には1分程度かかる場合があります）`)) return;
     
     setWikiSyncProgress("Wikiから車両リストを取得中...");
+    
+    if (isNative) {
+      const segments = JSON.stringify([
+        { weight: 75, color: "#3B82F6" }, // Wiki crawl (Blue)
+        { weight: 25, color: "#10B981" }  // DB Save (Green)
+      ]);
+      const points = JSON.stringify([
+        { position: 75, color: "#3B82F6" }
+      ]);
+      getLiveProgress().start({
+        title: `${gameType === 'rc' ? 'RC' : 'GV'} カタログ同期`,
+        text: 'Wikiから車両リストを取得中...',
+        progress: 0,
+        segments,
+        points
+      }).catch(err => console.error('Failed to start LiveProgress for wiki sync:', err));
+    }
+
     try {
       // 1. Crawl Wiki in the client
-      const newCatalog = await fetchWikiCatalog(gameType, (progressMsg) => {
+      const newCatalog = await fetchWikiCatalog(gameType, (progressMsg, progressPercent) => {
         setWikiSyncProgress(progressMsg);
+        if (isNative && progressPercent !== undefined) {
+          getLiveProgress().update({
+            title: `${gameType === 'rc' ? 'RC' : 'GV'} カタログ同期`,
+            text: progressMsg,
+            progress: progressPercent
+          }).catch(err => console.error('Failed to update LiveProgress for wiki sync:', err));
+        }
       });
       
       // 2. Save Catalog to DB
-      setWikiSyncProgress("データベースに同期・保存中...");
+      const dbSaveMsg = "データベースに同期・保存中...";
+      setWikiSyncProgress(dbSaveMsg);
+      if (isNative) {
+        getLiveProgress().update({
+          title: `${gameType === 'rc' ? 'RC' : 'GV'} カタログ同期`,
+          text: dbSaveMsg,
+          progress: 85
+        }).catch(err => console.error('Failed to update LiveProgress for wiki sync save phase:', err));
+      }
+
       const success = await saveCatalogToDatabase(newCatalog, gameType);
       
       if (success) {
@@ -2148,6 +2183,9 @@ export default function App() {
       alert(`カタログの同期に失敗しました。\n詳細: ${e.message || e}`);
     } finally {
       setWikiSyncProgress(null);
+      if (isNative) {
+        getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress for wiki sync:', err));
+      }
     }
   };
 

@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { compressImage, compressVideo } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
-import { triggerHaptic } from '../utils/native';
+import { triggerHaptic, getLiveProgress, isNative } from '../utils/native';
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { MediaSession } from '@capgo/capacitor-media-session';
@@ -1984,6 +1984,26 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     triggerHaptic('medium');
     setIsSubmitting(true);
 
+    const hasVideo = !!selectedVideoFile;
+    if (hasVideo && isNative) {
+      const segments = JSON.stringify([
+        { weight: 50, color: "#3B82F6" }, // Compression (Blue)
+        { weight: 40, color: "#EAB308" }, // Upload (Yellow)
+        { weight: 10, color: "#10B981" }  // Post (Green)
+      ]);
+      const points = JSON.stringify([
+        { position: 50, color: "#3B82F6" },
+        { position: 90, color: "#EAB308" }
+      ]);
+      getLiveProgress().start({
+        title: 'タイムラインの投稿アップロード',
+        text: '動画メディアの圧縮中...',
+        progress: 10,
+        segments,
+        points
+      }).catch(err => console.error('Failed to start LiveProgress for post creation:', err));
+    }
+
     try {
       let videoPath: string | null = null;
 
@@ -1993,6 +2013,14 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           // Compress large video to 720p client-side
           const compressedBlob = await compressVideo(selectedVideoFile);
           setIsCompressingVideo(false);
+
+          if (hasVideo && isNative) {
+            getLiveProgress().update({
+              title: 'タイムラインの投稿アップロード',
+              text: '動画メディアをアップロード中...',
+              progress: 50
+            }).catch(err => console.error('Failed to update LiveProgress:', err));
+          }
 
           // Upload compressed video to R2
           const uploadFormData = new FormData();
@@ -2010,9 +2038,20 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
           const uploadResult = await uploadRes.json() as { key: string };
           videoPath = uploadResult.key;
+
+          if (hasVideo && isNative) {
+            getLiveProgress().update({
+              title: 'タイムラインの投稿アップロード',
+              text: 'タイムラインに投稿中...',
+              progress: 90
+            }).catch(err => console.error('Failed to update LiveProgress:', err));
+          }
         } catch (compressErr: any) {
           setIsCompressingVideo(false);
           setIsSubmitting(false);
+          if (hasVideo && isNative) {
+            getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress:', err));
+          }
           showToast("エラー", compressErr.message || "動画の圧縮またはアップロードに失敗しました。", "error");
           return;
         }
@@ -2057,6 +2096,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       showToast("エラー", "ネットワークエラーが発生しました。", "error");
     } finally {
       setIsSubmitting(false);
+      if (hasVideo && isNative) {
+        getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress:', err));
+      }
     }
   };
 
@@ -2327,6 +2369,26 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     triggerHaptic('medium');
     setIsSubmittingComment(true);
 
+    const hasVideo = !!selectedCommentVideoFile;
+    if (hasVideo && isNative) {
+      const segments = JSON.stringify([
+        { weight: 50, color: "#3B82F6" }, // Compression (Blue)
+        { weight: 40, color: "#EAB308" }, // Upload (Yellow)
+        { weight: 10, color: "#10B981" }  // Post (Green)
+      ]);
+      const points = JSON.stringify([
+        { position: 50, color: "#3B82F6" },
+        { position: 90, color: "#EAB308" }
+      ]);
+      getLiveProgress().start({
+        title: '返信のアップロード',
+        text: '動画メディアの圧縮中...',
+        progress: 10,
+        segments,
+        points
+      }).catch(err => console.error('Failed to start LiveProgress for comment:', err));
+    }
+
     try {
       let videoPath: string | null = null;
 
@@ -2335,6 +2397,14 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         try {
           const compressedBlob = await compressVideo(selectedCommentVideoFile);
           setIsCompressingCommentVideo(false);
+
+          if (hasVideo && isNative) {
+            getLiveProgress().update({
+              title: '返信のアップロード',
+              text: '動画メディアをアップロード中...',
+              progress: 50
+            }).catch(err => console.error('Failed to update LiveProgress:', err));
+          }
 
           const uploadFormData = new FormData();
           uploadFormData.append('file', compressedBlob, selectedCommentVideoFile.name);
@@ -2351,9 +2421,20 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
           const uploadResult = await uploadRes.json() as { key: string };
           videoPath = uploadResult.key;
+
+          if (hasVideo && isNative) {
+            getLiveProgress().update({
+              title: '返信のアップロード',
+              text: '返信を投稿中...',
+              progress: 90
+            }).catch(err => console.error('Failed to update LiveProgress:', err));
+          }
         } catch (compressErr: any) {
           setIsCompressingCommentVideo(false);
           setIsSubmittingComment(false);
+          if (hasVideo && isNative) {
+            getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress:', err));
+          }
           showToast("エラー", compressErr.message || "動画の圧縮またはアップロードに失敗しました。", "error");
           return;
         }
@@ -2395,6 +2476,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       showToast("エラー", "通信エラーが発生しました。", "error");
     } finally {
       setIsSubmittingComment(false);
+      if (hasVideo && isNative) {
+        getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress:', err));
+      }
     }
   };
 
