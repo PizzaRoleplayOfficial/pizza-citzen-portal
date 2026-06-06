@@ -334,6 +334,10 @@ export const AdminDashboardView = ({
             transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             pointerEvents: showMobileMenu ? 'auto' : 'none'
           } : {
+            position: 'sticky',
+            top: 'clamp(12px, 1.2vw, 24px)',
+            height: 'calc(100vh - clamp(24px, 2.4vw, 48px))',
+            alignSelf: 'flex-start',
             width: showMobileMenu ? '260px' : '0px',
             padding: showMobileMenu ? '24px 12px' : '24px 0px',
             borderRight: showMobileMenu ? '1px solid var(--glass-border)' : '0px solid transparent',
