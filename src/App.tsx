@@ -2579,7 +2579,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px 12px', flex: 1, minWidth: 0, margin: 0 }}>
+      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px clamp(24px, 2vw, 48px)', flex: 1, minWidth: 0, margin: 0 }}>
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
