@@ -2272,7 +2272,7 @@ export default function App() {
 
   return (
     <div className="app-wrapper" style={{
-      maxWidth: isMobile ? '100%' : '1200px',
+      maxWidth: isMobile ? '100%' : '2000px',
       margin: '0 auto',
       width: '100%',
       minHeight: '100vh',
@@ -2318,7 +2318,7 @@ export default function App() {
       )}
       {!isMobile && (
         <aside className="main-sidebar glass" style={{
-          width: sidebarCollapsed ? '80px' : '260px',
+          width: sidebarCollapsed ? '80px' : '400px',
           background: theme === 'light' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(10, 15, 25, 0.5)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
@@ -2586,7 +2586,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px clamp(36px, 3vw, 72px)', flex: 1, minWidth: 0, margin: 0 }}>
+      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px clamp(16px, 1.5vw, 32px)', flex: 1, minWidth: 0, margin: 0 }}>
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
