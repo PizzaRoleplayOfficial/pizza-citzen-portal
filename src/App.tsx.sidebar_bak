@@ -23,7 +23,6 @@ import {
   List,
   User as UserIcon,
   ChevronRight,
-  ChevronLeft,
   ChevronDown,
   ArrowLeft,
   Image as ImageIcon,
@@ -39,8 +38,7 @@ import {
   Info,
   MessageSquare,
   Bell,
-  Heart,
-  AlertTriangle
+  Heart
 } from 'lucide-react';
 import { isNative } from './utils/native';
 import { 
@@ -170,41 +168,6 @@ export default function App() {
   const [theme, setTheme] = useState<'dark'|'light'>(
     (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
   );
-  const [enterKeyBehavior, setEnterKeyBehavior] = useState<'enter' | 'shiftEnter'>(
-    (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
-  );
-
-  useEffect(() => {
-    localStorage.setItem('gvvr_enter_key_behavior', enterKeyBehavior);
-  }, [enterKeyBehavior]);
-
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const profileMenuRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
-        setShowProfileMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    isNative ? localStorage.getItem('gvvr_sidebar_collapsed') === 'true' : false
-  );
-
-  const toggleSidebar = () => {
-    const nextState = !sidebarCollapsed;
-    setSidebarCollapsed(nextState);
-    if (isNative) {
-      localStorage.setItem('gvvr_sidebar_collapsed', String(nextState));
-    }
-    triggerHaptic('light');
-  };
-
-
   const getInitialHashState = () => {
     const hash = window.location.hash.replace('#', '');
     const parts = hash.split('/');
@@ -287,42 +250,11 @@ export default function App() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
 
-  const [holoPos, setHoloPos] = useState({ x: 50, y: 50, active: false });
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [inAppToast, setInAppToast] = useState<{ title: string; desc: string; type?: 'success' | 'warning' | 'error' | 'info'; action?: () => void } | null>(null);
-
-  // Auto close toast after 4.5 seconds
-  useEffect(() => {
-    if (!inAppToast) return;
-    const timer = setTimeout(() => {
-      setInAppToast(null);
-    }, 4500);
-    return () => clearTimeout(timer);
-  }, [inAppToast]);
-
-  // Listen for global custom events to show toast notifications
-  useEffect(() => {
-    const handleGlobalToast = (e: Event) => {
-      const customEvent = e as CustomEvent<{ title: string; desc: string; type?: 'success' | 'warning' | 'error' | 'info'; action?: () => void }>;
-      if (customEvent.detail) {
-        setInAppToast({
-          title: customEvent.detail.title,
-          desc: customEvent.detail.desc,
-          type: customEvent.detail.type || 'info',
-          action: customEvent.detail.action
-        });
-      }
-    };
-    window.addEventListener('gv-toast', handleGlobalToast);
-    return () => window.removeEventListener('gv-toast', handleGlobalToast);
-  }, []);
-
   // Notifications related states (v2.2.0)
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [targetTimelinePostId, setTargetTimelinePostId] = useState<string | null>(null);
-  const lastNotificationIdRef = React.useRef<string | null>(null);
 
   const fetchNotifications = async () => {
     if (!isLoggedIn || !currentUser?.id) return;
@@ -330,43 +262,7 @@ export default function App() {
       const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
       if (res.ok) {
         const data = await res.json();
-        const newNotifications = data.notifications || [];
-
-        // Triggers Web Browser/Native notification if a new unread notification is retrieved via polling
-        if (lastNotificationIdRef.current !== null && newNotifications.length > 0) {
-          const newUnread = newNotifications.filter((n: any) => 
-            n.is_read === 0 && 
-            !notifications.some((old: any) => old.id === n.id)
-          );
-          if (newUnread.length > 0) {
-            const newest = newUnread[0];
-            
-            // Push system notification
-            scheduleLocalNotification(
-              newest.title || 'ぴっざぁ市民ポータル',
-              newest.body || '新しい通知が届きました。',
-              0
-            );
-
-            // Trigger beautiful in-app sliding glassmorphic toast
-            setInAppToast({
-              title: newest.title || 'ぴっざぁ市民ポータル',
-              desc: newest.body || '新しい通知が届きました。',
-              action: () => {
-                triggerHaptic('medium');
-                setShowNotifications(true);
-              }
-            });
-          }
-        }
-
-        if (newNotifications.length > 0) {
-          lastNotificationIdRef.current = newNotifications[0].id;
-        } else {
-          lastNotificationIdRef.current = '';
-        }
-
-        setNotifications(newNotifications);
+        setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (err) {
@@ -464,8 +360,6 @@ export default function App() {
       case 'admin_notifications_channel':
       case 'admin_edit_notifications_channel':
         return <ShieldCheck size={16} />;
-      case 'follow':
-        return <UserIcon size={16} />;
       default:
         return <Info size={16} />;
     }
@@ -482,8 +376,6 @@ export default function App() {
       case 'admin_notifications_channel':
       case 'admin_edit_notifications_channel':
         return '#f59e0b';
-      case 'follow':
-        return '#3b82f6';
       default:
         return 'rgba(255,255,255,0.08)';
     }
@@ -2271,202 +2163,102 @@ export default function App() {
   if (!isLoggedIn) return <LandingView />;
 
   return (
-    <div className="app-layout" style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      padding: isMobile ? '0' : '24px',
-      gap: isMobile ? '0' : '24px',
-      boxSizing: 'border-box',
-      width: '100%',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Decorative ambient background glows for Glassmorphism depth */}
+    <div className="app-layout" style={{ background: 'var(--bg-dark)', minHeight: '100vh', paddingBottom: isMobile ? '70px' : '0' }}>
       {!isMobile && (
-        <>
-          <div style={{
-            position: 'absolute',
-            width: '400px',
-            height: '400px',
-            background: 'radial-gradient(circle, rgba(0, 255, 136, 0.08) 0%, transparent 70%)',
-            top: '5%',
-            left: '-100px',
-            zIndex: 0,
-            pointerEvents: 'none',
-            filter: 'blur(60px)'
-          }} />
-          <div style={{
-            position: 'absolute',
-            width: '450px',
-            height: '450px',
-            background: 'radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, transparent 70%)',
-            bottom: '10%',
-            left: '-150px',
-            zIndex: 0,
-            pointerEvents: 'none',
-            filter: 'blur(80px)'
-          }} />
-        </>
-      )}
-      {!isMobile && (
-        <aside className="main-sidebar glass" style={{
-          width: sidebarCollapsed ? '80px' : '260px',
-          background: theme === 'light' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(10, 15, 25, 0.5)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border)',
-          display: 'flex',
-          flexDirection: 'column',
-          height: 'calc(100vh - 48px)',
-          position: 'sticky',
-          top: '24px',
-          zIndex: 100,
-          padding: sidebarCollapsed ? '32px 10px' : '32px 20px',
-          flexShrink: 0,
-          justifyContent: 'space-between',
-          transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}>
-          {/* Top segment: Logo + Menu */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
-              <img src="/pizza.webp" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '50%' }} />
-              {!sidebarCollapsed && <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>}
-            </div>
-
-            {/* App specific sidebar toggle button */}
-            {isNative && (
-              <button 
-                onClick={toggleSidebar}
-                className="btn glass"
-                style={{
-                  width: '100%',
-                  padding: '10px 0',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-main)',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  gap: '8px',
-                  transition: 'all 0.2s'
-                }}
-                title={sidebarCollapsed ? "メニューを展開" : "メニューをたたむ"}
-              >
-                {sidebarCollapsed ? <ChevronRight size={18} /> : <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ChevronLeft size={18} /> <span style={{ fontWeight: 600 }}>メニューをたたむ</span></div>}
+        <nav className="main-nav">
+        <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/pizza.webp" alt="Logo" style={{ width: '30px', height: '30px', marginRight: '8px', objectFit: 'cover', borderRadius: '50%' }} />
+            <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>ぴっざぁポータル</span>
+          </div>
+          
+          <div className="nav-tabs-wrapper">
+            <div className="nav-tabs">
+              <button className={`btn nav-btn ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')}>
+                <Home size={18} /> ホーム
               </button>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <button className={`btn-sidebar ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <Home size={18} /> {!sidebarCollapsed && <span>ホーム</span>}
-              </button>
-              <button className={`btn-sidebar ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <ClipboardList size={18} /> {!sidebarCollapsed && <span>市民申請</span>}
+              <button className={`btn nav-btn ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative' }}>
+                <ClipboardList size={18} /> 市民申請
                 {(!myApplication || myApplication.status === 'rejected') && (
-                  <span className="badge-sidebar" style={sidebarCollapsed ? { position: 'absolute', top: '8px', right: '18px' } : {}} />
+                  <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />
                 )}
               </button>
-              <button className={`btn-sidebar ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <LayoutDashboard size={18} /> {!sidebarCollapsed && <span>ガレージ</span>}
+              <button className={`btn nav-btn ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
+                <LayoutDashboard size={18} /> ガレージ
               </button>
-              <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <MessageSquare size={18} /> {!sidebarCollapsed && <span>タイムライン</span>}
+              <button className={`btn nav-btn ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>
+                <MessageSquare size={18} /> タイムライン
               </button>
               {currentUser.role === 'admin' && (
-                <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                  <ShieldCheck size={18} /> {!sidebarCollapsed && <span>管理パネル</span>}
+                <button className={`btn nav-btn ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>
+                  <ShieldCheck size={18} /> 管理パネル
                 </button>
               )}
-              <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <UserIcon size={18} /> {!sidebarCollapsed && <span>設定</span>}
+              <button className={`btn nav-btn ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
+                <UserIcon size={18} /> 設定
               </button>
             </div>
           </div>
 
-          {/* Bottom segment: User profile card */}
-          <div className="glass sidebar-user-card" style={{
-            padding: sidebarCollapsed ? '12px 4px' : '12px 14px',
-            borderRadius: '16px',
-            background: 'var(--panel-bg)',
-            border: '1px solid var(--glass-border)',
-            display: 'flex',
-            alignItems: 'center',
-            flexDirection: sidebarCollapsed ? 'column' : 'row',
-            gap: sidebarCollapsed ? '16px' : '12px',
-            width: '100%',
-            transition: 'all 0.3s ease'
-          }}>
-            <div 
-              onClick={() => { triggerHaptic('light'); setView('profile'); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: sidebarCollapsed ? undefined : 1, minWidth: 0, cursor: 'pointer', transition: 'all 0.2s ease', flexDirection: sidebarCollapsed ? 'column' : 'row' }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'none'; }}
+          <div className="nav-right">
+            <button
+              onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
+              className="btn glass"
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+                position: 'relative',
+                border: '1px solid var(--glass-border)',
+                background: 'rgba(255,255,255,0.03)',
+                padding: 0,
+                transition: '0.2s',
+                marginRight: '8px'
+              }}
             >
-              <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover', transition: 'transform 0.2s ease' }} />
-              {!sidebarCollapsed && (
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexDirection: sidebarCollapsed ? 'column' : 'row' }}>
-              <button
-                onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
-                className="btn glass"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-main)',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  border: '1px solid var(--glass-border)',
-                  background: 'rgba(255,255,255,0.03)',
-                  padding: 0
-                }}
-              >
-                <Bell size={14} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
-                {unreadCount > 0 && (
-                  <span style={{
+              <Bell size={18} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
+              {unreadCount > 0 && (
+                <span
+                  style={{
                     position: 'absolute',
-                    top: '-3px',
-                    right: '-3px',
+                    top: '-4px',
+                    right: '-4px',
                     background: 'var(--error)',
                     color: '#fff',
                     borderRadius: '50%',
-                    fontSize: '8px',
+                    fontSize: '10px',
                     fontWeight: 'bold',
-                    minWidth: '13px',
-                    height: '13px',
+                    minWidth: '18px',
+                    height: '18px',
+                    padding: '0 4px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 0 4px var(--error)',
-                  }}>
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-              <a href="/api/auth/logout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--glass-border)' }}>
-                <LogOut size={14} />
-              </a>
+                    boxShadow: '0 0 8px var(--error)',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <div className="nav-user-info">
+              <div className="nav-username">{currentUser.username}</div>
+              <div className="nav-userrole">{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
             </div>
+            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff', objectFit: 'cover' }} />
+            <a href="/api/auth/logout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid var(--glass-border)', transition: '0.2s' }}>
+              <LogOut size={18} />
+            </a>
           </div>
-        </aside>
+        </nav>
       )}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: isMobile ? '100vh' : 'calc(100vh - 48px)', position: 'relative', zIndex: 1 }}>
-
       {isMobile && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--nav-bg)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             {view === 'admin' && (
               <button 
@@ -2526,410 +2318,152 @@ export default function App() {
                 </span>
               )}
             </button>
-            <div ref={profileMenuRef} style={{ position: 'relative' }}>
-              <img
-                src={currentUser.avatar}
-                alt="u"
-                onClick={() => { triggerHaptic('light'); setShowProfileMenu(!showProfileMenu); }}
-                onError={(e) => handleAvatarError(e, currentUser.username)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  background: '#fff',
-                  objectFit: 'cover',
-                  cursor: 'pointer',
-                  border: showProfileMenu ? '2px solid var(--primary)' : '2px solid transparent',
-                  transition: 'border 0.2s',
-                  display: 'block'
-                }}
-              />
-              {showProfileMenu && (
-                <div className="glass" style={{
-                  position: 'absolute',
-                  top: '40px',
-                  right: 0,
-                  background: 'var(--nav-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '8px',
-                  minWidth: '160px',
-                  boxShadow: theme === 'light' ? '0 8px 32px rgba(0,0,0,0.1)' : '0 8px 32px rgba(0,0,0,0.5)',
-                  zIndex: 200,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px'
-                }}>
-                  <div style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {currentUser.roblox_username || currentUser.username}
-                  </div>
-                  <button onClick={() => { triggerHaptic('light'); setView('apply'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                    <ClipboardList size={14} /> 市民申請
-                  </button>
-                  <button onClick={() => { triggerHaptic('light'); setView('profile'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                    <UserIcon size={14} /> 設定
-                  </button>
-                  <a href="/api/auth/logout" style={{ textDecoration: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--error)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                    <LogOut size={14} /> ログアウト
-                  </a>
-                </div>
-              )}
-            </div>
+            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
+            <a href="/api/auth/logout" style={{ color: 'var(--text-muted)' }}><LogOut size={20} /></a>
           </div>
         </div>
       )}
 
-      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px 12px', maxWidth: '100%', margin: isMobile ? '0 auto' : '0', width: '100%' }}>
+      <main className="container" style={{ padding: isMobile ? '30px 16px' : '60px 40px', maxWidth: '1400px' }}>
         {view === 'home' ? (
-          <div className="animate-fade" style={{ maxWidth: '1200px', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          <div className="animate-fade" style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
-            {/* ぴっざぁ公式Discord プレミアムバナー */}
-            <div 
-              className="glass" 
-              style={{
-                borderRadius: '24px',
-                padding: isMobile ? '20px' : '24px 32px',
-                background: 'linear-gradient(135deg, rgba(88, 101, 242, 0.12) 0%, rgba(88, 101, 242, 0.03) 100%)',
-                border: '1px solid rgba(88, 101, 242, 0.25)',
-                boxShadow: '0 12px 40px rgba(88, 101, 242, 0.12)',
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '20px',
-                width: '100%',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {/* 背景のネオンブラー装飾 */}
-              <div style={{ position: 'absolute', width: '150px', height: '150px', background: 'rgba(88, 101, 242, 0.15)', filter: 'blur(50px)', top: '-50px', right: '-50px', borderRadius: '50%', pointerEvents: 'none' }} />
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, textAlign: isMobile ? 'center' : 'left', flexDirection: isMobile ? 'column' : 'row', zIndex: 1 }}>
-                <div style={{ 
-                  width: '56px', 
-                  height: '56px', 
-                  borderRadius: '16px', 
-                  background: 'rgba(88, 101, 242, 0.2)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(88, 101, 242, 0.25)'
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 127.14 96.36" fill="#5865F2" style={{ filter: 'drop-shadow(0 0 6px rgba(88, 101, 242, 0.5))' }}>
-                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
-                  </svg>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
-                    ぴっざぁ公式 Discord サーバーへ参加しよう！
-                  </h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                    市民同士のリアルタイム交流、アップデート告知、運営へのサポートチケット作成などはこちらから。
-                  </p>
-                </div>
-              </div>
-
-              <a 
-                href="https://discord.gg/RruM8Gqc4m" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn"
-                style={{
-                  padding: '12px 28px',
-                  borderRadius: '14px',
-                  background: '#5865F2',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  border: 'none',
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 15px rgba(88, 101, 242, 0.4)',
-                  transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  zIndex: 1
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = '#4752c4';
-                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(88, 101, 242, 0.5)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = '#5865F2';
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(88, 101, 242, 0.4)';
-                }}
-              >
-                サーバーに参加
-              </a>
-            </div>
-            
-            {/* Top row: ID Card and My Garage Status (Side-by-side on PC, stacked on mobile) */}
+            {/* デジタルIDカード (市民証) */}
             <div style={{
+              position: 'relative',
+              borderRadius: '24px',
+              padding: isMobile ? '24px' : '36px',
+              background: theme === 'light'
+                ? (myApplication?.status === 'approved'
+                  ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
+                  : myApplication?.status === 'pending'
+                  ? 'linear-gradient(135deg, #fffcf5 0%, #ffffff 100%)'
+                  : 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)')
+                : (myApplication?.status === 'approved'
+                  ? 'linear-gradient(135deg, #0a2115 0%, #060a0f 100%)'
+                  : myApplication?.status === 'pending'
+                  ? 'linear-gradient(135deg, #241c0a 0%, #060a0f 100%)'
+                  : 'linear-gradient(135deg, #181a1c 0%, #060a0f 100%)'),
+              border: `1px solid ${
+                myApplication?.status === 'approved'
+                  ? (theme === 'light' ? 'rgba(0, 193, 102, 0.3)' : 'rgba(0, 193, 102, 0.25)')
+                  : myApplication?.status === 'pending'
+                  ? (theme === 'light' ? 'rgba(255, 177, 66, 0.3)' : 'rgba(255, 177, 66, 0.25)')
+                  : 'var(--glass-border)'
+              }`,
+              boxShadow: myApplication?.status === 'approved'
+                ? (theme === 'light'
+                  ? '0 12px 30px rgba(0, 193, 102, 0.08), inset 0 1px 2px rgba(255,255,255,0.6)'
+                  : '0 12px 40px rgba(0, 193, 102, 0.15), inset 0 1px 2px rgba(255,255,255,0.05)')
+                : (theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'),
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',
               gap: '32px',
-              alignItems: 'stretch',
-              width: '100%'
+              alignItems: 'center'
             }}>
-              {/* デジタルIDカード (市民証) */}
-              <div 
-                onMouseMove={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width) * 100;
-                  const y = ((e.clientY - rect.top) / rect.height) * 100;
-                  setHoloPos({ x, y, active: true });
-                  
-                  // Calculate 3D tilt offset
-                  const cardX = e.clientX - rect.left - rect.width / 2;
-                  const cardY = e.clientY - rect.top - rect.height / 2;
-                  const rotateX = -(cardY / (rect.height / 2)) * 6; // Max 6 degrees tilt
-                  const rotateY = (cardX / (rect.width / 2)) * 6;
-                  setTilt({ x: rotateX, y: rotateY });
-                }}
-                onMouseLeave={() => {
-                  setHoloPos(prev => ({ ...prev, active: false }));
-                  setTilt({ x: 0, y: 0 });
-                }}
-                style={{
-                  position: 'relative',
-                  borderRadius: '24px',
-                  padding: isMobile ? '24px' : '36px',
-                  background: theme === 'light'
-                    ? (myApplication?.status === 'approved'
-                      ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
-                      : myApplication?.status === 'pending'
-                      ? 'linear-gradient(135deg, #fffcf5 0%, #ffffff 100%)'
-                      : 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)')
-                    : (myApplication?.status === 'approved'
-                      ? 'linear-gradient(135deg, #0a2115 0%, #060a0f 100%)'
-                      : myApplication?.status === 'pending'
-                      ? 'linear-gradient(135deg, #241c0a 0%, #060a0f 100%)'
-                      : 'linear-gradient(135deg, #181a1c 0%, #060a0f 100%)'),
+
+              {/* 装飾ネオンバー */}
+              <div style={{
+                position: 'absolute',
+                top: 0, left: 0, right: 0,
+                height: '4px',
+                background: myApplication?.status === 'approved'
+                  ? 'linear-gradient(90deg, #00c166, #00d2fc)'
+                  : myApplication?.status === 'pending'
+                  ? 'linear-gradient(90deg, #ffb142, #ff7b00)'
+                  : 'linear-gradient(90deg, #666, #333)'
+              }} />
+
+              {/* 左側: アバターとステータスバッジ */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                <div style={{ position: 'relative' }}>
+                  <img
+                    src={currentUser.avatar}
+                    alt="Avatar"
+                    onError={(e) => handleAvatarError(e, currentUser.username)}
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      borderRadius: '20px',
+                      border: `3px solid ${
+                        myApplication?.status === 'approved'
+                          ? 'var(--primary)'
+                          : myApplication?.status === 'pending'
+                          ? '#ffb142'
+                          : (theme === 'light' ? 'var(--glass-border)' : '#444')
+                      }`,
+                      objectFit: 'cover',
+                      boxShadow: theme === 'light' ? '0 4px 12px rgba(0,0,0,0.08)' : '0 8px 24px rgba(0,0,0,0.3)'
+                    }}
+                  />
+                  {myApplication?.status === 'approved' && (
+                    <span style={{
+                      position: 'absolute',
+                      bottom: '-6px',
+                      right: '-6px',
+                      background: 'var(--primary)',
+                      color: theme === 'light' ? '#fff' : '#000',
+                      borderRadius: '50%',
+                      width: '24px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '0.8rem',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                    }}>✓</span>
+                  )}
+                </div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  background: myApplication?.status === 'approved'
+                    ? 'rgba(0, 193, 102, 0.15)'
+                    : myApplication?.status === 'pending'
+                    ? 'rgba(255, 177, 66, 0.15)'
+                    : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+                  color: myApplication?.status === 'approved'
+                    ? 'var(--primary)'
+                    : myApplication?.status === 'pending'
+                    ? '#ffb142'
+                    : 'var(--text-muted)',
                   border: `1px solid ${
                     myApplication?.status === 'approved'
-                      ? (theme === 'light' ? 'rgba(0, 193, 102, 0.3)' : 'rgba(0, 193, 102, 0.25)')
+                      ? 'rgba(0, 193, 102, 0.2)'
                       : myApplication?.status === 'pending'
-                      ? (theme === 'light' ? 'rgba(255, 177, 66, 0.3)' : 'rgba(255, 177, 66, 0.25)')
-                      : 'var(--glass-border)'
+                      ? 'rgba(255, 177, 66, 0.2)'
+                      : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)')
                   }`,
-                  boxShadow: myApplication?.status === 'approved'
-                    ? (theme === 'light'
-                      ? '0 12px 30px rgba(0, 193, 102, 0.08), inset 0 1px 2px rgba(255,255,255,0.6)'
-                      : '0 12px 40px rgba(0, 193, 102, 0.15), inset 0 1px 2px rgba(255,255,255,0.05)')
-                    : (theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'),
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: isMobile ? 'column' : 'row',
-                  gap: '32px',
-                  alignItems: 'center',
-                  flex: 1.4,
-                  minWidth: 0,
-                  transformStyle: 'preserve-3d',
-                  transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(${holoPos.active ? '1.025' : '1'}, ${holoPos.active ? '1.025' : '1'}, 1)`,
-                  transition: 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease, border-color 0.2s ease',
-                  backfaceVisibility: 'hidden'
-                }}
-              >
-                {/* ホログラフィック箔押し (Holographic Foil Shine Overlay) */}
-                {holoPos.active && (
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    pointerEvents: 'none',
-                    zIndex: 2,
-                    opacity: theme === 'dark' ? 0.15 : 0.08,
-                    mixBlendMode: 'color-dodge',
-                    background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255, 255, 255, 0.95) 0%, rgba(0, 193, 102, 0.4) 25%, rgba(0, 160, 204, 0.4) 50%, rgba(255, 0, 128, 0.3) 75%, transparent 100%),
-                                linear-gradient(${135 + holoPos.x / 2}deg, rgba(255, 0, 128, 0.15) 0%, rgba(0, 255, 128, 0.15) 25%, rgba(0, 128, 255, 0.15) 50%, rgba(255, 255, 0, 0.15) 75%, rgba(255, 0, 128, 0.15) 100%)`,
-                    transition: 'opacity 0.3s ease'
-                  }} />
-                )}
-
-                {/* 装飾ネオンバー */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0, left: 0, right: 0,
-                  height: '4px',
-                  background: myApplication?.status === 'approved'
-                    ? 'linear-gradient(90deg, #00c166, #00d2fc)'
-                    : myApplication?.status === 'pending'
-                    ? 'linear-gradient(90deg, #ffb142, #ff7b00)'
-                    : 'linear-gradient(90deg, #666, #333)'
-                }} />
-
-                {/* 左側: アバターとステータスバッジ */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src={currentUser.avatar}
-                      alt="Avatar"
-                      onError={(e) => handleAvatarError(e, currentUser.username)}
-                      style={{
-                        width: '100px',
-                        height: '100px',
-                        borderRadius: '20px',
-                        border: `3px solid ${
-                          myApplication?.status === 'approved'
-                            ? 'var(--primary)'
-                            : myApplication?.status === 'pending'
-                            ? '#ffb142'
-                            : (theme === 'light' ? 'var(--glass-border)' : '#444')
-                        }`,
-                        objectFit: 'cover',
-                        boxShadow: theme === 'light' ? '0 4px 12px rgba(0,0,0,0.08)' : '0 8px 24px rgba(0,0,0,0.3)'
-                      }}
-                    />
-                    {myApplication?.status === 'approved' && (
-                      <span style={{
-                        position: 'absolute',
-                        bottom: '-6px',
-                        right: '-6px',
-                        background: 'var(--primary)',
-                        color: theme === 'light' ? '#fff' : '#000',
-                        borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '0.8rem',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                      }}>✓</span>
-                    )}
-                  </div>
-                  <div style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    background: myApplication?.status === 'approved'
-                      ? 'rgba(0, 193, 102, 0.15)'
-                      : myApplication?.status === 'pending'
-                      ? 'rgba(255, 177, 66, 0.15)'
-                      : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
-                    color: myApplication?.status === 'approved'
-                      ? 'var(--primary)'
-                      : myApplication?.status === 'pending'
-                      ? '#ffb142'
-                      : 'var(--text-muted)',
-                    border: `1px solid ${
-                      myApplication?.status === 'approved'
-                        ? 'rgba(0, 193, 102, 0.2)'
-                        : myApplication?.status === 'pending'
-                        ? 'rgba(255, 177, 66, 0.2)'
-                        : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)')
-                    }`,
-                    letterSpacing: '0.05em'
-                  }}>
-                    {myApplication?.status === 'approved' ? 'OFFICIAL CITIZEN' : myApplication?.status === 'pending' ? 'UNDER REVIEW' : 'UNREGISTERED'}
-                  </div>
-                </div>
-
-                {/* 右側: 情報グリッド */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', textAlign: isMobile ? 'center' : 'left' }}>
-                  <div>
-                    <span style={{ fontSize: '0.8rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Roblox Citizen Identifier</span>
-                    <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: theme === 'light' ? 'var(--text-main)' : '#ffffff', margin: 0, letterSpacing: '0.02em' }}>{currentUser.roblox_username || currentUser.username}</h2>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', borderTop: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
-                    <div>
-                      <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>ROLE</span>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: currentUser.role === 'admin' ? (theme === 'light' ? 'var(--secondary)' : '#00d2fc') : (theme === 'light' ? 'var(--text-main)' : '#ffffff') }}>
-                        {currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}
-                      </span>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>STATUS</span>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: myApplication?.status === 'approved' ? 'var(--primary)' : myApplication?.status === 'rejected' ? 'var(--error)' : (theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)') }}>
-                        {myApplication?.status === 'approved' ? '認可済み' : myApplication?.status === 'pending' ? '審査中' : myApplication?.status === 'rejected' ? '却下' : '未登録'}
-                      </span>
-                    </div>
-                  </div>
+                  letterSpacing: '0.05em'
+                }}>
+                  {myApplication?.status === 'approved' ? 'OFFICIAL CITIZEN' : myApplication?.status === 'pending' ? 'UNDER REVIEW' : 'UNREGISTERED'}
                 </div>
               </div>
 
-              {/* マイガレージの登録状況 (My Garage Overview) */}
-              <div className="glass" style={{
-                flex: 1,
-                borderRadius: '24px',
-                padding: '28px',
-                background: 'var(--panel-bg)',
-                border: '1px solid var(--glass-border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-                minWidth: 0,
-                justifyContent: 'flex-start',
-                boxShadow: theme === 'light' ? '0 12px 30px rgba(0,0,0,0.05)' : '0 12px 40px rgba(0,0,0,0.3)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Car size={20} style={{ color: 'var(--primary)' }} />
-                    登録車両の状況
-                  </h3>
-                  <button 
-                    onClick={() => { triggerHaptic('light'); setView('garage'); }} 
-                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                  >
-                    詳細 <ChevronRight size={14} />
-                  </button>
+              {/* 右側: 情報グリッド */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', textAlign: isMobile ? 'center' : 'left' }}>
+                <div>
+                  <span style={{ fontSize: '0.8rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Roblox Citizen Identifier</span>
+                  <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: theme === 'light' ? 'var(--text-main)' : '#ffffff', margin: 0, letterSpacing: '0.02em' }}>{currentUser.roblox_username || currentUser.username}</h2>
                 </div>
 
-                {/* Status counts pills */}
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ flex: 1, background: 'rgba(0, 193, 102, 0.08)', border: '1px solid rgba(0, 193, 102, 0.15)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>承認済み</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)' }}>
-                      {vehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length}
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', borderTop: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>ROLE</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: currentUser.role === 'admin' ? (theme === 'light' ? 'var(--secondary)' : '#00d2fc') : (theme === 'light' ? 'var(--text-main)' : '#ffffff') }}>
+                      {currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}
+                    </span>
                   </div>
-                  <div style={{ flex: 1, background: 'rgba(255, 177, 66, 0.08)', border: '1px solid rgba(255, 177, 66, 0.15)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>審査中</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffb142' }}>
-                      {vehicles.filter(v => v.status === 'pending').length}
-                    </div>
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>STATUS</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: myApplication?.status === 'approved' ? 'var(--primary)' : myApplication?.status === 'rejected' ? 'var(--error)' : (theme === 'light' ? 'var(--text-muted)' : 'rgba(255,255,255,0.5)') }}>
+                      {myApplication?.status === 'approved' ? '認可済み' : myApplication?.status === 'pending' ? '審査中' : myApplication?.status === 'rejected' ? '却下' : '未登録'}
+                    </span>
                   </div>
-                </div>
-
-                {/* List of latest vehicles */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, overflowY: 'auto', maxHeight: '160px', paddingRight: '4px' }}>
-                  {vehicles.length === 0 ? (
-                    <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', border: '1px dashed var(--glass-border)', borderRadius: '16px', justifyContent: 'center', flex: 1 }}>
-                      <span>登録済みの車両はありません。</span>
-                      <button 
-                        onClick={() => { triggerHaptic('medium'); setView('garage'); setShowAddModal(true); }}
-                        style={{ background: 'var(--primary-glow)', border: '1px solid var(--primary)', color: '#fff', padding: '6px 14px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}
-                      >
-                        🚗 初の車両を登録申請
-                      </button>
-                    </div>
-                  ) : (
-                    vehicles.slice(0, 2).map(v => (
-                      <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)', gap: '12px' }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {v.year} {v.maker} {v.model}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                            <span style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700 }}>{v.plate}</span>
-                            <span>•</span>
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.color}</span>
-                          </div>
-                        </div>
-                        <StatusBadge status={v.status} />
-                      </div>
-                    ))
-                  )}
                 </div>
               </div>
             </div>
@@ -2994,49 +2528,11 @@ export default function App() {
                   </div>
                 </button>
 
-                <a 
-                  href="https://discord.gg/RruM8Gqc4m" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="glass card" 
-                  style={{ 
-                    textAlign: 'left', 
-                    padding: '24px', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: '16px', 
-                    cursor: 'pointer', 
-                    border: '1px solid var(--glass-border)', 
-                    background: 'var(--panel-bg)', 
-                    borderRadius: '20px', 
-                    textDecoration: 'none',
-                    transition: 'transform 0.2s, border-color 0.2s' 
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = 'rgba(88, 101, 242, 0.4)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'var(--glass-border)';
-                    e.currentTarget.style.transform = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>💬 公式 Discord</div>
-                    <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
-                  </div>
-                  <div style={{ width: '48px', height: '48px', background: 'rgba(88, 101, 242, 0.15)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="22" height="22" viewBox="0 0 127.14 96.36" fill="#5865F2" style={{ display: 'inline-block', verticalAlign: 'middle', filter: 'drop-shadow(0 0 4px rgba(88, 101, 242, 0.4))' }}>
-                      <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
-                    </svg>
-                  </div>
-                </a>
-
               </div>
             </div>
           </div>
         ) : view === 'intro' ? (
-          <div className="animate-fade" style={{ maxWidth: '1000px', width: '100%', margin: isMobile ? '0 auto' : '0', color: 'var(--text-main)' }}>
+          <div className="animate-fade" style={{ maxWidth: '800px', margin: '0 auto', color: 'var(--text-main)' }}>
             <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '24px' }}>
               <ArrowLeft size={20} /> ホームへ戻る
             </button>
@@ -3218,8 +2714,6 @@ export default function App() {
             onToggleAutoCheck={handleToggleAutoCheck}
             pushSettings={pushSettings}
             onTogglePushSetting={handleTogglePushSetting}
-            enterKeyBehavior={enterKeyBehavior}
-            setEnterKeyBehavior={setEnterKeyBehavior}
           />
         ) : view === 'timeline' ? (
           <TimelineView
@@ -3228,7 +2722,6 @@ export default function App() {
             theme={theme}
             targetPostId={targetTimelinePostId}
             onClearTargetPost={() => setTargetTimelinePostId(null)}
-            enterKeyBehavior={enterKeyBehavior}
           />
         ) : (
           <AdminDashboardView
@@ -3272,10 +2765,15 @@ export default function App() {
       </main>
 
       {isMobile && (
-        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(10px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
           <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <Home size={24} />
             <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ホーム</span>
+          </button>
+          <button onClick={() => setView('apply')} style={{ background: 'none', border: 'none', color: view === 'apply' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', position: 'relative', cursor: 'pointer' }}>
+            <ClipboardList size={24} />
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>市民申請</span>
+            {(!myApplication || myApplication.status === 'rejected') && <span style={{ position: 'absolute', top: 0, right: 'calc(50% - 16px)', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />}
           </button>
           <button onClick={() => setView('garage')} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <LayoutDashboard size={24} />
@@ -3291,6 +2789,10 @@ export default function App() {
               <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>管理パネル</span>
             </button>
           )}
+          <button onClick={() => setView('profile')} style={{ background: 'none', border: 'none', color: view === 'profile' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <UserIcon size={24} />
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>設定</span>
+          </button>
         </nav>
       )}
 
@@ -4179,11 +3681,9 @@ export default function App() {
             className="glass card animate-fade"
             style={{
               position: 'fixed',
-              top: isMobile ? 'calc(65px + env(safe-area-inset-top))' : 'auto',
-              bottom: isMobile ? 'auto' : '100px',
-              left: isMobile ? '16px' : '20px',
-              right: isMobile ? '16px' : 'auto',
-              width: isMobile ? 'calc(100% - 32px)' : '340px',
+              top: isMobile ? 'calc(65px + env(safe-area-inset-top))' : '75px',
+              right: isMobile ? '16px' : '40px',
+              width: isMobile ? 'calc(100% - 32px)' : '380px',
               maxHeight: '480px',
               zIndex: 4999,
               background: 'var(--panel-bg)',
@@ -4288,89 +3788,6 @@ export default function App() {
         </>
       )}
 
-      {/* App-wide sliding glassmorphic Toast notification */}
-      {inAppToast && (
-        <div 
-          onClick={() => {
-            if (inAppToast.action) inAppToast.action();
-            setInAppToast(null);
-          }}
-          className="glass card"
-          style={{
-            position: 'fixed',
-            top: 'calc(16px + env(safe-area-inset-top))',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 'calc(100% - 32px)',
-            maxWidth: '400px',
-            padding: '16px 20px',
-            background: 'rgba(10, 12, 16, 0.85)',
-            border: '1px solid var(--glass-border)',
-            borderLeft: inAppToast.type === 'success' ? '4px solid #00c166' :
-                        inAppToast.type === 'warning' ? '4px solid #ffb142' :
-                        inAppToast.type === 'error' ? '4px solid #ff5252' :
-                        '4px solid #00d2fc',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-            borderRadius: '16px',
-            zIndex: 99999,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            cursor: 'pointer',
-            backdropFilter: 'blur(20px)',
-            animation: 'toastSlideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
-          }}
-        >
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            background: inAppToast.type === 'success' ? 'rgba(0,193,102,0.12)' :
-                        inAppToast.type === 'warning' ? 'rgba(255,177,66,0.12)' :
-                        inAppToast.type === 'error' ? 'rgba(255,82,82,0.12)' :
-                        'rgba(0,210,252,0.12)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: inAppToast.type === 'success' ? '#00c166' :
-                   inAppToast.type === 'warning' ? '#ffb142' :
-                   inAppToast.type === 'error' ? '#ff5252' :
-                   '#00d2fc',
-            flexShrink: 0
-          }}>
-            {inAppToast.type === 'success' ? <CheckCircle2 size={20} /> :
-             inAppToast.type === 'warning' ? <AlertTriangle size={20} /> :
-             inAppToast.type === 'error' ? <XCircle size={20} /> :
-             <Info size={20} />}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inAppToast.title}</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>{inAppToast.desc}</div>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: inAppToast.type === 'success' ? '#00c166' :
-                                                      inAppToast.type === 'warning' ? '#ffb142' :
-                                                      inAppToast.type === 'error' ? '#ff5252' :
-                                                      '#00d2fc', fontWeight: 700, flexShrink: 0 }}>
-            {inAppToast.action ? '表示' : '閉じる'}
-          </div>
-        </div>
-      )}
-
-      {/* Global CSS animations style block for sliding toast */}
-      <style>{`
-        @keyframes toastSlideDown {
-          0% {
-            transform: translate(-50%, -100px);
-            opacity: 0;
-          }
-          100% {
-            transform: translate(-50%, 0);
-            opacity: 1;
-          }
-        }
-      `}</style>
-
-      </div>
     </div>
   );
 }

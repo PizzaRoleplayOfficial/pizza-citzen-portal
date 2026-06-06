@@ -23,7 +23,6 @@ import {
   List,
   User as UserIcon,
   ChevronRight,
-  ChevronLeft,
   ChevronDown,
   ArrowLeft,
   Image as ImageIcon,
@@ -39,8 +38,7 @@ import {
   Info,
   MessageSquare,
   Bell,
-  Heart,
-  AlertTriangle
+  Heart
 } from 'lucide-react';
 import { isNative } from './utils/native';
 import { 
@@ -170,41 +168,6 @@ export default function App() {
   const [theme, setTheme] = useState<'dark'|'light'>(
     (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
   );
-  const [enterKeyBehavior, setEnterKeyBehavior] = useState<'enter' | 'shiftEnter'>(
-    (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
-  );
-
-  useEffect(() => {
-    localStorage.setItem('gvvr_enter_key_behavior', enterKeyBehavior);
-  }, [enterKeyBehavior]);
-
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const profileMenuRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
-        setShowProfileMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    isNative ? localStorage.getItem('gvvr_sidebar_collapsed') === 'true' : false
-  );
-
-  const toggleSidebar = () => {
-    const nextState = !sidebarCollapsed;
-    setSidebarCollapsed(nextState);
-    if (isNative) {
-      localStorage.setItem('gvvr_sidebar_collapsed', String(nextState));
-    }
-    triggerHaptic('light');
-  };
-
-
   const getInitialHashState = () => {
     const hash = window.location.hash.replace('#', '');
     const parts = hash.split('/');
@@ -288,8 +251,7 @@ export default function App() {
   const isMobile = useIsMobile();
 
   const [holoPos, setHoloPos] = useState({ x: 50, y: 50, active: false });
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [inAppToast, setInAppToast] = useState<{ title: string; desc: string; type?: 'success' | 'warning' | 'error' | 'info'; action?: () => void } | null>(null);
+  const [inAppToast, setInAppToast] = useState<{ title: string; desc: string; action: () => void } | null>(null);
 
   // Auto close toast after 4.5 seconds
   useEffect(() => {
@@ -299,23 +261,6 @@ export default function App() {
     }, 4500);
     return () => clearTimeout(timer);
   }, [inAppToast]);
-
-  // Listen for global custom events to show toast notifications
-  useEffect(() => {
-    const handleGlobalToast = (e: Event) => {
-      const customEvent = e as CustomEvent<{ title: string; desc: string; type?: 'success' | 'warning' | 'error' | 'info'; action?: () => void }>;
-      if (customEvent.detail) {
-        setInAppToast({
-          title: customEvent.detail.title,
-          desc: customEvent.detail.desc,
-          type: customEvent.detail.type || 'info',
-          action: customEvent.detail.action
-        });
-      }
-    };
-    window.addEventListener('gv-toast', handleGlobalToast);
-    return () => window.removeEventListener('gv-toast', handleGlobalToast);
-  }, []);
 
   // Notifications related states (v2.2.0)
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -2271,150 +2216,80 @@ export default function App() {
   if (!isLoggedIn) return <LandingView />;
 
   return (
-    <div className="app-layout" style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      padding: isMobile ? '0' : '24px',
-      gap: isMobile ? '0' : '24px',
-      boxSizing: 'border-box',
-      width: '100%',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Decorative ambient background glows for Glassmorphism depth */}
+    <div className="app-layout" style={{ background: 'var(--bg-dark)', minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row' }}>
       {!isMobile && (
-        <>
-          <div style={{
-            position: 'absolute',
-            width: '400px',
-            height: '400px',
-            background: 'radial-gradient(circle, rgba(0, 255, 136, 0.08) 0%, transparent 70%)',
-            top: '5%',
-            left: '-100px',
-            zIndex: 0,
-            pointerEvents: 'none',
-            filter: 'blur(60px)'
-          }} />
-          <div style={{
-            position: 'absolute',
-            width: '450px',
-            height: '450px',
-            background: 'radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, transparent 70%)',
-            bottom: '10%',
-            left: '-150px',
-            zIndex: 0,
-            pointerEvents: 'none',
-            filter: 'blur(80px)'
-          }} />
-        </>
-      )}
-      {!isMobile && (
-        <aside className="main-sidebar glass" style={{
-          width: sidebarCollapsed ? '80px' : '260px',
-          background: theme === 'light' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(10, 15, 25, 0.5)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border)',
+        <aside className="main-sidebar" style={{
+          width: '260px',
+          background: 'var(--nav-bg)',
+          borderRight: '1px solid var(--glass-border)',
           display: 'flex',
           flexDirection: 'column',
-          height: 'calc(100vh - 48px)',
+          height: '100vh',
           position: 'sticky',
-          top: '24px',
+          top: 0,
           zIndex: 100,
-          padding: sidebarCollapsed ? '32px 10px' : '32px 20px',
+          padding: '32px 20px',
           flexShrink: 0,
-          justifyContent: 'space-between',
-          transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          justifyContent: 'space-between'
         }}>
           {/* Top segment: Logo + Menu */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
+            <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
               <img src="/pizza.webp" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '50%' }} />
-              {!sidebarCollapsed && <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>}
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>
             </div>
 
-            {/* App specific sidebar toggle button */}
-            {isNative && (
-              <button 
-                onClick={toggleSidebar}
-                className="btn glass"
-                style={{
-                  width: '100%',
-                  padding: '10px 0',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-main)',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  gap: '8px',
-                  transition: 'all 0.2s'
-                }}
-                title={sidebarCollapsed ? "メニューを展開" : "メニューをたたむ"}
-              >
-                {sidebarCollapsed ? <ChevronRight size={18} /> : <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ChevronLeft size={18} /> <span style={{ fontWeight: 600 }}>メニューをたたむ</span></div>}
-              </button>
-            )}
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <button className={`btn-sidebar ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <Home size={18} /> {!sidebarCollapsed && <span>ホーム</span>}
+              <button className={`btn-sidebar ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')}>
+                <Home size={18} /> ホーム
               </button>
-              <button className={`btn-sidebar ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <ClipboardList size={18} /> {!sidebarCollapsed && <span>市民申請</span>}
+              <button className={`btn-sidebar ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative' }}>
+                <ClipboardList size={18} /> 市民申請
                 {(!myApplication || myApplication.status === 'rejected') && (
-                  <span className="badge-sidebar" style={sidebarCollapsed ? { position: 'absolute', top: '8px', right: '18px' } : {}} />
+                  <span className="badge-sidebar" />
                 )}
               </button>
-              <button className={`btn-sidebar ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <LayoutDashboard size={18} /> {!sidebarCollapsed && <span>ガレージ</span>}
+              <button className={`btn-sidebar ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
+                <LayoutDashboard size={18} /> ガレージ
               </button>
-              <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <MessageSquare size={18} /> {!sidebarCollapsed && <span>タイムライン</span>}
+              <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>
+                <MessageSquare size={18} /> タイムライン
               </button>
               {currentUser.role === 'admin' && (
-                <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                  <ShieldCheck size={18} /> {!sidebarCollapsed && <span>管理パネル</span>}
+                <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>
+                  <ShieldCheck size={18} /> 管理パネル
                 </button>
               )}
-              <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <UserIcon size={18} /> {!sidebarCollapsed && <span>設定</span>}
+              <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
+                <UserIcon size={18} /> 設定
               </button>
             </div>
           </div>
 
           {/* Bottom segment: User profile card */}
           <div className="glass sidebar-user-card" style={{
-            padding: sidebarCollapsed ? '12px 4px' : '12px 14px',
+            padding: '12px 14px',
             borderRadius: '16px',
             background: 'var(--panel-bg)',
             border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
-            flexDirection: sidebarCollapsed ? 'column' : 'row',
-            gap: sidebarCollapsed ? '16px' : '12px',
-            width: '100%',
-            transition: 'all 0.3s ease'
+            gap: '12px',
+            width: '100%'
           }}>
             <div 
               onClick={() => { triggerHaptic('light'); setView('profile'); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: sidebarCollapsed ? undefined : 1, minWidth: 0, cursor: 'pointer', transition: 'all 0.2s ease', flexDirection: sidebarCollapsed ? 'column' : 'row' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, cursor: 'pointer', transition: 'all 0.2s ease' }}
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'scale(1.05)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'none'; }}
             >
               <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover', transition: 'transform 0.2s ease' }} />
-              {!sidebarCollapsed && (
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
-                </div>
-              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexDirection: sidebarCollapsed ? 'column' : 'row' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <button
                 onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
                 className="btn glass"
@@ -2463,10 +2338,10 @@ export default function App() {
         </aside>
       )}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: isMobile ? '100vh' : 'calc(100vh - 48px)', position: 'relative', zIndex: 1 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh', position: 'relative' }}>
 
       {isMobile && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--nav-bg)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             {view === 'admin' && (
               <button 
@@ -2526,60 +2401,13 @@ export default function App() {
                 </span>
               )}
             </button>
-            <div ref={profileMenuRef} style={{ position: 'relative' }}>
-              <img
-                src={currentUser.avatar}
-                alt="u"
-                onClick={() => { triggerHaptic('light'); setShowProfileMenu(!showProfileMenu); }}
-                onError={(e) => handleAvatarError(e, currentUser.username)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  background: '#fff',
-                  objectFit: 'cover',
-                  cursor: 'pointer',
-                  border: showProfileMenu ? '2px solid var(--primary)' : '2px solid transparent',
-                  transition: 'border 0.2s',
-                  display: 'block'
-                }}
-              />
-              {showProfileMenu && (
-                <div className="glass" style={{
-                  position: 'absolute',
-                  top: '40px',
-                  right: 0,
-                  background: 'var(--nav-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '12px',
-                  padding: '8px',
-                  minWidth: '160px',
-                  boxShadow: theme === 'light' ? '0 8px 32px rgba(0,0,0,0.1)' : '0 8px 32px rgba(0,0,0,0.5)',
-                  zIndex: 200,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px'
-                }}>
-                  <div style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {currentUser.roblox_username || currentUser.username}
-                  </div>
-                  <button onClick={() => { triggerHaptic('light'); setView('apply'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                    <ClipboardList size={14} /> 市民申請
-                  </button>
-                  <button onClick={() => { triggerHaptic('light'); setView('profile'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                    <UserIcon size={14} /> 設定
-                  </button>
-                  <a href="/api/auth/logout" style={{ textDecoration: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--error)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                    <LogOut size={14} /> ログアウト
-                  </a>
-                </div>
-              )}
-            </div>
+            <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fff', objectFit: 'cover' }} />
+            <a href="/api/auth/logout" style={{ color: 'var(--text-muted)' }}><LogOut size={20} /></a>
           </div>
         </div>
       )}
 
-      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px 12px', maxWidth: '100%', margin: isMobile ? '0 auto' : '0', width: '100%' }}>
+      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '60px 40px', maxWidth: '100%', margin: isMobile ? '0 auto' : '0', width: '100%' }}>
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '1200px', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
@@ -2681,20 +2509,14 @@ export default function App() {
               <div 
                 onMouseMove={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width) * 100;
-                  const y = ((e.clientY - rect.top) / rect.height) * 100;
-                  setHoloPos({ x, y, active: true });
-                  
-                  // Calculate 3D tilt offset
-                  const cardX = e.clientX - rect.left - rect.width / 2;
-                  const cardY = e.clientY - rect.top - rect.height / 2;
-                  const rotateX = -(cardY / (rect.height / 2)) * 6; // Max 6 degrees tilt
-                  const rotateY = (cardX / (rect.width / 2)) * 6;
-                  setTilt({ x: rotateX, y: rotateY });
+                  setHoloPos({
+                    x: ((e.clientX - rect.left) / rect.width) * 100,
+                    y: ((e.clientY - rect.top) / rect.height) * 100,
+                    active: true
+                  });
                 }}
                 onMouseLeave={() => {
                   setHoloPos(prev => ({ ...prev, active: false }));
-                  setTilt({ x: 0, y: 0 });
                 }}
                 style={{
                   position: 'relative',
@@ -2729,11 +2551,7 @@ export default function App() {
                   gap: '32px',
                   alignItems: 'center',
                   flex: 1.4,
-                  minWidth: 0,
-                  transformStyle: 'preserve-3d',
-                  transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(${holoPos.active ? '1.025' : '1'}, ${holoPos.active ? '1.025' : '1'}, 1)`,
-                  transition: 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease, border-color 0.2s ease',
-                  backfaceVisibility: 'hidden'
+                  minWidth: 0
                 }}
               >
                 {/* ホログラフィック箔押し (Holographic Foil Shine Overlay) */}
@@ -2743,10 +2561,9 @@ export default function App() {
                     inset: 0,
                     pointerEvents: 'none',
                     zIndex: 2,
-                    opacity: theme === 'dark' ? 0.15 : 0.08,
+                    opacity: theme === 'dark' ? 0.08 : 0.04,
                     mixBlendMode: 'color-dodge',
-                    background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255, 255, 255, 0.95) 0%, rgba(0, 193, 102, 0.4) 25%, rgba(0, 160, 204, 0.4) 50%, rgba(255, 0, 128, 0.3) 75%, transparent 100%),
-                                linear-gradient(${135 + holoPos.x / 2}deg, rgba(255, 0, 128, 0.15) 0%, rgba(0, 255, 128, 0.15) 25%, rgba(0, 128, 255, 0.15) 50%, rgba(255, 255, 0, 0.15) 75%, rgba(255, 0, 128, 0.15) 100%)`,
+                    background: `radial-gradient(circle at ${holoPos.x}% ${holoPos.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(0, 193, 102, 0.4) 30%, rgba(0, 160, 204, 0.4) 60%, transparent 100%)`,
                     transition: 'opacity 0.3s ease'
                   }} />
                 )}
@@ -3218,8 +3035,6 @@ export default function App() {
             onToggleAutoCheck={handleToggleAutoCheck}
             pushSettings={pushSettings}
             onTogglePushSetting={handleTogglePushSetting}
-            enterKeyBehavior={enterKeyBehavior}
-            setEnterKeyBehavior={setEnterKeyBehavior}
           />
         ) : view === 'timeline' ? (
           <TimelineView
@@ -3228,7 +3043,6 @@ export default function App() {
             theme={theme}
             targetPostId={targetTimelinePostId}
             onClearTargetPost={() => setTargetTimelinePostId(null)}
-            enterKeyBehavior={enterKeyBehavior}
           />
         ) : (
           <AdminDashboardView
@@ -3272,10 +3086,15 @@ export default function App() {
       </main>
 
       {isMobile && (
-        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(10px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
           <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <Home size={24} />
             <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ホーム</span>
+          </button>
+          <button onClick={() => setView('apply')} style={{ background: 'none', border: 'none', color: view === 'apply' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', position: 'relative', cursor: 'pointer' }}>
+            <ClipboardList size={24} />
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>市民申請</span>
+            {(!myApplication || myApplication.status === 'rejected') && <span style={{ position: 'absolute', top: 0, right: 'calc(50% - 16px)', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--error)' }} />}
           </button>
           <button onClick={() => setView('garage')} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <LayoutDashboard size={24} />
@@ -3291,6 +3110,10 @@ export default function App() {
               <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>管理パネル</span>
             </button>
           )}
+          <button onClick={() => setView('profile')} style={{ background: 'none', border: 'none', color: view === 'profile' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <UserIcon size={24} />
+            <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>設定</span>
+          </button>
         </nav>
       )}
 
@@ -4292,7 +4115,7 @@ export default function App() {
       {inAppToast && (
         <div 
           onClick={() => {
-            if (inAppToast.action) inAppToast.action();
+            inAppToast.action();
             setInAppToast(null);
           }}
           className="glass card"
@@ -4304,12 +4127,8 @@ export default function App() {
             width: 'calc(100% - 32px)',
             maxWidth: '400px',
             padding: '16px 20px',
-            background: 'rgba(10, 12, 16, 0.85)',
+            background: 'rgba(10, 12, 16, 0.8)',
             border: '1px solid var(--glass-border)',
-            borderLeft: inAppToast.type === 'success' ? '4px solid #00c166' :
-                        inAppToast.type === 'warning' ? '4px solid #ffb142' :
-                        inAppToast.type === 'error' ? '4px solid #ff5252' :
-                        '4px solid #00d2fc',
             boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
             borderRadius: '16px',
             zIndex: 99999,
@@ -4325,34 +4144,20 @@ export default function App() {
             width: '40px',
             height: '40px',
             borderRadius: '12px',
-            background: inAppToast.type === 'success' ? 'rgba(0,193,102,0.12)' :
-                        inAppToast.type === 'warning' ? 'rgba(255,177,66,0.12)' :
-                        inAppToast.type === 'error' ? 'rgba(255,82,82,0.12)' :
-                        'rgba(0,210,252,0.12)',
+            background: 'rgba(0,193,102,0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: inAppToast.type === 'success' ? '#00c166' :
-                   inAppToast.type === 'warning' ? '#ffb142' :
-                   inAppToast.type === 'error' ? '#ff5252' :
-                   '#00d2fc',
+            color: 'var(--primary)',
             flexShrink: 0
           }}>
-            {inAppToast.type === 'success' ? <CheckCircle2 size={20} /> :
-             inAppToast.type === 'warning' ? <AlertTriangle size={20} /> :
-             inAppToast.type === 'error' ? <XCircle size={20} /> :
-             <Info size={20} />}
+            <Bell size={20} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inAppToast.title}</div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>{inAppToast.desc}</div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: inAppToast.type === 'success' ? '#00c166' :
-                                                      inAppToast.type === 'warning' ? '#ffb142' :
-                                                      inAppToast.type === 'error' ? '#ff5252' :
-                                                      '#00d2fc', fontWeight: 700, flexShrink: 0 }}>
-            {inAppToast.action ? '表示' : '閉じる'}
-          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700, flexShrink: 0 }}>表示</div>
         </div>
       )}
 
