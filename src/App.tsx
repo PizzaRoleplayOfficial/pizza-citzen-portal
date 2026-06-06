@@ -2126,52 +2126,59 @@ export default function App() {
   const handleWikiSync = async (gameType: 'gv' | 'rc') => {
     const gameName = gameType === 'rc' ? 'Rensselaer County (RC)' : 'Greenville (Gv)';
     if (!confirm(`${gameName} のWikiから最新の車両データを取得し、カタログを更新しますか？\n（この処理には1分程度かかる場合があります）`)) return;
-    
+
     setWikiSyncProgress("Wikiから車両リストを取得中...");
-    
+
+    const wikiLabel = gameType === 'rc' ? 'RC' : 'GV';
+    const wikiSegments = JSON.stringify([
+      { weight: 75, color: "#3B82F6" }, // Wiki crawl (Blue)
+      { weight: 25, color: "#10B981" }  // DB Save (Green)
+    ]);
+    const wikiPoints = JSON.stringify([
+      { position: 75, color: "#3B82F6" }
+    ]);
+
     if (isNative) {
-      const segments = JSON.stringify([
-        { weight: 75, color: "#3B82F6" }, // Wiki crawl (Blue)
-        { weight: 25, color: "#10B981" }  // DB Save (Green)
-      ]);
-      const points = JSON.stringify([
-        { position: 75, color: "#3B82F6" }
-      ]);
       getLiveProgress().start({
-        title: `${gameType === 'rc' ? 'RC' : 'GV'} カタログ同期`,
+        title: `${wikiLabel} カタログ同期`,
         text: 'Wikiから車両リストを取得中...',
         progress: 0,
-        segments,
-        points
+        segments: wikiSegments,
+        points: wikiPoints
       }).catch(err => console.error('Failed to start LiveProgress for wiki sync:', err));
     }
 
     try {
-      // 1. Crawl Wiki in the client
+      // 1. Wiki巡回（進捗コールバックでLiveProgressを更新）
       const newCatalog = await fetchWikiCatalog(gameType, (progressMsg, progressPercent) => {
         setWikiSyncProgress(progressMsg);
         if (isNative && progressPercent !== undefined) {
+          // update にも segments/points を渡してセグメントが消えないようにする
           getLiveProgress().update({
-            title: `${gameType === 'rc' ? 'RC' : 'GV'} カタログ同期`,
+            title: `${wikiLabel} カタログ同期`,
             text: progressMsg,
-            progress: progressPercent
+            progress: progressPercent,
+            segments: wikiSegments,
+            points: wikiPoints
           }).catch(err => console.error('Failed to update LiveProgress for wiki sync:', err));
         }
       });
-      
-      // 2. Save Catalog to DB
+
+      // 2. DBへ保存
       const dbSaveMsg = "データベースに同期・保存中...";
       setWikiSyncProgress(dbSaveMsg);
       if (isNative) {
         getLiveProgress().update({
-          title: `${gameType === 'rc' ? 'RC' : 'GV'} カタログ同期`,
+          title: `${wikiLabel} カタログ同期`,
           text: dbSaveMsg,
-          progress: 85
+          progress: 85,
+          segments: wikiSegments,
+          points: wikiPoints
         }).catch(err => console.error('Failed to update LiveProgress for wiki sync save phase:', err));
       }
 
       const success = await saveCatalogToDatabase(newCatalog, gameType);
-      
+
       if (success) {
         alert(`${gameName} のカタログ同期が完了しました。`);
         loadCatalog(gameType);
@@ -2188,6 +2195,7 @@ export default function App() {
       }
     }
   };
+
 
   const handleSaveQuestion = async (q: any) => {
     const isNew = !q.id;

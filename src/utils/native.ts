@@ -451,8 +451,14 @@ export const getLiveProgress = () => {
   return LiveProgress;
 };
 
+// ---- 内部トラッカー状態管理 ----
+// 市民申請・車両登録の2種類のトラッカーで誤って消し合わないように管理する
+let _appTrackerActive = false;
+let _vehicleTrackerActive = false;
+
 /**
  * ユーザーの市民申請ステータスに応じて Android 16 の進行状況重視通知 (Live Update) を開始・更新・終了します。
+ * pending の間は常駐し、承認・却下で自動消去します。
  */
 export const updateApplicationTrackerNotification = (app: any) => {
   if (!isNative) return;
@@ -474,30 +480,30 @@ export const updateApplicationTrackerNotification = (app: any) => {
         { weight: 35, color: "#EAB308" }, // Yellow
         { weight: 35, color: "#10B981" }  // Green
       ]);
-
-      // Points (milestones):
       const points = JSON.stringify([
         { position: 30, color: "#3B82F6" },
         { position: 65, color: "#EAB308" }
       ]);
 
-      LiveProgress.start({
-        title: '市民申請の審査状況',
-        text: text,
-        progress: progress,
-        segments: segments,
-        points: points
-      }).then(() => {
+      const opts = { title: '市民申請の審査状況', text, progress, segments, points };
+      // 初回は start、以降は update でセグメントを保持したまま更新
+      const action = _appTrackerActive ? LiveProgress.update(opts) : LiveProgress.start(opts);
+      _appTrackerActive = true;
+      action.then(() => {
         console.log('Application LiveProgress tracker started/updated.');
       }).catch(err => {
-        console.error('Failed to start LiveProgress tracker:', err);
+        console.error('Failed to start/update Application LiveProgress tracker:', err);
       });
     } else {
-      LiveProgress.stop().then(() => {
-        console.log('Application LiveProgress tracker stopped.');
-      }).catch(err => {
-        console.error('Failed to stop LiveProgress tracker:', err);
-      });
+      // 承認・却下済み → 確実に消去
+      if (_appTrackerActive) {
+        _appTrackerActive = false;
+        LiveProgress.stop().then(() => {
+          console.log('Application LiveProgress tracker stopped.');
+        }).catch(err => {
+          console.error('Failed to stop Application LiveProgress tracker:', err);
+        });
+      }
     }
   } catch (err) {
     console.error('Error in updateApplicationTrackerNotification:', err);
@@ -505,7 +511,8 @@ export const updateApplicationTrackerNotification = (app: any) => {
 };
 
 /**
- * ユーザーの車両登録申請ステータスに応じて Android 16 の進行状況重視通知 (Live Update) を開始・終了します。
+ * ユーザーの車両登録申請ステータスに応じて Android 16 の進行状況重視通知 (Live Update) を開始・更新・終了します。
+ * 審査待ち（pending）の間は常駐し、審査完了（approved/rejected）になると自動消去します。
  */
 export const updateVehicleTrackerNotification = (vehicles: any[]) => {
   if (!isNative) return;
@@ -517,7 +524,7 @@ export const updateVehicleTrackerNotification = (vehicles: any[]) => {
       // 最も新しい申請中の車両を取得
       const pendingVehicle = pendingVehicles[pendingVehicles.length - 1];
       const carName = `${pendingVehicle.year}年式 ${pendingVehicle.maker} ${pendingVehicle.model}`;
-      
+
       // Segments: Submitted (50%), Approved/Done (50%)
       const segments = JSON.stringify([
         { weight: 50, color: "#3B82F6" }, // Submitted (Blue)
@@ -526,29 +533,40 @@ export const updateVehicleTrackerNotification = (vehicles: any[]) => {
       const points = JSON.stringify([
         { position: 50, color: "#3B82F6" }
       ]);
-
       const text = `車両「${carName}」（ナンバー: ${pendingVehicle.plate}）の申請を確認中...`;
 
-      LiveProgress.start({
+      const opts = {
         title: '車両登録の審査状況',
-        text: text,
+        text,
         progress: 50,
-        segments: segments,
-        points: points
-      }).then(() => {
+        segments,
+        points
+      };
+
+      // 初回は start、以降は update（セグメントを毎回送って保持）
+      const action = _vehicleTrackerActive ? LiveProgress.update(opts) : LiveProgress.start(opts);
+      _vehicleTrackerActive = true;
+      action.then(() => {
         console.log('Vehicle LiveProgress tracker started/updated.');
       }).catch(err => {
-        console.error('Failed to start vehicle LiveProgress tracker:', err);
+        console.error('Failed to start/update vehicle LiveProgress tracker:', err);
+        // フォールバック: start を再試行
+        _vehicleTrackerActive = false;
+        LiveProgress.start(opts).catch(e => console.error('Retry start failed:', e));
+        _vehicleTrackerActive = true;
       });
     } else {
-      LiveProgress.stop().then(() => {
-        console.log('Vehicle LiveProgress tracker stopped.');
-      }).catch(err => {
-        console.error('Failed to stop vehicle LiveProgress tracker:', err);
-      });
+      // 審査中の車両がなくなった → 通知を確実に消去
+      if (_vehicleTrackerActive) {
+        _vehicleTrackerActive = false;
+        LiveProgress.stop().then(() => {
+          console.log('Vehicle LiveProgress tracker stopped (no pending vehicles).');
+        }).catch(err => {
+          console.error('Failed to stop vehicle LiveProgress tracker:', err);
+        });
+      }
     }
   } catch (err) {
     console.error('Error in updateVehicleTrackerNotification:', err);
   }
 };
-

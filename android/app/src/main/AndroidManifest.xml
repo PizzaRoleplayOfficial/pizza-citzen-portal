@@ -32,9 +32,15 @@
 
         </activity>
 
-        <!-- Live Update / Progress Notification channel service -->
+        <!-- Live Update / Progress Notification channel service (APK download) -->
         <service
             android:name=".LiveUpdateService"
+            android:foregroundServiceType="shortService"
+            android:exported="false" />
+
+        <!-- Live Progress Service (Wiki sync / Timeline upload / Vehicle tracker) -->
+        <service
+            android:name=".LiveProgressService"
             android:foregroundServiceType="shortService"
             android:exported="false" />
 
