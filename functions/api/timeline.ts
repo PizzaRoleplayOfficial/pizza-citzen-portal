@@ -39,6 +39,13 @@ const ensureTimelineTables = async (db: any) => {
       console.log("Adding repost_id column to timeline_posts table...");
       await db.prepare("ALTER TABLE timeline_posts ADD COLUMN repost_id TEXT").run();
     }
+
+    const hasIsAnnouncement = tableInfo.results.some((col: any) => col.name === 'is_announcement');
+    if (!hasIsAnnouncement) {
+      console.log("Adding is_announcement column to timeline_posts table...");
+      await db.prepare("ALTER TABLE timeline_posts ADD COLUMN is_announcement INTEGER DEFAULT 0").run();
+    }
+    await db.prepare("UPDATE timeline_posts SET is_announcement = 0 WHERE is_announcement IS NULL").run();
   } catch (err: any) {
     console.error("Error checking/adding columns:", err.message);
   }
@@ -149,6 +156,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         p.created_at,
         p.views_count,
         p.repost_id,
+        p.is_announcement,
         u.username as author_username,
         u.avatar as author_avatar,
         u.roblox_username as author_roblox_username,
@@ -239,7 +247,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     const body = await request.json() as any;
-    const { userId, content, image_data, video_path, repostId, poll } = body;
+    const { userId, content, image_data, video_path, repostId, poll, isAnnouncement } = body;
 
     if (!userId || (!content && !repostId)) {
       return new Response(JSON.stringify({ error: 'ユーザーIDと投稿内容、またはリポスト対象IDが必要です。' }), {
@@ -260,9 +268,17 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     const id = crypto.randomUUID();
     const initialViews = 0; // Starts with 0 views
     
+    let isAnnouncementFlag = 0;
+    if (isAnnouncement) {
+      const dbUser = await env.D1_DB.prepare("SELECT role FROM users WHERE id = ?").bind(userId).first();
+      if (dbUser && dbUser.role === 'admin') {
+        isAnnouncementFlag = 1;
+      }
+    }
+
     await env.D1_DB.prepare(
-      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path, repost_id) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    ).bind(id, userId, content || "", image_data || null, initialViews, video_path || null, repostId || null).run();
+      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path, repost_id, is_announcement) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, userId, content || "", image_data || null, initialViews, video_path || null, repostId || null, isAnnouncementFlag).run();
 
     // Insert poll if option data is provided
     if (poll && Array.isArray(poll.options) && poll.options.length >= 2) {

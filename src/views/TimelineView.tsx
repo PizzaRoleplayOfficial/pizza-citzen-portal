@@ -46,6 +46,7 @@ interface TimelineViewProps {
 
 interface TimelinePost {
   id: string;
+  is_announcement?: number;
   user_id: string;
   content: string;
   image_data: string | null;
@@ -889,6 +890,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [posts, setPosts] = useState<TimelinePost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
+  const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [showComposerModal, setShowComposerModal] = useState(false);
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -2030,7 +2032,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           content: newPostContent,
           image_data: newPostImages.length > 0 ? JSON.stringify(newPostImages) : null,
           video_path: videoPath,
-          poll: pollData
+          poll: pollData,
+          isAnnouncement
         })
       });
 
@@ -2042,6 +2045,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         setPollOptions(['', '']);
         setPollDuration(1440);
         setPollAllowMultiple(false);
+        setIsAnnouncement(false);
         setShowComposerModal(false);
         await fetchPosts();
       } else {
@@ -3430,6 +3434,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flexShrink: 0, marginLeft: 'auto' }}>
+                  {currentUser.role === 'admin' && (
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', marginRight: isMobile ? '4px' : '8px', userSelect: 'none' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isAnnouncement} 
+                        onChange={(e) => { triggerHaptic('light'); setIsAnnouncement(e.target.checked); }}
+                        style={{
+                          accentColor: 'var(--primary)',
+                          cursor: 'pointer',
+                          width: '16px',
+                          height: '16px'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.8rem', color: isAnnouncement ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>📢 告知として投稿</span>
+                    </label>
+                  )}
                   {isCompressingVideo && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
@@ -3601,8 +3621,78 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           );
         }
 
+        const latestAnnouncement = posts.find(p => p.is_announcement === 1);
+        const showPinnedAnnouncement = latestAnnouncement && !searchQuery && (activeFeedTab === 'all' || activeFeedTab === 'following');
+
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {showPinnedAnnouncement && (
+              <div 
+                onClick={() => {
+                  triggerHaptic('light');
+                  setExpandedPostId(latestAnnouncement.id);
+                }}
+                className="glass card animate-fade" 
+                style={{ 
+                  padding: '24px', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: '12px', 
+                  background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.08) 0%, rgba(0, 212, 255, 0.02) 100%)',
+                  border: '1px solid rgba(0, 255, 136, 0.25)',
+                  boxShadow: '0 8px 32px rgba(0, 255, 136, 0.08)',
+                  borderRadius: '24px',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 255, 136, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 255, 136, 0.08)';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <span>📢 運営からの重要なお知らせ</span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {formatRelativeTime(latestAnnouncement.created_at)}
+                  </span>
+                </div>
+                <div style={{ fontSize: '1.05rem', color: 'var(--text-main)', fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {latestAnnouncement.content}
+                </div>
+                {latestAnnouncement.image_data && renderImageGrid(latestAnnouncement.image_data, latestAnnouncement.id)}
+                {latestAnnouncement.video_path && (
+                  <div style={{ marginTop: '8px', pointerEvents: 'none' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--primary)' }}>
+                      <span>🎬 動画が添付されています (クリックして表示)</span>
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px' }}>
+                  <img 
+                    src={latestAnnouncement.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(latestAnnouncement.author_username || 'P')}&background=00c166&color=fff`} 
+                    alt="u" 
+                    onError={(e) => handleAvatarError(e, latestAnnouncement.author_username || 'P')}
+                    style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      {latestAnnouncement.author_username}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {latestAnnouncement.author_roblox_username ? `@${latestAnnouncement.author_roblox_username}` : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {filteredPosts.map((post) => {
               const isAuthor = post.user_id === currentUser.id;
               const isAdmin = currentUser.role === 'admin';
@@ -3611,6 +3701,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               const isLiked = targetPost.is_liked === 1;
               const isAnimating = likeAnimatingPostId === targetPost.id;
               const isReposted = targetPost.is_reposted === 1;
+
+              const isAnnouncementPost = post.is_announcement === 1;
 
               return (
                 <div 
@@ -3622,8 +3714,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     display: 'flex', 
                     flexDirection: 'column',
                     gap: '12px', 
-                    background: 'var(--panel-bg)', 
-                    border: '1px solid var(--glass-border)',
+                    background: isAnnouncementPost 
+                      ? 'linear-gradient(135deg, rgba(20,25,35,0.7) 0%, rgba(0, 255, 136, 0.03) 100%)' 
+                      : 'var(--panel-bg)', 
+                    border: isAnnouncementPost 
+                      ? '1.5px solid rgba(0, 255, 136, 0.3)' 
+                      : '1px solid var(--glass-border)',
+                    boxShadow: isAnnouncementPost 
+                      ? '0 8px 24px rgba(0, 255, 136, 0.06)' 
+                      : 'none',
                     position: 'relative'
                   }}
                 >
@@ -3724,6 +3823,24 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           {targetPost.author_roblox_username && (
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                               @{targetPost.author_roblox_username}
+                            </span>
+                          )}
+                          {post.is_announcement === 1 && (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              background: 'rgba(0, 255, 136, 0.15)',
+                              border: '1px solid rgba(0, 255, 136, 0.3)',
+                              color: 'var(--primary)',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              marginLeft: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              verticalAlign: 'middle'
+                            }}>
+                              📢 運営告知
                             </span>
                           )}
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>•</span>
