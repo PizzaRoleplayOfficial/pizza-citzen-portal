@@ -4181,7 +4181,7 @@ export default function App() {
               position: 'fixed',
               top: isMobile ? 'calc(65px + env(safe-area-inset-top))' : 'auto',
               bottom: isMobile ? 'auto' : '100px',
-              left: isMobile ? '16px' : '20px',
+              left: isMobile ? '16px' : (sidebarCollapsed ? '100px' : '280px'),
               right: isMobile ? '16px' : 'auto',
               width: isMobile ? 'calc(100% - 32px)' : '340px',
               maxHeight: '480px',
