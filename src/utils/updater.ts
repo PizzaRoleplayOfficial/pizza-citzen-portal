@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.34'; // 2.2.34 (トレンド・検索ワードタップ時の自動遷移・検索実行解除時のトースト通知・投稿内ハッシュタグリンク化とタップ検索機能)
+export const CURRENT_VERSION = '2.2.35'; // 2.2.35 (タイムライン送信キー挙動設定オプション追加と永続化)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

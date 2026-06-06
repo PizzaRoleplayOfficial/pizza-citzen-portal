@@ -26,6 +26,8 @@ interface ProfileViewProps {
     key: 'resultsEnabled' | 'adminEnabled' | 'adminEditEnabled' | 'timelineLikeEnabled' | 'timelineCommentEnabled' | 'timelineNewPostEnabled', 
     enabled: boolean
   ) => void;
+  enterKeyBehavior: 'enter' | 'shiftEnter';
+  setEnterKeyBehavior: (val: 'enter' | 'shiftEnter') => void;
 }
 
 export const ProfileView = ({
@@ -40,7 +42,9 @@ export const ProfileView = ({
   autoCheckUpdates,
   onToggleAutoCheck,
   pushSettings,
-  onTogglePushSetting
+  onTogglePushSetting,
+  enterKeyBehavior,
+  setEnterKeyBehavior
 }: ProfileViewProps) => {
   return (
     <div className="animate-fade" style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -67,6 +71,31 @@ export const ProfileView = ({
             <label className={`theme-selector-item ${theme === 'light' ? 'active' : ''}`}>
               <input type="radio" value="light" checked={theme === 'light'} onChange={() => setTheme('light')} style={{ accentColor: 'var(--primary)' }} />
               <Palette size={18} /> ライトモード
+            </label>
+          </div>
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>タイムラインの送信キー（キーボード操作時）</label>
+          <div className="theme-selector-container">
+            <label className={`theme-selector-item ${enterKeyBehavior === 'enter' ? 'active' : ''}`}>
+              <input 
+                type="radio" 
+                value="enter" 
+                checked={enterKeyBehavior === 'enter'} 
+                onChange={() => { triggerHaptic('light'); setEnterKeyBehavior('enter'); }} 
+                style={{ accentColor: 'var(--primary)' }} 
+              />
+              Enterで送信
+            </label>
+            <label className={`theme-selector-item ${enterKeyBehavior === 'shiftEnter' ? 'active' : ''}`}>
+              <input 
+                type="radio" 
+                value="shiftEnter" 
+                checked={enterKeyBehavior === 'shiftEnter'} 
+                onChange={() => { triggerHaptic('light'); setEnterKeyBehavior('shiftEnter'); }} 
+                style={{ accentColor: 'var(--primary)' }} 
+              />
+              Shift+Enterで送信
             </label>
           </div>
         </div>

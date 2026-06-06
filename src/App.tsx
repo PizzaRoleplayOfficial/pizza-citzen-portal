@@ -169,6 +169,14 @@ export default function App() {
   const [theme, setTheme] = useState<'dark'|'light'>(
     (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
   );
+  const [enterKeyBehavior, setEnterKeyBehavior] = useState<'enter' | 'shiftEnter'>(
+    (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
+  );
+
+  useEffect(() => {
+    localStorage.setItem('gvvr_enter_key_behavior', enterKeyBehavior);
+  }, [enterKeyBehavior]);
+
   const getInitialHashState = () => {
     const hash = window.location.hash.replace('#', '');
     const parts = hash.split('/');
@@ -3065,6 +3073,8 @@ export default function App() {
             onToggleAutoCheck={handleToggleAutoCheck}
             pushSettings={pushSettings}
             onTogglePushSetting={handleTogglePushSetting}
+            enterKeyBehavior={enterKeyBehavior}
+            setEnterKeyBehavior={setEnterKeyBehavior}
           />
         ) : view === 'timeline' ? (
           <TimelineView
@@ -3073,6 +3083,7 @@ export default function App() {
             theme={theme}
             targetPostId={targetTimelinePostId}
             onClearTargetPost={() => setTargetTimelinePostId(null)}
+            enterKeyBehavior={enterKeyBehavior}
           />
         ) : (
           <AdminDashboardView

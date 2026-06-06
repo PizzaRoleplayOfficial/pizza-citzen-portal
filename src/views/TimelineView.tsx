@@ -23,7 +23,9 @@ import {
   Search,
   Bookmark,
   Pin,
-  TrendingUp
+  TrendingUp,
+  Compass,
+  BookOpen
 } from 'lucide-react';
 import { compressImage, compressVideo } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
@@ -38,6 +40,7 @@ interface TimelineViewProps {
   theme: 'dark' | 'light';
   targetPostId?: string | null;
   onClearTargetPost?: () => void;
+  enterKeyBehavior?: 'enter' | 'shiftEnter';
 }
 
 interface TimelinePost {
@@ -875,7 +878,7 @@ const highlightText = (text: string, highlight: string) => {
   );
 };
 
-export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onClearTargetPost }: TimelineViewProps) => {
+export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onClearTargetPost, enterKeyBehavior = 'enter' }: TimelineViewProps) => {
   const showToast = (title: string, desc: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
     window.dispatchEvent(new CustomEvent('gv-toast', { detail: { title, desc, type } }));
   };
@@ -896,7 +899,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       const angle = Math.random() * Math.PI * 2;
       const velocity = Math.random() * 80 + 40; // Pixels per second
       return {
-        id: crypto.randomUUID(),
+        id: crypto.randomUUID() as string,
         x: clientX,
         y: clientY,
         char: type === 'like' ? '❤️' : '✨',
@@ -1153,7 +1156,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         updated.user_voted_option = optionIndex;
         updated.poll_total_votes = (updated.poll_total_votes || 0) + 1;
         const key = `poll_option_${optionIndex}_votes` as keyof TimelinePost;
-        updated[key] = ((updated[key] as number) || 0) + 1;
+        (updated as any)[key] = ((updated[key] as number) || 0) + 1;
         return updated;
       }
       return p;
@@ -1352,7 +1355,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         try {
           const res = await fetch(`/api/profile?userId=${userParam}`);
           if (res.ok) {
-            const data = await res.json();
+            const data = await res.json() as any;
             setSelectedUserProfile({
               userId: data.id,
               username: data.username,
@@ -1402,12 +1405,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     setProfileFade(false); // start fade out
     
     fetch(`/api/profile?userId=${selectedUserProfile.userId}&viewerId=${currentUser.id}`)
-      .then(res => res.ok ? res.json() : null)
+      .then(res => res.ok ? (res.json() as any) : null)
       .then(data => {
-        if (data) {
-          setProfileInfo(data);
-          setBioText(data.bio || '');
-          setIsFollowing(data.isFollowing);
+        const d = data as any;
+        if (d) {
+          setProfileInfo(d);
+          setBioText(d.bio || '');
+          setIsFollowing(d.isFollowing);
           setIsEditingBio(false);
           
           // Trigger smooth fade back in
@@ -1586,7 +1590,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         const res = await fetch(`/api/search-suggestions?q=${encodeURIComponent(searchQuery)}`);
         if (res.ok) {
           const data = await res.json();
-          setSearchSuggestions(data || { users: [], keywords: [] });
+          setSearchSuggestions((data as any) || { users: [], keywords: [] });
         }
       } catch (err) {
         console.error("Failed to fetch search suggestions:", err);
@@ -1862,8 +1866,38 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      const hasPoll = showPollComposer && pollOptions.filter(o => o.trim()).length >= 2;
+      const canSubmit = newPostContent.trim() || newPostImages.length > 0 || selectedVideoFile || hasPoll;
+      
+      // On mobile devices, soft keyboard Enter key should insert newline by default unless they specifically want to post
+      if (isMobile) {
+        // If they chose standard 'enter' behavior (Enter to post), we override Enter to post only if they don't press shift.
+        // Wait, on mobile virtual keyboard, standard is to have a Send button, but if they hit enter on keyboard:
+        // We'll respect the setting.
+      }
+      
+      if (enterKeyBehavior === 'enter') {
+        if (!e.shiftKey) {
+          e.preventDefault();
+          if (canSubmit) {
+            handleCreatePost(e);
+          }
+        }
+      } else {
+        if (e.shiftKey) {
+          e.preventDefault();
+          if (canSubmit) {
+            handleCreatePost(e);
+          }
+        }
+      }
+    }
+  };
+
+  const handleCreatePost = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e) e.preventDefault();
     const hasPoll = showPollComposer && pollOptions.filter(o => o.trim()).length >= 2;
     if (!newPostContent.trim() && newPostImages.length === 0 && !selectedVideoFile && !hasPoll) return;
 
@@ -2075,9 +2109,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       image_data: post.orig_image_data || null,
       video_path: post.orig_video_path || null,
       created_at: post.orig_created_at || post.created_at,
-      author_username: post.orig_author_username,
-      author_avatar: post.orig_author_avatar,
-      author_roblox_username: post.orig_author_roblox_username,
+      author_username: post.orig_author_username ?? null,
+      author_avatar: post.orig_author_avatar ?? null,
+      author_roblox_username: post.orig_author_roblox_username ?? null,
       likes_count: post.likes_count, // Already COALESCE'd in API
       comments_count: post.comments_count, // Already COALESCE'd in API
       is_liked: post.is_liked, // Already COALESCE'd in API
@@ -2890,6 +2924,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               value={newPostContent}
               onChange={(e) => setNewPostContent(e.target.value)}
               onPaste={handlePaste}
+              onKeyDown={handleKeyDown}
               placeholder="いまどうしてる？（コピペでの画像追加もOK）"
               maxLength={280}
               style={{
@@ -3851,10 +3886,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     padding: '4px 0'
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.opacity = 0.8;
+                    e.currentTarget.style.opacity = '0.8';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.opacity = 1;
+                    e.currentTarget.style.opacity = '1';
                   }}
                 >
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{idx + 1} • トレンド</span>
@@ -4191,7 +4226,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                               </p>
 
                               {/* Attached Images */}
-                              {renderImageGrid(comment.image_data, activePost.id)}
+                              {renderImageGrid(comment.image_data ?? null, activePost.id)}
 
                               {/* Attached Video */}
                               {comment.video_path && (
@@ -4340,7 +4375,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                       </p>
 
                                       {/* Attached Images */}
-                                      {renderImageGrid(sub.image_data, activePost.id)}
+                                      {renderImageGrid(sub.image_data ?? null, activePost.id)}
 
                                       {/* Attached Video */}
                                       {sub.video_path && (
