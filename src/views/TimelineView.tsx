@@ -2050,7 +2050,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           setIsCompressingVideo(false);
           setIsSubmitting(false);
           if (hasVideo && isNative) {
-            getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress:', err));
+            getLiveProgress().stop({ title: 'タイムラインの投稿アップロード' }).catch(err => console.error('Failed to stop LiveProgress:', err));
           }
           showToast("エラー", compressErr.message || "動画の圧縮またはアップロードに失敗しました。", "error");
           return;
@@ -2097,7 +2097,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     } finally {
       setIsSubmitting(false);
       if (hasVideo && isNative) {
-        getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress:', err));
+        getLiveProgress().stop({ title: 'タイムラインの投稿アップロード' }).catch(err => console.error('Failed to stop LiveProgress:', err));
       }
     }
   };
@@ -2433,7 +2433,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           setIsCompressingCommentVideo(false);
           setIsSubmittingComment(false);
           if (hasVideo && isNative) {
-            getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress:', err));
+            getLiveProgress().stop({ title: '返信のアップロード' }).catch(err => console.error('Failed to stop LiveProgress:', err));
           }
           showToast("エラー", compressErr.message || "動画の圧縮またはアップロードに失敗しました。", "error");
           return;
@@ -2477,7 +2477,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     } finally {
       setIsSubmittingComment(false);
       if (hasVideo && isNative) {
-        getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress:', err));
+        getLiveProgress().stop({ title: '返信のアップロード' }).catch(err => console.error('Failed to stop LiveProgress:', err));
       }
     }
   };

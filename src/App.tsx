@@ -1142,10 +1142,12 @@ export default function App() {
 
   // Androidの物理戻るボタン / システム戻るジェスチャーの制御
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
+    const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
+    const shouldIntercept = isAnyModalOpen || view !== 'home' || (view === 'admin' && adminTab !== 'dashboard');
+
+    if (Capacitor.isNativePlatform() && shouldIntercept) {
       const backHandler = CapApp.addListener('backButton', (data) => {
         triggerHaptic('gesture_start');
-        const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
         if (isAnyModalOpen) {
           // モーダルが開いている場合は履歴を戻ってモーダルを閉じる
           window.history.back();
@@ -1157,9 +1159,6 @@ export default function App() {
           // それ以外のホーム以外の画面なら履歴を戻る
           setIsNavigatingBack(true);
           window.history.back();
-        } else {
-          // ホーム画面かつモーダルなしの場合はアプリを終了する
-          CapApp.exitApp();
         }
       });
       return () => {
@@ -2204,7 +2203,7 @@ export default function App() {
     } finally {
       setWikiSyncProgress(null);
       if (isNative) {
-        getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress for wiki sync:', err));
+        getLiveProgress().stop({ title: `${wikiLabel} カタログ同期` }).catch(err => console.error('Failed to stop LiveProgress for wiki sync:', err));
       }
     }
   };

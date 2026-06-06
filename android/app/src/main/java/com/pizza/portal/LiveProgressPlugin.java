@@ -84,10 +84,20 @@ public class LiveProgressPlugin extends Plugin {
     /** STOP: 通知を消去してサービスを停止する。 */
     @PluginMethod
     public void stop(PluginCall call) {
+        String title = call.getString("title");
+        String id = call.getString("id");
+
         try {
-            Intent serviceIntent = new Intent(getContext(), LiveProgressService.class);
-            serviceIntent.setAction(LiveProgressService.ACTION_STOP);
-            startService(serviceIntent);
+            if (LiveProgressService.instance != null) {
+                if (title == null && id == null) {
+                    LiveProgressService.instance.stopAllTasks();
+                } else {
+                    LiveProgressService.instance.stopTask(title, id);
+                }
+            } else {
+                Intent serviceIntent = new Intent(getContext(), LiveProgressService.class);
+                getContext().stopService(serviceIntent);
+            }
 
             JSObject ret = new JSObject();
             ret.put("success", true);

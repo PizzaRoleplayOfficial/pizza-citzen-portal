@@ -609,7 +609,7 @@ export const ProfileView = ({
                   onClick={async () => {
                     try {
                       triggerHaptic('success');
-                      await getLiveProgress().stop();
+                      await getLiveProgress().stop({ title: '市民申請の審査状況' });
                     } catch (e: any) {
                       console.error('Failed simulator stop:', e);
                       alert('シミュレータ停止に失敗しました: ' + (e.message || e));

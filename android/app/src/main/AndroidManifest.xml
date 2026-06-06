@@ -35,13 +35,13 @@
         <!-- Live Update / Progress Notification channel service (APK download) -->
         <service
             android:name=".LiveUpdateService"
-            android:foregroundServiceType="shortService"
+            android:foregroundServiceType="dataSync"
             android:exported="false" />
 
         <!-- Live Progress Service (Wiki sync / Timeline upload / Vehicle tracker) -->
         <service
             android:name=".LiveProgressService"
-            android:foregroundServiceType="shortService"
+            android:foregroundServiceType="dataSync"
             android:exported="false" />
 
         <provider
@@ -59,6 +59,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- Android 13+ notification permission (required for Live Update notifications) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android 16+ promoted notification permission for Live Updates -->

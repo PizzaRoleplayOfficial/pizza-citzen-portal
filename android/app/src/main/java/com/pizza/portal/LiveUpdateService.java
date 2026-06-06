@@ -25,6 +25,7 @@ public class LiveUpdateService extends Service {
     
     private NotificationManager notificationManager;
     private Thread downloadThread;
+    private boolean isForeground = false;
 
     @Override
     public void onCreate() {
@@ -46,16 +47,27 @@ public class LiveUpdateService extends Service {
             return START_NOT_STICKY;
         }
 
-        // Start Foreground Service with initial notification safely on Android 14+ (UPSIDE_DOWN_CAKE)
+        // 1. Prevent duplicate download threads
+        if (downloadThread != null && downloadThread.isAlive()) {
+            Log.d(TAG, "Download thread is already active. Ignoring start request.");
+            return START_NOT_STICKY;
+        }
+
+        // 2. Clear previous complete/error notifications to prevent duplication/clutter
+        notificationManager.cancel(NOTIFICATION_ID + 1);
+        notificationManager.cancel(NOTIFICATION_ID + 2);
+
+        // Start Foreground Service with initial notification safely
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
                 NOTIFICATION_ID, 
                 buildProgressNotification(0), 
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             );
         } else {
             startForeground(NOTIFICATION_ID, buildProgressNotification(0));
         }
+        isForeground = true;
 
         // Start downloading in background thread
         downloadThread = new Thread(() -> {
@@ -282,14 +294,19 @@ public class LiveUpdateService extends Service {
     }
 
     private void updateForegroundNotification(Notification notification) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                NOTIFICATION_ID, 
-                notification, 
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE
-            );
+        if (!isForeground) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    NOTIFICATION_ID, 
+                    notification, 
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                );
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
+            isForeground = true;
         } else {
-            startForeground(NOTIFICATION_ID, notification);
+            notificationManager.notify(NOTIFICATION_ID, notification);
         }
     }
 
@@ -392,6 +409,14 @@ public class LiveUpdateService extends Service {
                 if (input != null) input.close();
             } catch (Exception ignored) {}
             if (connection != null) connection.disconnect();
+            if (isForeground) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                } else {
+                    stopForeground(true);
+                }
+                isForeground = false;
+            }
             stopSelf();
         }
     }
@@ -415,6 +440,14 @@ public class LiveUpdateService extends Service {
     private void triggerApkInstall(File file) {
         try {
             // Dismiss ongoing notification
+            if (isForeground) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                } else {
+                    stopForeground(true);
+                }
+                isForeground = false;
+            }
             notificationManager.cancel(NOTIFICATION_ID);
 
             Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -464,6 +497,14 @@ public class LiveUpdateService extends Service {
         } catch (InterruptedException e) {
             Log.d(TAG, "Test demo interrupted");
         } finally {
+            if (isForeground) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                } else {
+                    stopForeground(true);
+                }
+                isForeground = false;
+            }
             notificationManager.cancel(NOTIFICATION_ID);
             stopSelf();
         }

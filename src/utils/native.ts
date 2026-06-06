@@ -536,7 +536,7 @@ export interface LiveProgressPlugin {
     segments?: string;
     points?: string;
   }): Promise<{ success: boolean }>;
-  stop(): Promise<{ success: boolean }>;
+  stop(options?: { title?: string; id?: string }): Promise<{ success: boolean }>;
 }
 const LiveProgress = registerPlugin<LiveProgressPlugin>('LiveProgress');
 
@@ -591,7 +591,7 @@ export const updateApplicationTrackerNotification = (app: any) => {
       // 承認・却下済み → 確実に消去
       if (_appTrackerActive) {
         _appTrackerActive = false;
-        LiveProgress.stop().then(() => {
+        LiveProgress.stop({ title: '市民申請の審査状況' }).then(() => {
           console.log('Application LiveProgress tracker stopped.');
         }).catch(err => {
           console.error('Failed to stop Application LiveProgress tracker:', err);
@@ -652,7 +652,7 @@ export const updateVehicleTrackerNotification = (vehicles: any[]) => {
       // 審査中の車両がなくなった → 通知を確実に消去
       if (_vehicleTrackerActive) {
         _vehicleTrackerActive = false;
-        LiveProgress.stop().then(() => {
+        LiveProgress.stop({ title: '車両登録の審査状況' }).then(() => {
           console.log('Vehicle LiveProgress tracker stopped (no pending vehicles).');
         }).catch(err => {
           console.error('Failed to stop vehicle LiveProgress tracker:', err);
