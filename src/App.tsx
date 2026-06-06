@@ -2271,17 +2271,34 @@ export default function App() {
   if (!isLoggedIn) return <LandingView />;
 
   return (
-    <div className="app-layout" style={{ background: 'var(--bg-dark)', minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row' }}>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      width: '100%',
+      boxSizing: 'border-box'
+    }}>
+      <div className="app-layout" style={{
+        width: '100%',
+        maxWidth: isMobile ? undefined : '1600px',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        padding: isMobile ? '0' : '24px',
+        gap: isMobile ? '0' : '24px',
+        boxSizing: 'border-box'
+      }}>
       {!isMobile && (
-        <aside className="main-sidebar" style={{
+        <aside className="main-sidebar glass" style={{
           width: sidebarCollapsed ? '80px' : '260px',
-          background: 'var(--nav-bg)',
-          borderRight: '1px solid var(--glass-border)',
+          background: 'var(--glass-bg)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid var(--glass-border)',
           display: 'flex',
           flexDirection: 'column',
-          height: '100vh',
+          height: 'calc(100vh - 48px)',
           position: 'sticky',
-          top: 0,
+          top: '24px',
           zIndex: 100,
           padding: sidebarCollapsed ? '32px 10px' : '32px 20px',
           flexShrink: 0,
@@ -2424,10 +2441,10 @@ export default function App() {
         </aside>
       )}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: isMobile ? '100vh' : 'calc(100vh - 48px)', position: 'relative' }}>
 
       {isMobile && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--nav-bg)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(16px + env(safe-area-inset-top))', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             {view === 'admin' && (
               <button 
@@ -2540,7 +2557,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '60px 40px', maxWidth: '100%', margin: isMobile ? '0 auto' : '0', width: '100%' }}>
+      <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px 12px', maxWidth: '100%', margin: isMobile ? '0 auto' : '0', width: '100%' }}>
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '1200px', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
@@ -3233,7 +3250,7 @@ export default function App() {
       </main>
 
       {isMobile && (
-        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--nav-bg)', backdropFilter: 'blur(10px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-around', padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 1000 }}>
           <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <Home size={24} />
             <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ホーム</span>
@@ -4332,6 +4349,7 @@ export default function App() {
       `}</style>
 
       </div>
+    </div>
     </div>
   );
 }

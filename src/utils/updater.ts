@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.35'; // 2.2.35 (タイムライン送信キー挙動設定オプション追加と永続化)
+export const CURRENT_VERSION = '2.2.44'; // 2.2.44 (レイアウト中央寄せ・PCサイドバーすりガラス浮島化・スマホバーすりガラス化)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
