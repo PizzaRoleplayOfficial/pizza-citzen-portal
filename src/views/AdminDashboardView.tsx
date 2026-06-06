@@ -305,7 +305,7 @@ export const AdminDashboardView = ({
   }, [allSearchVehicles, allApplications, adminGameFilter]);
 
   return (
-    <div className="animate-fade" style={{ display: 'flex', minHeight: 'calc(100vh - 120px)', gap: '2px', background: 'var(--panel-bg)', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--glass-border)', position: 'relative' }}>
+    <div className="animate-fade" style={{ display: 'flex', minHeight: 'calc(100vh - 120px)', gap: '2px', background: 'var(--panel-bg)', borderRadius: '24px', overflow: 'visible', border: '1px solid var(--glass-border)', position: 'relative' }}>
       
       {/* Mobile Overlay */}
       {isMobile && showMobileMenu && (
@@ -402,7 +402,7 @@ export const AdminDashboardView = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        style={{ flex: 1, padding: isMobile ? '16px' : '40px', overflowY: 'auto', background: 'var(--admin-content-bg, transparent)', position: 'relative' }}
+        style={{ flex: 1, padding: isMobile ? '16px' : '40px', background: 'var(--admin-content-bg, transparent)', position: 'relative' }}
       >
         {/* Pull-to-refresh swipe indicator on mobile */}
         {isMobile && pullProgress > 0 && (
