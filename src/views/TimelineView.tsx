@@ -2576,7 +2576,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ 
-        maxWidth: isMobile ? '640px' : '980px', 
+        maxWidth: isMobile ? '640px' : '100%', 
         margin: '0 auto', 
         display: isMobile ? 'flex' : 'grid', 
         gridTemplateColumns: isMobile ? undefined : '1fr 300px', 

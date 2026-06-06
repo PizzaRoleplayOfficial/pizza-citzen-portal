@@ -2581,7 +2581,7 @@ export default function App() {
 
       <main className="container" style={{ padding: isMobile ? '30px 16px 110px 16px' : '0px 12px', maxWidth: '100%', margin: isMobile ? '0 auto' : '0', width: '100%' }}>
         {view === 'home' ? (
-          <div className="animate-fade" style={{ maxWidth: '1200px', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
             {/* ぴっざぁ公式Discord プレミアムバナー */}
             <div 
@@ -3036,7 +3036,7 @@ export default function App() {
             </div>
           </div>
         ) : view === 'intro' ? (
-          <div className="animate-fade" style={{ maxWidth: '1000px', width: '100%', margin: isMobile ? '0 auto' : '0', color: 'var(--text-main)' }}>
+          <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', color: 'var(--text-main)' }}>
             <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '24px' }}>
               <ArrowLeft size={20} /> ホームへ戻る
             </button>
