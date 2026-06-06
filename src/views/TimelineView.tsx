@@ -886,6 +886,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [posts, setPosts] = useState<TimelinePost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
+  const [showComposerModal, setShowComposerModal] = useState(false);
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isCompressingVideo, setIsCompressingVideo] = useState(false);
@@ -1992,6 +1993,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         setShowPollComposer(false);
         setPollOptions(['', '']);
         setPollDuration(1440);
+        setShowComposerModal(false);
         await fetchPosts();
       } else {
         const err = await res.json() as any;
@@ -2592,16 +2594,28 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>市民タイムライン</h2>
           <p style={{ color: theme === 'light' ? 'var(--text-muted)' : '#cbd5e1', margin: '4px 0 0' }}>ぴっざぁ市民のひとりごとや写真を共有しよう。</p>
         </div>
-        {!isMobile && (
-          <button 
-            onClick={() => { triggerHaptic('light'); fetchPosts(); }} 
-            disabled={isLoading}
-            className="btn btn-secondary"
-            style={{ padding: '10px 16px' }}
-          >
-            <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {!isMobile && (
+            <button 
+              onClick={() => { triggerHaptic('light'); setShowComposerModal(true); }} 
+              className="btn btn-primary"
+              style={{ padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Plus size={18} />
+              <span>ポストする</span>
+            </button>
+          )}
+          {!isMobile && (
+            <button 
+              onClick={() => { triggerHaptic('light'); fetchPosts(); }} 
+              disabled={isLoading}
+              className="btn btn-secondary"
+              style={{ padding: '10px 16px' }}
+            >
+              <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Recommended vs Following Feed Tab Bar (X style) */}
@@ -2967,400 +2981,482 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         )}
       </div>
 
-      {/* New Post Creator Box */}
-      <form onSubmit={handleCreatePost} className="glass card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-          <img 
-            src={currentUser.avatar} 
-            alt="Avatar" 
-            onError={(e) => handleAvatarError(e, currentUser.username)} 
-            style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff', objectFit: 'cover' }} 
-          />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <textarea
-              value={newPostContent}
-              onChange={(e) => setNewPostContent(e.target.value)}
-              onPaste={handlePaste}
-              onKeyDown={handleKeyDown}
-              placeholder="いまどうしてる？（コピペでの画像追加もOK）"
-              maxLength={280}
-              style={{
-                width: '100%',
-                minHeight: '80px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-main)',
-                fontSize: '1.05rem',
-                resize: 'none',
-                outline: 'none',
-                lineHeight: 1.5
-              }}
-            />
-            
-            {/* Selected Images Preview Container */}
-            {newPostImages.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${newPostImages.length === 1 ? 1 : 2}, 1fr)`, gap: '8px', marginTop: '8px' }}>
-                {newPostImages.map((img, i) => (
-                  <div key={i} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: newPostImages.length === 1 ? '240px' : '120px', border: '1px solid var(--glass-border)' }}>
-                    <img src={img} alt={`Select ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(i)}
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        background: 'rgba(0,0,0,0.65)',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '26px',
-                        height: '26px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s'
-                      }}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Selected Video Preview Container */}
-            {selectedVideoFile && videoPreviewUrl && (
-              <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '240px', border: '1px solid var(--glass-border)', marginTop: '8px', background: '#000' }}>
-                <video 
-                  src={videoPreviewUrl} 
-                  controls
-                  playsInline 
-                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} 
-                />
-                <div style={{
-                  position: 'absolute',
-                  bottom: '12px',
-                  left: '12px',
-                  background: 'rgba(0,0,0,0.65)',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  fontSize: '0.75rem',
-                  fontWeight: 600
-                }}>
-                  動画: {(selectedVideoFile.size / (1024 * 1024)).toFixed(1)}MB
-                </div>
+      {/* New Post Creator Modal */}
+      {showComposerModal && (
+        <div 
+          onClick={() => {
+            if (!isSubmitting) setShowComposerModal(false);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1050,
+            padding: '16px',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '600px',
+              animation: 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
+            <form onSubmit={handleCreatePost} className="glass card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '12px' }}>
+                <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '1.1rem' }}>新規ポストを作成</span>
                 <button
                   type="button"
-                  onClick={handleRemoveVideo}
+                  onClick={() => setShowComposerModal(false)}
+                  disabled={isSubmitting}
                   style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    background: 'rgba(0,0,0,0.65)',
+                    background: 'none',
                     border: 'none',
-                    borderRadius: '50%',
-                    width: '26px',
-                    height: '26px',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
+                    padding: '4px',
+                    borderRadius: '50%'
                   }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
-                  <X size={16} />
+                  <X size={20} />
                 </button>
               </div>
-            )}
-          </div>
-        </div>
 
-        {showPollComposer && (
-          <div 
-            className="glass" 
-            style={{ 
-              marginTop: '12px', 
-              padding: '16px', 
-              borderRadius: '12px', 
-              background: 'rgba(255,255,255,0.02)', 
-              border: '1px solid var(--glass-border)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>アンケート</span>
-              <button 
-                type="button" 
-                onClick={() => {
-                  triggerHaptic('light');
-                  setShowPollComposer(false);
-                }}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}
-              >
-                削除
-              </button>
-            </div>
-
-            {pollOptions.map((opt, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input 
-                  type="text" 
-                  placeholder={`選択肢 ${idx + 1}`}
-                  value={opt}
-                  onChange={(e) => {
-                    const newOpts = [...pollOptions];
-                    newOpts[idx] = e.target.value;
-                    setPollOptions(newOpts);
-                  }}
-                  maxLength={25}
-                  style={{
-                    flex: 1,
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--glass-border)',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    color: 'var(--input-text)',
-                    fontSize: '0.85rem',
-                    outline: 'none'
-                  }}
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <img 
+                  src={currentUser.avatar} 
+                  alt="Avatar" 
+                  onError={(e) => handleAvatarError(e, currentUser.username)} 
+                  style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff', objectFit: 'cover' }} 
                 />
-                {pollOptions.length > 2 && (
-                  <button 
-                    type="button" 
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <textarea
+                    value={newPostContent}
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                    onPaste={handlePaste}
+                    onKeyDown={handleKeyDown}
+                    placeholder="いまどうしてる？（コピペでの画像追加もOK）"
+                    maxLength={280}
+                    style={{
+                      width: '100%',
+                      minHeight: '80px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-main)',
+                      fontSize: '1.05rem',
+                      resize: 'none',
+                      outline: 'none',
+                      lineHeight: 1.5
+                    }}
+                  />
+                  
+                  {/* Selected Images Preview Container */}
+                  {newPostImages.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${newPostImages.length === 1 ? 1 : 2}, 1fr)`, gap: '8px', marginTop: '8px' }}>
+                      {newPostImages.map((img, i) => (
+                        <div key={i} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: newPostImages.length === 1 ? '240px' : '120px', border: '1px solid var(--glass-border)' }}>
+                          <img src={img} alt={`Select ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(i)}
+                            style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: 'rgba(0,0,0,0.65)',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '26px',
+                              height: '26px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#fff',
+                              cursor: 'pointer',
+                              transition: 'background 0.2s'
+                            }}
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Selected Video Preview Container */}
+                  {selectedVideoFile && videoPreviewUrl && (
+                    <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '240px', border: '1px solid var(--glass-border)', marginTop: '8px', background: '#000' }}>
+                      <video 
+                        src={videoPreviewUrl} 
+                        controls
+                        playsInline 
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} 
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '12px',
+                        left: '12px',
+                        background: 'rgba(0,0,0,0.65)',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        color: '#fff',
+                        fontSize: '0.75rem',
+                        fontWeight: 600
+                      }}>
+                        動画: {(selectedVideoFile.size / (1024 * 1024)).toFixed(1)}MB
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveVideo}
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: 'rgba(0,0,0,0.65)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '26px',
+                          height: '26px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          transition: 'background 0.2s'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {showPollComposer && (
+                <div 
+                  className="glass" 
+                  style={{ 
+                    marginTop: '12px', 
+                    padding: '16px', 
+                    borderRadius: '12px', 
+                    background: 'rgba(255,255,255,0.02)', 
+                    border: '1px solid var(--glass-border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>アンケート</span>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setShowPollComposer(false);
+                      }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}
+                    >
+                      削除
+                    </button>
+                  </div>
+
+                  {pollOptions.map((opt, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input 
+                        type="text" 
+                        placeholder={`選択肢 ${idx + 1}`}
+                        value={opt}
+                        onChange={(e) => {
+                          const newOpts = [...pollOptions];
+                          newOpts[idx] = e.target.value;
+                          setPollOptions(newOpts);
+                        }}
+                        maxLength={25}
+                        style={{
+                          flex: 1,
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          color: 'var(--input-text)',
+                          fontSize: '0.85rem',
+                          outline: 'none'
+                        }}
+                      />
+                      {pollOptions.length > 2 && (
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            triggerHaptic('light');
+                            setPollOptions(pollOptions.filter((_, i) => i !== idx));
+                          }}
+                          style={{ background: 'none', border: 'none', color: '#ff5252', cursor: 'pointer' }}
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {pollOptions.length < 4 && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setPollOptions([...pollOptions, '']);
+                      }}
+                      style={{ 
+                        alignSelf: 'flex-start',
+                        background: 'none', 
+                        border: 'none', 
+                        color: 'var(--primary)', 
+                        cursor: 'pointer', 
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        padding: '4px 0'
+                      }}
+                    >
+                      + 選択肢を追加
+                    </button>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>投票期間:</span>
+                    <select 
+                      value={pollDuration} 
+                      onChange={(e) => setPollDuration(Number(e.target.value))}
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        padding: '6px 12px',
+                        color: 'var(--input-text)',
+                        fontSize: '0.8rem',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value={60}>1時間</option>
+                      <option value={360}>6時間</option>
+                      <option value={1440}>1日</option>
+                      <option value={4320}>3日</option>
+                      <option value={10080}>7日</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: '4px 0' }} />
+
+              {/* Creator Actions Toolbar */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                gap: '8px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer}
+                    style={{
+                      background: 'rgba(0,193,102,0.08)',
+                      border: '1px solid rgba(0,193,102,0.15)',
+                      borderRadius: '10px',
+                      padding: isMobile ? '0 12px' : '0 14px',
+                      height: '38px',
+                      color: 'var(--primary)',
+                      cursor: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      opacity: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 0.5 : 1,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                  >
+                    <ImageIcon size={18} style={{ flexShrink: 0 }} />
+                    {isMobile ? (
+                      <>
+                        {newPostImages.length > 0 && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>({newPostImages.length})</span>}
+                        {selectedVideoFile !== null && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>(1)</span>}
+                        {newPostImages.length === 0 && selectedVideoFile === null && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>メディア</span>}
+                      </>
+                    ) : (
+                      <span>
+                        {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
+                      </span>
+                    )}
+                  </button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileSelect}
+                    multiple 
+                    accept="image/*,video/*" 
+                    style={{ display: 'none' }} 
+                  />
+
+                  <button
+                    type="button"
                     onClick={() => {
                       triggerHaptic('light');
-                      setPollOptions(pollOptions.filter((_, i) => i !== idx));
+                      setShowPollComposer(!showPollComposer);
                     }}
-                    style={{ background: 'none', border: 'none', color: '#ff5252', cursor: 'pointer' }}
+                    disabled={newPostImages.length > 0 || selectedVideoFile !== null}
+                    style={{
+                      background: showPollComposer ? 'rgba(0,193,102,0.15)' : 'rgba(0,193,102,0.08)',
+                      border: '1px solid rgba(0,193,102,0.15)',
+                      borderRadius: '10px',
+                      padding: isMobile ? '0 12px' : '0 14px',
+                      height: '38px',
+                      color: 'var(--primary)',
+                      cursor: (newPostImages.length > 0 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      opacity: (newPostImages.length > 0 || selectedVideoFile !== null) ? 0.5 : 1,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
                   >
-                    <X size={16} />
+                    <BarChart2 size={18} style={{ transform: 'rotate(90deg)', flexShrink: 0 }} />
+                    <span>アンケート</span>
                   </button>
-                )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flexShrink: 0, marginLeft: 'auto' }}>
+                  {isCompressingVideo && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, whiteSpace: 'nowrap' }}>圧縮中...</span>
+                    </div>
+                  )}
+
+                  {isSubmitting && !isCompressingVideo && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>送信中...</span>
+                    </div>
+                  )}
+
+                  {/* Character Progress Ring */}
+                  {charCount > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <svg width={24} height={24} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+                        <circle
+                          cx={12}
+                          cy={12}
+                          r={9}
+                          fill="transparent"
+                          stroke="rgba(255,255,255,0.06)"
+                          strokeWidth={2}
+                        />
+                        <circle
+                          cx={12}
+                          cy={12}
+                          r={9}
+                          fill="transparent"
+                          stroke={strokeColor}
+                          strokeWidth={2}
+                          strokeDasharray={2 * Math.PI * 9}
+                          strokeDashoffset={2 * Math.PI * 9 - (percentage / 100) * 2 * Math.PI * 9}
+                          style={{ transition: 'stroke-dashoffset 0.1s ease, stroke 0.1s ease' }}
+                        />
+                      </svg>
+                      {charCount >= 240 && (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: strokeColor }}>
+                          {maxChars - charCount}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitDisabled}
+                    className="btn btn-primary"
+                    style={{
+                      padding: isMobile ? '0 16px' : '0 20px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      fontSize: '0.88rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
+                      opacity: isSubmitDisabled ? 0.6 : 1,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" style={{ flexShrink: 0 }} />
+                        <span>送信中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} style={{ flexShrink: 0 }} />
+                        <span>ポスト</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            ))}
-
-            {pollOptions.length < 4 && (
-              <button 
-                type="button" 
-                onClick={() => {
-                  triggerHaptic('light');
-                  setPollOptions([...pollOptions, '']);
-                }}
-                style={{ 
-                  alignSelf: 'flex-start',
-                  background: 'none', 
-                  border: 'none', 
-                  color: 'var(--primary)', 
-                  cursor: 'pointer', 
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  padding: '4px 0'
-                }}
-              >
-                + 選択肢を追加
-              </button>
-            )}
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>投票期間:</span>
-              <select 
-                value={pollDuration} 
-                onChange={(e) => setPollDuration(Number(e.target.value))}
-                style={{
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '8px',
-                  padding: '6px 12px',
-                  color: 'var(--input-text)',
-                  fontSize: '0.8rem',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value={60}>1時間</option>
-                <option value={360}>6時間</option>
-                <option value={1440}>1日</option>
-                <option value={4320}>3日</option>
-                <option value={10080}>7日</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        <hr style={{ border: 'none', borderBottom: '1px solid var(--glass-border)', margin: '4px 0' }} />
-
-        {/* Creator Actions Toolbar */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          gap: '8px',
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer}
-              style={{
-                background: 'rgba(0,193,102,0.08)',
-                border: '1px solid rgba(0,193,102,0.15)',
-                borderRadius: '10px',
-                padding: isMobile ? '0 12px' : '0 14px',
-                height: '38px',
-                color: 'var(--primary)',
-                cursor: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                opacity: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 0.5 : 1,
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}
-            >
-              <ImageIcon size={18} style={{ flexShrink: 0 }} />
-              {isMobile ? (
-                <>
-                  {newPostImages.length > 0 && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>({newPostImages.length})</span>}
-                  {selectedVideoFile !== null && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>(1)</span>}
-                  {newPostImages.length === 0 && selectedVideoFile === null && <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>メディア</span>}
-                </>
-              ) : (
-                <span>
-                  {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
-                </span>
-              )}
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileSelect}
-              multiple 
-              accept="image/*,video/*" 
-              style={{ display: 'none' }} 
-            />
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setShowPollComposer(!showPollComposer);
-              }}
-              disabled={newPostImages.length > 0 || selectedVideoFile !== null}
-              style={{
-                background: showPollComposer ? 'rgba(0,193,102,0.15)' : 'rgba(0,193,102,0.08)',
-                border: '1px solid rgba(0,193,102,0.15)',
-                borderRadius: '10px',
-                padding: isMobile ? '0 12px' : '0 14px',
-                height: '38px',
-                color: 'var(--primary)',
-                cursor: (newPostImages.length > 0 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                opacity: (newPostImages.length > 0 || selectedVideoFile !== null) ? 0.5 : 1,
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}
-            >
-              <BarChart2 size={18} style={{ transform: 'rotate(90deg)', flexShrink: 0 }} />
-              <span>アンケート</span>
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flexShrink: 0, marginLeft: 'auto' }}>
-            {isCompressingVideo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, whiteSpace: 'nowrap' }}>圧縮中...</span>
-              </div>
-            )}
-
-            {isSubmitting && !isCompressingVideo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>送信中...</span>
-              </div>
-            )}
-
-            {/* Premium Character Progress Ring */}
-            {charCount > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                <svg width={24} height={24} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-                  <circle
-                    cx={12}
-                    cy={12}
-                    r={9}
-                    fill="transparent"
-                    stroke="rgba(255,255,255,0.06)"
-                    strokeWidth={2}
-                  />
-                  <circle
-                    cx={12}
-                    cy={12}
-                    r={9}
-                    fill="transparent"
-                    stroke={strokeColor}
-                    strokeWidth={2}
-                    strokeDasharray={2 * Math.PI * 9}
-                    strokeDashoffset={2 * Math.PI * 9 - (percentage / 100) * 2 * Math.PI * 9}
-                    style={{ transition: 'stroke-dashoffset 0.1s ease, stroke 0.1s ease' }}
-                  />
-                </svg>
-                {charCount >= 240 && (
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: strokeColor }}>
-                    {maxChars - charCount}
-                  </span>
-                )}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmitDisabled}
-              className="btn btn-primary"
-              style={{
-                padding: isMobile ? '0 16px' : '0 20px',
-                height: '38px',
-                borderRadius: '10px',
-                fontSize: '0.88rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
-                opacity: isSubmitDisabled ? 0.6 : 1,
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" style={{ flexShrink: 0 }} />
-                  <span>送信中...</span>
-                </>
-              ) : (
-                <>
-                  <Send size={16} style={{ flexShrink: 0 }} />
-                  <span>ポスト</span>
-                </>
-              )}
-            </button>
+            </form>
           </div>
         </div>
-      </form>
+      )}
+
+      {/* Floating Action Button (FAB) for mobile viewports */}
+      {isMobile && (
+        <button
+          onClick={() => { triggerHaptic('light'); setShowComposerModal(true); }}
+          style={{
+            position: 'fixed',
+            bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+            right: '24px',
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: 'var(--primary)',
+            color: '#000',
+            border: 'none',
+            boxShadow: '0 4px 16px rgba(0, 193, 102, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999,
+            cursor: 'pointer'
+          }}
+          title="新規ポストを作成"
+        >
+          <Plus size={24} />
+        </button>
+      )}
 
       {/* Main Post Stream / Feed */}
       {(() => {
