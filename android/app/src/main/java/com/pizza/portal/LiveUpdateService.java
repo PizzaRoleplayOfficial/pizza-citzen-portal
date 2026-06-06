@@ -281,6 +281,18 @@ public class LiveUpdateService extends Service {
         }
     }
 
+    private void updateForegroundNotification(Notification notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID, 
+                notification, 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE
+            );
+        } else {
+            startForeground(NOTIFICATION_ID, notification);
+        }
+    }
+
     private void downloadAndInstall(String urlString) {
         if ("test".equalsIgnoreCase(urlString) || "debug".equalsIgnoreCase(urlString)) {
             runTestDemo();
@@ -346,14 +358,14 @@ public class LiveUpdateService extends Service {
                     int progress = (int) (total * 74.0 / fileLength);
                     if (progress != lastProgress) {
                         lastProgress = progress;
-                        notificationManager.notify(NOTIFICATION_ID, buildProgressNotification(progress));
+                        updateForegroundNotification(buildProgressNotification(progress));
                     }
                 } else {
                     int kbDownloaded = (int) (total / 1024);
                     int currentMarker = kbDownloaded / 512; // Update every 512KB
                     if (currentMarker != lastProgress) {
                         lastProgress = currentMarker;
-                        notificationManager.notify(NOTIFICATION_ID, buildIndeterminateNotification(kbDownloaded));
+                        updateForegroundNotification(buildIndeterminateNotification(kbDownloaded));
                     }
                 }
             }
@@ -363,7 +375,7 @@ public class LiveUpdateService extends Service {
             input.close();
 
             // Notify transition to verification & installing phase (100% / second segment)
-            notificationManager.notify(NOTIFICATION_ID, buildProgressNotification(100));
+            updateForegroundNotification(buildProgressNotification(100));
             try {
                 Thread.sleep(800); // Small pause for user feedback of transition
             } catch (Exception ignored) {}
@@ -433,7 +445,7 @@ public class LiveUpdateService extends Service {
         try {
             int progress = 0;
             while (progress <= 100) {
-                notificationManager.notify(NOTIFICATION_ID, buildProgressNotification(progress));
+                updateForegroundNotification(buildProgressNotification(progress));
                 Thread.sleep(500); // 0.5s interval
                 progress += 10;
             }
