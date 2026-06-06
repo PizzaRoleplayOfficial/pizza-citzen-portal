@@ -23,13 +23,15 @@ import {
   Trash2,
   AlertTriangle,
   Activity,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
 import { formatDate, parseUTCDate } from '../utils/helpers';
 import { DashboardCharts } from '../components/DashboardCharts';
 import { handleAvatarError } from '../utils/avatarFallback';
+import { triggerHaptic } from '../utils/native';
 
 interface AdminDashboardViewProps {
   adminTab: string;
@@ -112,6 +114,35 @@ export const AdminDashboardView = ({
   const [adminGameFilter, setAdminGameFilter] = useState<'all' | 'gv' | 'rc'>('all');
   const [lookupTypeFilter, setLookupTypeFilter] = useState<'all' | 'car' | 'trailer'>('all');
   const [showAllActivities, setShowAllActivities] = useState(false);
+
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [pullProgress, setPullProgress] = useState(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (contentRef.current && contentRef.current.scrollTop === 0) {
+      setTouchStart(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart !== null && contentRef.current && contentRef.current.scrollTop === 0) {
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - touchStart;
+      if (diff > 0) {
+        setPullProgress(Math.min(diff / 2, 80)); // Cap progress at 80px pull
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullProgress >= 60) {
+      triggerHaptic('light');
+      handleManualRefresh();
+    }
+    setTouchStart(null);
+    setPullProgress(0);
+  };
 
   React.useEffect(() => {
     if (!isMobile) {
@@ -362,7 +393,35 @@ export const AdminDashboardView = ({
       </div>
 
       {/* Admin Content Area */}
-      <div style={{ flex: 1, padding: isMobile ? '16px' : '40px', overflowY: 'auto', background: 'var(--admin-content-bg, transparent)' }}>
+      <div 
+        ref={contentRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ flex: 1, padding: isMobile ? '16px' : '40px', overflowY: 'auto', background: 'var(--admin-content-bg, transparent)', position: 'relative' }}
+      >
+        {/* Pull-to-refresh swipe indicator on mobile */}
+        {isMobile && pullProgress > 0 && (
+          <div style={{
+            height: `${pullProgress}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            transition: touchStart === null ? 'height 0.2s ease' : 'none',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '16px',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--primary)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            gap: '8px',
+            marginBottom: '16px'
+          }}>
+            <Loader2 size={16} className={pullProgress >= 60 ? 'animate-spin' : undefined} />
+            {pullProgress >= 60 ? '指を離して更新...' : '下に引っぱって更新...'}
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '18px' : '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {!isMobile && !showMobileMenu && (
@@ -398,31 +457,33 @@ export const AdminDashboardView = ({
               <p style={{ color: 'var(--text-muted)', fontSize: isMobile ? '0.82rem' : '0.95rem' }}>ぴっざぁポータル</p>
             </div>
           </div>
-          <button 
-            onClick={handleManualRefresh} 
-            disabled={isLoading}
-            title="更新"
-            style={{ 
-              width: isMobile ? '38px' : '48px', 
-              height: isMobile ? '38px' : '48px', 
-              borderRadius: isMobile ? '10px' : '14px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              background: 'rgba(0, 193, 102, 0.12)',
-              border: '1px solid rgba(0, 193, 102, 0.35)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              flexShrink: 0,
-              padding: 0,
-              outline: 'none',
-              lineHeight: 1,
-            }} 
-            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 193, 102, 0.25)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 193, 102, 0.12)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-          >
-            <RotateCcw size={isMobile ? 18 : 22} color="#00c166" strokeWidth={2.5} className={isLoading ? 'animate-spin' : undefined} />
-          </button>
+          {!isMobile && (
+            <button 
+              onClick={handleManualRefresh} 
+              disabled={isLoading}
+              title="更新"
+              style={{ 
+                width: isMobile ? '38px' : '48px', 
+                height: isMobile ? '38px' : '48px', 
+                borderRadius: isMobile ? '10px' : '14px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                background: 'rgba(0, 193, 102, 0.12)',
+                border: '1px solid rgba(0, 193, 102, 0.35)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                flexShrink: 0,
+                padding: 0,
+                outline: 'none',
+                lineHeight: 1,
+              }} 
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 193, 102, 0.25)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 193, 102, 0.12)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <RotateCcw size={isMobile ? 18 : 22} color="#00c166" strokeWidth={2.5} className={isLoading ? 'animate-spin' : undefined} />
+            </button>
+          )}
         </div>
 
         {/* ゲームフィルター (dashboard, vehicles, lookup タブでのみ表示) */}

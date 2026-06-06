@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon } from 'lucide-react';
+import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon, Loader2 } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
 import { formatDate, parseUTCDate } from '../utils/helpers';
@@ -112,6 +112,35 @@ export const MyGarageView = ({
   const [fabOpen, setFabOpen] = useState(false);
   const fabRef = useRef<HTMLDivElement>(null);
 
+  // Pull-to-refresh swipe gesture states
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [pullProgress, setPullProgress] = useState(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      setTouchStart(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart !== null && window.scrollY === 0) {
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - touchStart;
+      if (diff > 0) {
+        setPullProgress(Math.min(diff / 2, 80)); // Cap progress at 80px pull
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullProgress >= 60) {
+      triggerHaptic('light');
+      handleManualRefresh();
+    }
+    setTouchStart(null);
+    setPullProgress(0);
+  };
+
   // FAB外タップで閉じる
   useEffect(() => {
     if (!fabOpen) return;
@@ -130,7 +159,34 @@ export const MyGarageView = ({
 
   return (
     <>
-      <div className="animate-fade">
+      <div 
+        className="animate-fade"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Pull-to-refresh swipe indicator on mobile */}
+        {isMobile && pullProgress > 0 && (
+          <div style={{
+            height: `${pullProgress}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            transition: touchStart === null ? 'height 0.2s ease' : 'none',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '16px',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--primary)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            gap: '8px',
+            marginBottom: '16px'
+          }}>
+            <Loader2 size={16} className={pullProgress >= 60 ? 'animate-spin' : undefined} />
+            {pullProgress >= 60 ? '指を離して更新...' : '下に引っぱって更新...'}
+          </div>
+        )}
         {myApplication?.status !== 'approved' ? (
         <div style={{ textAlign: 'center', padding: '80px 24px' }}>
           <Lock size={64} style={{ color: 'var(--text-muted)', marginBottom: '24px', opacity: 0.5 }} />
@@ -158,9 +214,11 @@ export const MyGarageView = ({
               </div>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn btn-secondary" onClick={() => { triggerHaptic('medium'); handleManualRefresh(); }} style={{ padding: '10px 16px' }} disabled={isLoading}>
-                <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
-              </button>
+              {!isMobile && (
+                <button className="btn btn-secondary" onClick={() => { triggerHaptic('medium'); handleManualRefresh(); }} style={{ padding: '10px 16px' }} disabled={isLoading}>
+                  <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
+                </button>
+              )}
               {/* Auto-fill beta button: desktop only, in header */}
               {garageTab === 'car' && !isMobile && (
                 <button className="btn btn-secondary" onClick={() => {
