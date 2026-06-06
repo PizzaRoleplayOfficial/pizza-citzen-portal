@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.52'; // 2.2.52 (Android 16 Live Updates (Progress-centric notifications) の統合 - 本物のアプデ時も有効化)
+export const CURRENT_VERSION = '2.2.53'; // 2.2.53 (Android 16 Live Updates notifications expansion)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
