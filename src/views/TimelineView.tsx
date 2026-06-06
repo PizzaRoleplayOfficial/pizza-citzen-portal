@@ -3436,26 +3436,30 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       {isMobile && (
         <button
           onClick={() => { triggerHaptic('light'); setShowComposerModal(true); }}
+          onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.91)'; }}
+          onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           style={{
             position: 'fixed',
-            bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))',
             right: '24px',
             width: '56px',
             height: '56px',
             borderRadius: '50%',
-            background: 'var(--primary)',
+            background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
             color: '#000',
             border: 'none',
-            boxShadow: '0 4px 16px rgba(0, 193, 102, 0.4)',
+            boxShadow: '0 4px 20px rgba(0,255,136,0.45), 0 2px 8px rgba(0,0,0,0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 999,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+            flexShrink: 0
           }}
           title="新規ポストを作成"
         >
-          <Plus size={24} />
+          <Plus size={24} strokeWidth={2.5} style={{ flexShrink: 0 }} />
         </button>
       )}
 
