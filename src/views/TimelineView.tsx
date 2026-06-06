@@ -2579,7 +2579,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         maxWidth: isMobile ? '640px' : '100%', 
         margin: '0 auto', 
         display: isMobile ? 'flex' : 'grid', 
-        gridTemplateColumns: isMobile ? undefined : '1fr 300px', 
+        gridTemplateColumns: isMobile ? undefined : '1fr clamp(240px, 18vw, 320px)', 
         flexDirection: isMobile ? 'column' : undefined,
         gap: '24px', 
         alignItems: 'flex-start',
