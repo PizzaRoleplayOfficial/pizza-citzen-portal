@@ -105,7 +105,7 @@ const ensureTimelineTables = async (db: any) => {
       user_id TEXT,
       post_id TEXT,
       option_index INTEGER,
-      PRIMARY KEY (user_id, post_id)
+      PRIMARY KEY (user_id, post_id, option_index)
     );
   `).run();
 
