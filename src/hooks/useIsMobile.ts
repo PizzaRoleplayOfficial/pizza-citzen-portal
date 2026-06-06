@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export const useIsMobile = (breakpoint = 768) => {
+export const useIsMobile = (breakpoint = 1024) => {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);

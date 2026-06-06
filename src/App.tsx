@@ -23,6 +23,7 @@ import {
   List,
   User as UserIcon,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   ArrowLeft,
   Image as ImageIcon,
@@ -189,6 +190,19 @@ export default function App() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    isNative ? localStorage.getItem('gvvr_sidebar_collapsed') === 'true' : false
+  );
+
+  const toggleSidebar = () => {
+    const nextState = !sidebarCollapsed;
+    setSidebarCollapsed(nextState);
+    if (isNative) {
+      localStorage.setItem('gvvr_sidebar_collapsed', String(nextState));
+    }
+    triggerHaptic('light');
+  };
 
 
   const getInitialHashState = () => {
@@ -2260,7 +2274,7 @@ export default function App() {
     <div className="app-layout" style={{ background: 'var(--bg-dark)', minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row' }}>
       {!isMobile && (
         <aside className="main-sidebar" style={{
-          width: '260px',
+          width: sidebarCollapsed ? '80px' : '260px',
           background: 'var(--nav-bg)',
           borderRight: '1px solid var(--glass-border)',
           display: 'flex',
@@ -2269,68 +2283,99 @@ export default function App() {
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          padding: '32px 20px',
+          padding: sidebarCollapsed ? '32px 10px' : '32px 20px',
           flexShrink: 0,
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
           {/* Top segment: Logo + Menu */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+            <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
               <img src="/pizza.webp" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '50%' }} />
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>
+              {!sidebarCollapsed && <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <button className={`btn-sidebar ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')}>
-                <Home size={18} /> ホーム
+            {/* App specific sidebar toggle button */}
+            {isNative && (
+              <button 
+                onClick={toggleSidebar}
+                className="btn glass"
+                style={{
+                  width: '100%',
+                  padding: '10px 0',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  gap: '8px',
+                  transition: 'all 0.2s'
+                }}
+                title={sidebarCollapsed ? "メニューを展開" : "メニューをたたむ"}
+              >
+                {sidebarCollapsed ? <ChevronRight size={18} /> : <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ChevronLeft size={18} /> <span style={{ fontWeight: 600 }}>メニューをたたむ</span></div>}
               </button>
-              <button className={`btn-sidebar ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative' }}>
-                <ClipboardList size={18} /> 市民申請
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <button className={`btn-sidebar ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
+                <Home size={18} /> {!sidebarCollapsed && <span>ホーム</span>}
+              </button>
+              <button className={`btn-sidebar ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
+                <ClipboardList size={18} /> {!sidebarCollapsed && <span>市民申請</span>}
                 {(!myApplication || myApplication.status === 'rejected') && (
-                  <span className="badge-sidebar" />
+                  <span className="badge-sidebar" style={sidebarCollapsed ? { position: 'absolute', top: '8px', right: '18px' } : {}} />
                 )}
               </button>
-              <button className={`btn-sidebar ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')}>
-                <LayoutDashboard size={18} /> ガレージ
+              <button className={`btn-sidebar ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
+                <LayoutDashboard size={18} /> {!sidebarCollapsed && <span>ガレージ</span>}
               </button>
-              <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')}>
-                <MessageSquare size={18} /> タイムライン
+              <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
+                <MessageSquare size={18} /> {!sidebarCollapsed && <span>タイムライン</span>}
               </button>
               {currentUser.role === 'admin' && (
-                <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>
-                  <ShieldCheck size={18} /> 管理パネル
+                <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
+                  <ShieldCheck size={18} /> {!sidebarCollapsed && <span>管理パネル</span>}
                 </button>
               )}
-              <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
-                <UserIcon size={18} /> 設定
+              <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
+                <UserIcon size={18} /> {!sidebarCollapsed && <span>設定</span>}
               </button>
             </div>
           </div>
 
           {/* Bottom segment: User profile card */}
           <div className="glass sidebar-user-card" style={{
-            padding: '12px 14px',
+            padding: sidebarCollapsed ? '12px 4px' : '12px 14px',
             borderRadius: '16px',
             background: 'var(--panel-bg)',
             border: '1px solid var(--glass-border)',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            width: '100%'
+            flexDirection: sidebarCollapsed ? 'column' : 'row',
+            gap: sidebarCollapsed ? '16px' : '12px',
+            width: '100%',
+            transition: 'all 0.3s ease'
           }}>
             <div 
               onClick={() => { triggerHaptic('light'); setView('profile'); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, cursor: 'pointer', transition: 'all 0.2s ease' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: sidebarCollapsed ? undefined : 1, minWidth: 0, cursor: 'pointer', transition: 'all 0.2s ease', flexDirection: sidebarCollapsed ? 'column' : 'row' }}
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'scale(1.05)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'none'; }}
             >
               <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover', transition: 'transform 0.2s ease' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
-              </div>
+              {!sidebarCollapsed && (
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.role === 'admin' ? '運営メンバー' : '一般メンバー'}</div>
+                </div>
+              )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexDirection: sidebarCollapsed ? 'column' : 'row' }}>
               <button
                 onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
                 className="btn glass"
