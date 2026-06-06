@@ -2280,7 +2280,7 @@ export default function App() {
       boxSizing: 'border-box',
       width: '100%',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'clip'
     }}>
       {/* Decorative ambient background glows for Glassmorphism depth */}
       {!isMobile && (
