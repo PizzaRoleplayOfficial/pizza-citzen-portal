@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.50'; // 2.2.50 (Android 16 Live Updates (Progress-centric notifications) の統合)
+export const CURRENT_VERSION = '2.2.51'; // 2.2.51 (Android 16 Live Updates (Progress-centric notifications) の統合 - Xiaomi/MIUI通知重複対応)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
