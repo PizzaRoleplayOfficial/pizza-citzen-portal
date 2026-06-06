@@ -2271,22 +2271,16 @@ export default function App() {
   if (!isLoggedIn) return <LandingView />;
 
   return (
-    <div style={{
+    <div className="app-layout" style={{
+      background: 'var(--bg-dark)',
       minHeight: '100vh',
       display: 'flex',
-      justifyContent: 'center',
-      width: '100%',
-      boxSizing: 'border-box'
+      flexDirection: isMobile ? 'column' : 'row',
+      padding: isMobile ? '0' : '24px',
+      gap: isMobile ? '0' : '24px',
+      boxSizing: 'border-box',
+      width: '100%'
     }}>
-      <div className="app-layout" style={{
-        width: '100%',
-        maxWidth: isMobile ? undefined : '1600px',
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        padding: isMobile ? '0' : '24px',
-        gap: isMobile ? '0' : '24px',
-        boxSizing: 'border-box'
-      }}>
       {!isMobile && (
         <aside className="main-sidebar glass" style={{
           width: sidebarCollapsed ? '80px' : '260px',
@@ -4349,7 +4343,6 @@ export default function App() {
       `}</style>
 
       </div>
-    </div>
     </div>
   );
 }

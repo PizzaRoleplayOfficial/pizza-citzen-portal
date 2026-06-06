@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.44'; // 2.2.44 (レイアウト中央寄せ・PCサイドバーすりガラス浮島化・スマホバーすりガラス化)
+export const CURRENT_VERSION = '2.2.45'; // 2.2.45 (レイアウト全体の全幅化・余白の調整)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
