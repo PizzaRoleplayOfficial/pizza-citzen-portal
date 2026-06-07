@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { X, ArrowLeft, ChevronRight } from 'lucide-react';
+import { registerBackInterceptor, unregisterBackInterceptor } from '../utils/backGesture';
 
 // Portal-based fullscreen lightbox — renders into document.body to escape any parent overflow/transform
 export const ImageLightbox = ({ images, startIndex, onClose }: { images: string[], startIndex: number, onClose: () => void }) => {
   const [idx, setIdx] = useState(startIndex);
 
   useEffect(() => {
+    registerBackInterceptor();
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight') setIdx(i => (i + 1) % images.length);
@@ -28,17 +31,20 @@ export const ImageLightbox = ({ images, startIndex, onClose }: { images: string[
       if (window.history.state?.imageLightbox) {
         window.history.back();
       }
+      unregisterBackInterceptor();
     };
   }, [images, onClose]);
 
   return ReactDOM.createPortal(
     <div
       onClick={onClose}
+      className="lightbox-overlay-container"
       style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.93)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)', cursor: 'zoom-out' }}
     >
       <img
         src={images[idx]}
         onClick={e => e.stopPropagation()}
+        className="lightbox-image-card"
         style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '10px', boxShadow: '0 8px 60px rgba(0,0,0,0.7)', cursor: 'default' }}
       />
       {/* Close */}

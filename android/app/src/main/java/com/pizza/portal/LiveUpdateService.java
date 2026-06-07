@@ -107,9 +107,14 @@ public class LiveUpdateService extends Service {
             contentText = "Verifying & installing update...";
         }
 
+        int appIcon = getApplicationInfo().icon;
+        if (appIcon == 0) {
+            appIcon = getResources().getIdentifier("ic_launcher", "mipmap", getPackageName());
+        }
+
         builder.setContentTitle("GV Portal Update")
             .setContentText(contentText)
-            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setSmallIcon(appIcon)
             .setCategory(Notification.CATEGORY_PROGRESS) // Help OS classify it correctly for Live Update promotion
             .setOngoing(true);
 
@@ -138,10 +143,15 @@ public class LiveUpdateService extends Service {
             builder = new Notification.Builder(this);
         }
 
+        int indAppIcon = getApplicationInfo().icon;
+        if (indAppIcon == 0) {
+            indAppIcon = getResources().getIdentifier("ic_launcher", "mipmap", getPackageName());
+        }
+
         String downloadedText = String.format("Downloading... %.1f MB", kbDownloaded / 1024.0);
         builder.setContentTitle("GV Portal Update")
             .setContentText(downloadedText)
-            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setSmallIcon(indAppIcon)
             .setCategory(Notification.CATEGORY_PROGRESS)
             .setOngoing(true);
 
@@ -241,13 +251,21 @@ public class LiveUpdateService extends Service {
 
                 // Set tracker icon inside ProgressStyle
                 try {
+                    int trackerAppIcon = context.getApplicationInfo().icon;
+                    if (trackerAppIcon == 0) {
+                        trackerAppIcon = context.getResources().getIdentifier("ic_launcher", "mipmap", context.getPackageName());
+                    }
                     android.graphics.drawable.Icon trackerIcon = 
                         android.graphics.drawable.Icon.createWithResource(
                             context,
-                            android.R.drawable.stat_sys_download
+                            trackerAppIcon
                         );
-                    java.lang.reflect.Method setTrackerIconMethod = 
-                        progressStyleClass.getMethod("setTrackerIcon", android.graphics.drawable.Icon.class);
+                    java.lang.reflect.Method setTrackerIconMethod;
+                    try {
+                        setTrackerIconMethod = progressStyleClass.getMethod("setProgressTrackerIcon", android.graphics.drawable.Icon.class);
+                    } catch (NoSuchMethodException e) {
+                        setTrackerIconMethod = progressStyleClass.getMethod("setTrackerIcon", android.graphics.drawable.Icon.class);
+                    }
                     setTrackerIconMethod.invoke(progressStyle, trackerIcon);
                 } catch (Throwable t) {
                     Log.w(TAG, "Failed to set tracker icon", t);
@@ -429,9 +447,14 @@ public class LiveUpdateService extends Service {
             builder = new Notification.Builder(this);
         }
 
+        int errAppIcon = getApplicationInfo().icon;
+        if (errAppIcon == 0) {
+            errAppIcon = getResources().getIdentifier("ic_launcher", "mipmap", getPackageName());
+        }
+
         builder.setContentTitle("Update Failed")
             .setContentText(errorMsg != null ? errorMsg : "Failed to download update")
-            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setSmallIcon(errAppIcon)
             .setAutoCancel(true);
 
         notificationManager.notify(NOTIFICATION_ID + 1, builder.build());
@@ -489,9 +512,13 @@ public class LiveUpdateService extends Service {
             } else {
                 builder = new Notification.Builder(this);
             }
+            int doneAppIcon = getApplicationInfo().icon;
+            if (doneAppIcon == 0) {
+                doneAppIcon = getResources().getIdentifier("ic_launcher", "mipmap", getPackageName());
+            }
             builder.setContentTitle("GV Portal Update Test")
                 .setContentText("Test update download completed successfully!")
-                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setSmallIcon(doneAppIcon)
                 .setAutoCancel(true);
             notificationManager.notify(NOTIFICATION_ID + 2, builder.build());
         } catch (InterruptedException e) {

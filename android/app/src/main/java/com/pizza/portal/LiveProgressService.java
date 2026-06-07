@@ -157,23 +157,20 @@ public class LiveProgressService extends Service {
             task.title, task.text, task.progress, task.segments, task.points, task.id
         );
 
-        if (!isForeground) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(
-                    task.id,
-                    notification,
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-                );
-            } else {
-                startForeground(task.id, notification);
-            }
-            foregroundNotificationId = task.id;
-            isForeground = true;
-            Log.d(TAG, "startForeground with taskId=" + task.id);
+        // Always call startForeground to avoid Stop FGS timeout (ForegroundServiceDidNotStartInTimeException)
+        // when startForegroundService is repeatedly called from the plugin.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                task.id,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            );
         } else {
-            notificationManager.notify(task.id, notification);
-            Log.d(TAG, "notificationManager.notify updated taskId=" + task.id);
+            startForeground(task.id, notification);
         }
+        foregroundNotificationId = task.id;
+        isForeground = true;
+        Log.d(TAG, "startForeground called/updated for taskId=" + task.id);
     }
 
     public void stopTask(String title, String idExtra) {
@@ -262,11 +259,9 @@ public class LiveProgressService extends Service {
         }
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, mainIntent, pendingFlags);
 
-        int smallIcon = android.R.drawable.ic_dialog_info;
-        if (title.contains("カタログ同期") || title.contains("Catalog Sync")) {
-            smallIcon = android.R.drawable.ic_popup_sync;
-        } else if (title.contains("タイムライン") || title.contains("Timeline") || title.contains("投稿") || title.contains("コメント") || title.contains("返信")) {
-            smallIcon = android.R.drawable.stat_sys_upload;
+        int smallIcon = getApplicationInfo().icon;
+        if (smallIcon == 0) {
+            smallIcon = getResources().getIdentifier("ic_launcher", "mipmap", getPackageName());
         }
 
         builder.setContentTitle(title)
@@ -364,9 +359,15 @@ public class LiveProgressService extends Service {
             android.graphics.drawable.Icon icon = android.graphics.drawable.Icon.createWithResource(
                 this, smallIcon
             );
-            psClass.getMethod("setTrackerIcon", android.graphics.drawable.Icon.class).invoke(ps, icon);
+            java.lang.reflect.Method setTrackerIconMethod;
+            try {
+                setTrackerIconMethod = psClass.getMethod("setProgressTrackerIcon", android.graphics.drawable.Icon.class);
+            } catch (NoSuchMethodException e) {
+                setTrackerIconMethod = psClass.getMethod("setTrackerIcon", android.graphics.drawable.Icon.class);
+            }
+            setTrackerIconMethod.invoke(ps, icon);
         } catch (Throwable t) {
-            Log.w(TAG, "setTrackerIcon failed: " + t.getMessage());
+            Log.w(TAG, "Failed to set tracker icon: " + t.getMessage());
         }
 
         // builder.setStyle(ps)

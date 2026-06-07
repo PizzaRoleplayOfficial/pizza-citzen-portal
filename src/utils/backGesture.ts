@@ -28,3 +28,33 @@ export interface BackGesturePluginType {
 }
 
 export const BackGesture = registerPlugin<BackGesturePluginType>('BackGesture');
+
+// Global back interceptor coordinator for SPA components (like Lightbox)
+declare global {
+  interface Window {
+    backInterceptorCount?: number;
+    updateBackGestureEnabled?: () => void;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.backInterceptorCount = 0;
+}
+
+export const registerBackInterceptor = () => {
+  if (typeof window !== 'undefined') {
+    window.backInterceptorCount = (window.backInterceptorCount || 0) + 1;
+    if (window.updateBackGestureEnabled) {
+      window.updateBackGestureEnabled();
+    }
+  }
+};
+
+export const unregisterBackInterceptor = () => {
+  if (typeof window !== 'undefined') {
+    window.backInterceptorCount = Math.max(0, (window.backInterceptorCount || 0) - 1);
+    if (window.updateBackGestureEnabled) {
+      window.updateBackGestureEnabled();
+    }
+  }
+};

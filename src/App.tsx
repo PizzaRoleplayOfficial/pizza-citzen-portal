@@ -1143,16 +1143,42 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
 
-  // Androidの物理戻るボタン / システム戻るジェスチャーの制御 (予測型戻るジェスチャーネイティブ同期)
+  // Synchronize JS progress values to CSS variables for smooth GPU-accelerated transition performance
   useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--back-progress', '0');
+      document.documentElement.style.setProperty('--is-back-swiping', '0');
+    }
+  }, []);
+
+  // Androidの物理戻るボタン / システム戻るジェスチャーの制御 (予測型戻るジェスチャーネイティブ同期)
+  const updateBackGestureEnabled = () => {
     const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
-    const shouldIntercept = isAnyModalOpen || view !== 'home' || (view === 'admin' && adminTab !== 'dashboard');
+    const isInterceptionActive = (window.backInterceptorCount || 0) > 0;
+    const shouldIntercept = isAnyModalOpen || isInterceptionActive || view !== 'home' || (view === 'admin' && adminTab !== 'dashboard');
 
     if (Capacitor.isNativePlatform()) {
       BackGesture.setEnabled({ enabled: shouldIntercept }).catch(err => {
         console.warn('Failed to set back gesture enabled:', err);
+        setInAppToast({
+          title: 'BackGesture Error',
+          desc: `setEnabled(${shouldIntercept}) failed: ${err.message || err}`,
+          type: 'error'
+        });
       });
     }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.updateBackGestureEnabled = updateBackGestureEnabled;
+    }
+    updateBackGestureEnabled();
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.updateBackGestureEnabled = undefined;
+      }
+    };
   }, [view, adminTab, showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
 
   useEffect(() => {
@@ -1166,28 +1192,27 @@ export default function App() {
     const setupListeners = async () => {
       try {
         startHandler = await BackGesture.addListener('backStarted', (data) => {
-          setIsBackSwiping(true);
-          setBackProgress(data.progress);
           triggerHaptic('light');
+          console.log('[BackGesture] Started:', data);
         });
 
         progressHandler = await BackGesture.addListener('backProgressed', (data) => {
-          setBackProgress(data.progress);
+          console.log('[BackGesture] Progressed:', data);
         });
 
         cancelHandler = await BackGesture.addListener('backCancelled', () => {
-          setIsBackSwiping(false);
-          setBackProgress(0);
           triggerHaptic('light');
+          console.log('[BackGesture] Cancelled');
         });
 
         pressHandler = await BackGesture.addListener('backPressed', () => {
-          setIsBackSwiping(false);
-          setBackProgress(0);
           triggerHaptic('medium');
+          console.log('[BackGesture] Pressed');
 
           const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
-          if (isAnyModalOpen) {
+          const isInterceptionActive = (window.backInterceptorCount || 0) > 0;
+
+          if (isAnyModalOpen || isInterceptionActive) {
             window.history.back();
           } else if (view === 'admin' && adminTab !== 'dashboard') {
             setIsNavigatingBack(true);
@@ -1199,6 +1224,11 @@ export default function App() {
         });
       } catch (err) {
         console.error('Failed to setup BackGesture listeners:', err);
+        setInAppToast({
+          title: 'BackGesture Listeners Error',
+          desc: err.message || String(err),
+          type: 'error'
+        });
       }
     };
 
@@ -4685,6 +4715,31 @@ export default function App() {
           }
         }
       `}</style>
+
+      {/* Back Gesture Debug Overlay */}
+      {isBackSwiping && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          right: '20px',
+          background: 'rgba(0,0,0,0.85)',
+          color: 'var(--primary)',
+          padding: '12px 18px',
+          borderRadius: '12px',
+          fontSize: '0.8rem',
+          fontWeight: 700,
+          zIndex: 999999,
+          border: '1px solid var(--primary)',
+          boxShadow: '0 4px 20px rgba(0,193,102,0.3)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          pointerEvents: 'none'
+        }}>
+          <div>🔄 BACK SWIPING ACTIVE</div>
+          <div>Progress: {backProgress.toFixed(3)}</div>
+        </div>
+      )}
 
     </div>
   </div>

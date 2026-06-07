@@ -229,9 +229,17 @@ public class BackgroundWorker extends Worker {
         }
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, flags);
 
+        int smallIcon = context.getApplicationInfo().icon;
+        if (smallIcon == 0) {
+            smallIcon = context.getResources().getIdentifier("ic_launcher", "mipmap", context.getPackageName());
+        }
+        if (smallIcon == 0) {
+            smallIcon = android.R.drawable.ic_dialog_info;
+        }
+
         // 通知作成 (ic_launcher を通知アイコンのフォールバックとして使用)
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_info) // 標準のダイアログ情報アイコン (必要に応じてリソースic_launcherなどに変更)
+                .setSmallIcon(smallIcon)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
