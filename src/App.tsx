@@ -2379,7 +2379,7 @@ export default function App() {
         </nav>
 
         {/* Content Area Skeleton */}
-        <main className={`container ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} style={{ padding: '60px 40px', maxWidth: '1400px', flex: 1 }}>
+        <main className={`container mobile-zoomed-main ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} style={{ padding: '60px 40px', maxWidth: '1400px', flex: 1 }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             {/* Header / Avatar Block */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '40px' }}>
@@ -2733,7 +2733,7 @@ export default function App() {
       )}
 
       <main 
-        className={`container ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} 
+        className={`container mobile-zoomed-main ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} 
         style={{ 
           padding: isMobile ? '30px calc(16px + var(--safe-right)) calc(110px + var(--safe-bottom)) calc(16px + var(--safe-left))' : '0px clamp(16px, 1.5vw, 32px)', 
           flex: 1, 

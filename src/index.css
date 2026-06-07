@@ -1818,5 +1818,13 @@ h1 {
   background: rgba(0, 0, 0, 0.02) !important;
 }
 
+/* Zoomed-out Main Content for Mobile Viewport */
+@media (max-width: 768px) {
+  .mobile-zoomed-main {
+    zoom: 0.7;
+  }
+}
+
+
 
 
