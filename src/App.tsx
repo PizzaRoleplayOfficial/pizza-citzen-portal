@@ -1160,11 +1160,14 @@ export default function App() {
     if (Capacitor.isNativePlatform()) {
       BackGesture.setEnabled({ enabled: shouldIntercept }).catch(err => {
         console.warn('Failed to set back gesture enabled:', err);
-        setInAppToast({
-          title: 'BackGesture Error',
-          desc: `setEnabled(${shouldIntercept}) failed: ${err.message || err}`,
-          type: 'error'
-        });
+        const errMsg = err.message || String(err);
+        if (!errMsg.toLowerCase().includes('not implemented')) {
+          setInAppToast({
+            title: 'BackGesture Error',
+            desc: `setEnabled(${shouldIntercept}) failed: ${errMsg}`,
+            type: 'error'
+          });
+        }
       });
     }
   };
@@ -1224,11 +1227,14 @@ export default function App() {
         });
       } catch (err) {
         console.error('Failed to setup BackGesture listeners:', err);
-        setInAppToast({
-          title: 'BackGesture Listeners Error',
-          desc: err.message || String(err),
-          type: 'error'
-        });
+        const errMsg = err.message || String(err);
+        if (!errMsg.toLowerCase().includes('not implemented')) {
+          setInAppToast({
+            title: 'BackGesture Listeners Error',
+            desc: errMsg,
+            type: 'error'
+          });
+        }
       }
     };
 
