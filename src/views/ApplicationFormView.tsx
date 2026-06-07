@@ -41,7 +41,7 @@ export const ApplicationFormView = ({
       </div>
 
       {myApplication?.status === 'approved' && (
-        <div className="glass" style={{ padding: '40px', borderRadius: '20px', textAlign: 'center', border: '1px solid var(--success)', background: 'rgba(0, 255, 0, 0.05)' }}>
+        <div className="glass settings-card" style={{ borderRadius: '20px', textAlign: 'center', border: '1px solid var(--success)', background: 'rgba(0, 255, 0, 0.05)' }}>
           <CheckCircle2 size={64} style={{ color: 'var(--success)', marginBottom: '16px' }} />
           <h3 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px', color: 'var(--success)' }}>申請が承認されました！</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>マイガレージから車両を登録できます。</p>
@@ -50,7 +50,7 @@ export const ApplicationFormView = ({
       )}
 
       {myApplication?.status === 'pending' && (
-        <div className="glass" style={{ padding: '40px', borderRadius: '20px', textAlign: 'center' }}>
+        <div className="glass settings-card" style={{ borderRadius: '20px', textAlign: 'center' }}>
           <Clock size={64} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
           <h3 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>審査中です</h3>
           <p style={{ color: 'var(--text-muted)' }}>運営が確認中です。しばらくお待ちください。</p>
@@ -58,7 +58,7 @@ export const ApplicationFormView = ({
       )}
 
       {myApplication?.status === 'rejected' && (
-        <div className="glass" style={{ padding: '40px', borderRadius: '20px', marginBottom: '32px', border: '1px solid var(--error)', background: 'rgba(255,50,50,0.05)' }}>
+        <div className="glass settings-card" style={{ borderRadius: '20px', marginBottom: '32px', border: '1px solid var(--error)', background: 'rgba(255,50,50,0.05)' }}>
           <XCircle size={48} style={{ color: 'var(--error)', marginBottom: '16px' }} />
           <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px', color: 'var(--error)' }}>申請が却下されました</h3>
           {myApplication.reject_reason && <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>理由: {myApplication.reject_reason}</p>}

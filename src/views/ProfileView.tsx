@@ -47,7 +47,7 @@ export const ProfileView = ({
   setEnterKeyBehavior
 }: ProfileViewProps) => {
   return (
-    <div className="animate-fade" style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div className="animate-fade" style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <div>
         <h2 style={{ fontSize: '2rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>設定</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '0px' }}>アカウント設定を管理します。</p>
@@ -104,7 +104,7 @@ export const ProfileView = ({
 
       {/* Notification Settings Section (v2.0.2) - Only visible in native app version */}
       {isNative && (
-        <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+        <div className="glass card settings-card" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
               <Bell size={24} style={{ color: 'var(--primary)' }} />
@@ -346,7 +346,7 @@ export const ProfileView = ({
       )}
 
       {/* App Information Section */}
-      <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+      <div className="glass card settings-card" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
             <Info size={24} style={{ color: 'var(--primary)' }} />
@@ -416,7 +416,7 @@ export const ProfileView = ({
 
       {/* Device Features Test (Beta) Section */}
       {isNative && currentUser?.role === 'admin' && (
-        <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+        <div className="glass card settings-card" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
               <Smartphone size={24} style={{ color: 'var(--primary)' }} />
@@ -628,7 +628,7 @@ export const ProfileView = ({
 
       {/* App Download Banner ONLY in Web Browser */}
       {!isNative && (
-        <div className="glass card" style={{ padding: '40px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 8px 32px rgba(0, 193, 102, 0.05)' }}>
+        <div className="glass card settings-card" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 8px 32px rgba(0, 193, 102, 0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
               <Smartphone size={24} style={{ color: 'var(--primary)' }} />
