@@ -17,6 +17,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BackgroundPollPlugin.class);
         registerPlugin(LiveProgressPlugin.class);
         registerPlugin(PhotoPickerPlugin.class);
+        registerPlugin(BackGesturePlugin.class);
 
         super.onCreate(savedInstanceState);
 

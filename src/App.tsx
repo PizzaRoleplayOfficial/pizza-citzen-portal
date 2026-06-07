@@ -102,6 +102,7 @@ import { handleAvatarError } from './utils/avatarFallback';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { BackGesture } from './utils/backGesture';
 
 const VEHICLE_REJECT_TEMPLATES = [
   "ナンバープレートが不鮮明 / 判別できません",
@@ -126,6 +127,8 @@ const VEHICLE_WARNING_TEMPLATES = [
 
 
 export default function App() {
+  const [backProgress, setBackProgress] = useState<number>(0);
+  const [isBackSwiping, setIsBackSwiping] = useState<boolean>(false);
   const [carModels, setCarModels] = useState<Record<string, string[]>>({});
   const loadCatalog = async (gameType: 'gv' | 'rc') => {
     try {
@@ -1140,31 +1143,73 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
 
-  // Androidの物理戻るボタン / システム戻るジェスチャーの制御
+  // Androidの物理戻るボタン / システム戻るジェスチャーの制御 (予測型戻るジェスチャーネイティブ同期)
   useEffect(() => {
     const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
     const shouldIntercept = isAnyModalOpen || view !== 'home' || (view === 'admin' && adminTab !== 'dashboard');
 
-    if (Capacitor.isNativePlatform() && shouldIntercept) {
-      const backHandler = CapApp.addListener('backButton', (data) => {
-        triggerHaptic('gesture_start');
-        if (isAnyModalOpen) {
-          // モーダルが開いている場合は履歴を戻ってモーダルを閉じる
-          window.history.back();
-        } else if (view === 'admin' && adminTab !== 'dashboard') {
-          // 管理パネルでサブメニューを開いている場合は、履歴を戻る（ダッシュボードトップに戻る）
-          setIsNavigatingBack(true);
-          window.history.back();
-        } else if (view !== 'home') {
-          // それ以外のホーム以外の画面なら履歴を戻る
-          setIsNavigatingBack(true);
-          window.history.back();
-        }
+    if (Capacitor.isNativePlatform()) {
+      BackGesture.setEnabled({ enabled: shouldIntercept }).catch(err => {
+        console.warn('Failed to set back gesture enabled:', err);
       });
-      return () => {
-        backHandler.then(h => h.remove());
-      };
     }
+  }, [view, adminTab, showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let startHandler: any = null;
+    let progressHandler: any = null;
+    let cancelHandler: any = null;
+    let pressHandler: any = null;
+
+    const setupListeners = async () => {
+      try {
+        startHandler = await BackGesture.addListener('backStarted', (data) => {
+          setIsBackSwiping(true);
+          setBackProgress(data.progress);
+          triggerHaptic('light');
+        });
+
+        progressHandler = await BackGesture.addListener('backProgressed', (data) => {
+          setBackProgress(data.progress);
+        });
+
+        cancelHandler = await BackGesture.addListener('backCancelled', () => {
+          setIsBackSwiping(false);
+          setBackProgress(0);
+          triggerHaptic('light');
+        });
+
+        pressHandler = await BackGesture.addListener('backPressed', () => {
+          setIsBackSwiping(false);
+          setBackProgress(0);
+          triggerHaptic('medium');
+
+          const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
+          if (isAnyModalOpen) {
+            window.history.back();
+          } else if (view === 'admin' && adminTab !== 'dashboard') {
+            setIsNavigatingBack(true);
+            window.history.back();
+          } else if (view !== 'home') {
+            setIsNavigatingBack(true);
+            window.history.back();
+          }
+        });
+      } catch (err) {
+        console.error('Failed to setup BackGesture listeners:', err);
+      }
+    };
+
+    setupListeners();
+
+    return () => {
+      if (startHandler) startHandler.remove();
+      if (progressHandler) progressHandler.remove();
+      if (cancelHandler) cancelHandler.remove();
+      if (pressHandler) pressHandler.remove();
+    };
   }, [view, adminTab, showAddModal, showTrailerModal, showBetaAutoFillModal, rejectModal.isOpen, updateState.isOpen]);
 
   const handleManualRefresh = () => {
@@ -2333,6 +2378,8 @@ export default function App() {
 
   if (!isLoggedIn) return <LandingView />;
 
+  const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
+
   return (
     <div className="app-wrapper" style={{
       maxWidth: isMobile ? '100%' : '2000px',
@@ -2649,7 +2696,28 @@ export default function App() {
         </div>
       )}
 
-      <main className={`container ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} style={{ padding: isMobile ? '30px calc(16px + var(--safe-right)) calc(110px + var(--safe-bottom)) calc(16px + var(--safe-left))' : '0px clamp(16px, 1.5vw, 32px)', flex: 1, minWidth: 0, margin: 0 }}>
+      <main 
+        className={`container ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} 
+        style={{ 
+          padding: isMobile ? '30px calc(16px + var(--safe-right)) calc(110px + var(--safe-bottom)) calc(16px + var(--safe-left))' : '0px clamp(16px, 1.5vw, 32px)', 
+          flex: 1, 
+          minWidth: 0, 
+          margin: 0,
+          transform: (isBackSwiping && !isAnyModalOpen && (view !== 'home' || (view === 'admin' && adminTab !== 'dashboard')))
+            ? `scale(${1 - backProgress * 0.05}) translate3d(${backProgress * 8}%, 0, 0)`
+            : 'none',
+          borderRadius: (isBackSwiping && !isAnyModalOpen && (view !== 'home' || (view === 'admin' && adminTab !== 'dashboard')))
+            ? `${backProgress * 24}px`
+            : '0px',
+          overflow: (isBackSwiping && !isAnyModalOpen && (view !== 'home' || (view === 'admin' && adminTab !== 'dashboard')))
+            ? 'hidden'
+            : 'visible',
+          opacity: (isBackSwiping && !isAnyModalOpen && (view !== 'home' || (view === 'admin' && adminTab !== 'dashboard')))
+            ? 1 - backProgress * 0.3
+            : 1,
+          transition: isBackSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, border-radius 0.3s ease'
+        }}
+      >
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             
@@ -3365,8 +3433,33 @@ export default function App() {
       )}
 
       {showAddModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))' }}>
-          <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '680px', padding: isMobile ? '20px' : '40px', borderRadius: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          backdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)', 
+          opacity: isBackSwiping ? 1 - backProgress : 1,
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 1000, 
+          padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))',
+          transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
+        }}>
+          <div 
+            className="glass card animate-fade" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '680px', 
+              padding: isMobile ? '20px' : '40px', 
+              borderRadius: '24px', 
+              maxHeight: '90vh', 
+              overflowY: 'auto',
+              transform: isBackSwiping ? `scale(${1 - backProgress * 0.08}) translate3d(0, ${backProgress * 20}px, 0)` : 'none',
+              opacity: isBackSwiping ? 1 - backProgress : 1,
+              transition: isBackSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease'
+            }}
+          >
 
             <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>{editingVehicleId ? '車両情報の修正' : '新規車両の登録'}</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>必要な情報を入力してください。</p>
@@ -3622,8 +3715,32 @@ export default function App() {
       )}
 
       {showTrailerModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))', overflowY: 'auto' }}>
-          <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '560px', padding: isMobile ? '20px' : '40px', borderRadius: '24px' }}>
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          backdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)', 
+          opacity: isBackSwiping ? 1 - backProgress : 1,
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 1000, 
+          padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))',
+          overflowY: 'auto',
+          transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
+        }}>
+          <div 
+            className="glass card animate-fade" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '560px', 
+              padding: isMobile ? '20px' : '40px', 
+              borderRadius: '24px',
+              transform: isBackSwiping ? `scale(${1 - backProgress * 0.08}) translate3d(0, ${backProgress * 20}px, 0)` : 'none',
+              opacity: isBackSwiping ? 1 - backProgress : 1,
+              transition: isBackSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease'
+            }}
+          >
 
             <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '4px' }}>🚛 トレーラーを追加</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '28px', fontSize: '0.9rem' }}>被牽引車（トレーラー）の登録申請を行います。</p>
@@ -3886,9 +4003,32 @@ export default function App() {
       )}
 
       {showBetaAutoFillModal && (
-
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))' }}>
-          <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '500px', padding: '40px', borderRadius: '24px', textAlign: 'center' }}>
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          backdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)', 
+          opacity: isBackSwiping ? 1 - backProgress : 1,
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 1000, 
+          padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))',
+          transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
+        }}>
+          <div 
+            className="glass card animate-fade" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '500px', 
+              padding: '40px', 
+              borderRadius: '24px', 
+              textAlign: 'center',
+              transform: isBackSwiping ? `scale(${1 - backProgress * 0.08}) translate3d(0, ${backProgress * 20}px, 0)` : 'none',
+              opacity: isBackSwiping ? 1 - backProgress : 1,
+              transition: isBackSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease'
+            }}
+          >
             <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>✨ 自動入力 (Beta)</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
               {formData.game_type === 'rc' 
@@ -3962,8 +4102,34 @@ export default function App() {
       )}
 
       {rejectModal.isOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))' }}>
-          <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '520px', padding: '28px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          backdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)', 
+          opacity: isBackSwiping ? 1 - backProgress : 1,
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 1100, 
+          padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))',
+          transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
+        }}>
+          <div 
+            className="glass card animate-fade" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '520px', 
+              padding: '28px', 
+              borderRadius: '24px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '20px',
+              transform: isBackSwiping ? `scale(${1 - backProgress * 0.08}) translate3d(0, ${backProgress * 20}px, 0)` : 'none',
+              opacity: isBackSwiping ? 1 - backProgress : 1,
+              transition: isBackSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease'
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: rejectModal.type === 'vehicle_warning' ? '#FFA114' : 'var(--error)' }}>
                 {rejectModal.type === 'vehicle_warning' ? '⚠️ 非推奨承認の理由選択' : '❌ 申請却下の理由選択'}
@@ -4073,8 +4239,37 @@ export default function App() {
       )}
 
       {updateState.isOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px' }}>
-          <div className="glass card animate-fade" style={{ width: '100%', maxWidth: '480px', padding: '32px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          backdropFilter: isBackSwiping ? `blur(${16 * (1 - backProgress)}px)` : 'blur(16px)', 
+          opacity: isBackSwiping ? 1 - backProgress : 1,
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 2000, 
+          padding: '24px',
+          transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
+        }}>
+          <div 
+            className="glass card animate-fade" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '480px', 
+              padding: '32px', 
+              borderRadius: '24px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '24px', 
+              background: 'var(--panel-bg)', 
+              border: '1px solid var(--glass-border)', 
+              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+              transform: isBackSwiping ? `scale(${1 - backProgress * 0.08}) translate3d(0, ${backProgress * 20}px, 0)` : 'none',
+              opacity: isBackSwiping ? 1 - backProgress : 1,
+              transition: isBackSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease'
+            }}
+          >
             <div style={{ textAlign: 'center' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', background: 'rgba(0,193,102,0.15)', borderRadius: '16px', marginBottom: '16px' }}>
                 <RefreshCw size={28} className={updateState.status === 'downloading' ? 'animate-spin' : ''} style={{ color: 'var(--primary)' }} />

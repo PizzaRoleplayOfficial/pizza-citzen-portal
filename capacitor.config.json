@@ -14,5 +14,10 @@
   },
   "ios": {
     "allowsBackForwardNavigationGestures": true
+  },
+  "plugins": {
+    "App": {
+      "disableBackButtonHandler": true
+    }
   }
 }
