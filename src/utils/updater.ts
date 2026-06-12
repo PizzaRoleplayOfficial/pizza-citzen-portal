@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.59'; // 2.2.59 (ライトモード時の運営告知カード背景色・コントラストの改善)
+export const CURRENT_VERSION = '2.2.60'; // 2.2.60 (Android 9/10起動時クラッシュバグの修正)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
