@@ -3799,13 +3799,19 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     flexDirection: 'column',
                     gap: '12px', 
                     background: isAnnouncementPost 
-                      ? 'linear-gradient(135deg, rgba(20,25,35,0.7) 0%, rgba(0, 255, 136, 0.03) 100%)' 
+                      ? (theme === 'light'
+                          ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
+                          : 'linear-gradient(135deg, rgba(20,25,35,0.7) 0%, rgba(0, 255, 136, 0.03) 100%)')
                       : 'var(--panel-bg)', 
                     border: isAnnouncementPost 
-                      ? '1.5px solid rgba(0, 255, 136, 0.3)' 
+                      ? (theme === 'light'
+                          ? '1.5px solid rgba(0, 193, 102, 0.3)'
+                          : '1.5px solid rgba(0, 255, 136, 0.3)')
                       : '1px solid var(--glass-border)',
                     boxShadow: isAnnouncementPost 
-                      ? '0 8px 24px rgba(0, 255, 136, 0.06)' 
+                      ? (theme === 'light'
+                          ? '0 8px 24px rgba(0, 193, 102, 0.08)'
+                          : '0 8px 24px rgba(0, 255, 136, 0.06)')
                       : 'none',
                     position: 'relative'
                   }}
@@ -3913,8 +3919,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                             <span style={{
                               fontSize: '0.72rem',
                               fontWeight: 800,
-                              background: 'rgba(0, 255, 136, 0.15)',
-                              border: '1px solid rgba(0, 255, 136, 0.3)',
+                              background: theme === 'light' ? 'rgba(0, 193, 102, 0.12)' : 'rgba(0, 255, 136, 0.15)',
+                              border: theme === 'light' ? '1px solid rgba(0, 193, 102, 0.25)' : '1px solid rgba(0, 255, 136, 0.3)',
                               color: 'var(--primary)',
                               padding: '2px 8px',
                               borderRadius: '12px',
