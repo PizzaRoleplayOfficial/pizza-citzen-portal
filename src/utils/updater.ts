@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.68'; // 2.2.68 (モバイル表示でらくらくスマホ感を解消するため全体に80%ズームを適用)
+export const CURRENT_VERSION = '2.2.69'; // 2.2.69 (タイムラインの超軽量化・プロキシURL化・無限スクロール対応版)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

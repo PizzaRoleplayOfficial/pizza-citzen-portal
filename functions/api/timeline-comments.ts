@@ -88,7 +88,26 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
     const { results } = await env.D1_DB.prepare(query).bind(userId, postId).all();
     
-    return new Response(JSON.stringify(results), {
+    // Transform base64 image data to proxy URLs
+    const optimizedResults = results.map((row: any) => {
+      if (row.image_data) {
+        try {
+          const imgs = JSON.parse(row.image_data);
+          if (Array.isArray(imgs)) {
+            row.image_data = JSON.stringify(
+              imgs.map((_, idx) => `/api/timeline-image?postId=${row.id}&index=${idx}`)
+            );
+          } else {
+            row.image_data = JSON.stringify([`/api/timeline-image?postId=${row.id}&index=0`]);
+          }
+        } catch (e) {
+          row.image_data = JSON.stringify([`/api/timeline-image?postId=${row.id}&index=0`]);
+        }
+      }
+      return row;
+    });
+    
+    return new Response(JSON.stringify(optimizedResults), {
       headers: { 
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'

@@ -888,6 +888,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   };
 
   const [posts, setPosts] = useState<TimelinePost[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [isNewLoading, setIsNewLoading] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
   const [isAnnouncement, setIsAnnouncement] = useState(false);
@@ -1628,18 +1632,64 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchPosts = async (isBackground = false) => {
-    if (!isBackground) setIsLoading(true);
+  const fetchPosts = async (isBackground = false, append = false) => {
+    if (!isBackground) {
+      if (append) {
+        setIsNewLoading(true);
+      } else {
+        setIsLoading(true);
+      }
+    }
     try {
-      const res = await fetch(`/api/timeline?userId=${currentUser.id}&feed=${activeFeedTab}`);
+      let url = `/api/timeline?userId=${currentUser.id}&feed=${activeFeedTab}&limit=20`;
+      
+      // If we are appending page and have posts, pass the before timestamp cursor
+      if (append && posts.length > 0) {
+        const lastPost = posts[posts.length - 1];
+        url += `&before=${encodeURIComponent(lastPost.created_at)}`;
+      }
+
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setPosts(Array.isArray(data) ? data : []);
+        if (Array.isArray(data)) {
+          if (append) {
+            setPosts(prev => [...prev, ...data]);
+          } else {
+            if (isBackground) {
+              // Background update (polling): merge first page updates
+              setPosts(prev => {
+                const updated = [...prev];
+                data.forEach(newPost => {
+                  const idx = updated.findIndex(p => p.id === newPost.id);
+                  if (idx !== -1) {
+                    // Update stats/likes of existing post in place
+                    updated[idx] = newPost;
+                  } else {
+                    // If it is a new post (created after the most recent post in view), unshift it
+                    if (updated.length === 0 || new Date(newPost.created_at) > new Date(updated[0].created_at)) {
+                      updated.unshift(newPost);
+                    }
+                  }
+                });
+                return updated;
+              });
+            } else {
+              // Initial load or tab switch: replace posts
+              setPosts(data);
+            }
+          }
+          // If the returned batch has fewer items than our page limit, we've hit the end
+          setHasMore(data.length === 20);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch timeline posts:", err);
     } finally {
-      if (!isBackground) setIsLoading(false);
+      if (!isBackground) {
+        setIsLoading(false);
+        setIsNewLoading(false);
+      }
     }
   };
 
@@ -1694,8 +1744,34 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     };
   }, []);
 
+  // IntersectionObserver for Infinite Scroll
+  useEffect(() => {
+    if (!hasMore || isLoading || isNewLoading) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        fetchPosts(false, true); // trigger paginated loading
+      }
+    }, {
+      rootMargin: '150px', // trigger before reaching the exact bottom
+    });
+
+    const currentSentinel = sentinelRef.current;
+    if (currentSentinel) {
+      observer.observe(currentSentinel);
+    }
+
+    return () => {
+      if (currentSentinel) {
+        observer.unobserve(currentSentinel);
+      }
+    };
+  }, [hasMore, isLoading, isNewLoading, posts]);
+
   // Poll timeline posts every 1 second for real-time likes, views and new posts
   useEffect(() => {
+    setPosts([]);
+    setHasMore(true);
     fetchPosts();
     const interval = setInterval(() => {
       fetchPosts(true);
@@ -1703,7 +1779,6 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     return () => clearInterval(interval);
   }, [activeFeedTab]);
 
-  // Fetch posts in background immediately when the detail modal is closed to sync views/comments/likes count
   useEffect(() => {
     if (!expandedPostId) {
       fetchPosts(true);
@@ -4343,6 +4418,24 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
               );
             })}
+
+            {/* Infinite Scroll Sentinel and Loader */}
+            {hasMore && (
+              <div 
+                ref={sentinelRef} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '24px 0', 
+                  gap: '8px',
+                  color: 'var(--text-muted)'
+                }}
+              >
+                <Loader2 size={20} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>タイムラインを読み込み中...</span>
+              </div>
+            )}
           </div>
         );
       })()}

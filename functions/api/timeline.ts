@@ -205,6 +205,8 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     `;
 
     const feed = url.searchParams.get('feed') || 'all';
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
+    const before = url.searchParams.get('before') || '';
     
     const conditions: string[] = [];
     const bindParams: any[] = [userId, userId, userId, userId, userId];
@@ -212,24 +214,67 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     if (postId) {
       conditions.push("p.id = ?");
       bindParams.push(postId);
-    } else if (feed === 'following') {
-      conditions.push("p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)");
-      bindParams.push(userId);
-    } else if (feed === 'bookmarks') {
-      conditions.push("p.id IN (SELECT post_id FROM timeline_bookmarks WHERE user_id = ?)");
-      bindParams.push(userId);
+    } else {
+      if (feed === 'following') {
+        conditions.push("p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)");
+        bindParams.push(userId);
+      } else if (feed === 'bookmarks') {
+        conditions.push("p.id IN (SELECT post_id FROM timeline_bookmarks WHERE user_id = ?)");
+        bindParams.push(userId);
+      }
+
+      if (before) {
+        conditions.push("p.created_at < ?");
+        bindParams.push(before);
+      }
     }
 
     if (conditions.length > 0) {
       query += " WHERE " + conditions.join(" AND ");
     }
 
-    query += " ORDER BY p.created_at DESC";
+    query += " ORDER BY p.created_at DESC LIMIT ?";
+    bindParams.push(limit);
 
     const stmt = await env.D1_DB.prepare(query).bind(...bindParams).all();
     const results = stmt.results;
     
-    return new Response(JSON.stringify(results), {
+    // Transform base64 image data to proxy URLs
+    const optimizedResults = results.map((row: any) => {
+      // Proxy image_data
+      if (row.image_data) {
+        try {
+          const imgs = JSON.parse(row.image_data);
+          if (Array.isArray(imgs)) {
+            row.image_data = JSON.stringify(
+              imgs.map((_, idx) => `/api/timeline-image?postId=${row.id}&index=${idx}`)
+            );
+          } else {
+            row.image_data = JSON.stringify([`/api/timeline-image?postId=${row.id}&index=0`]);
+          }
+        } catch (e) {
+          row.image_data = JSON.stringify([`/api/timeline-image?postId=${row.id}&index=0`]);
+        }
+      }
+      // Proxy orig_image_data
+      if (row.orig_image_data) {
+        try {
+          const imgs = JSON.parse(row.orig_image_data);
+          if (Array.isArray(imgs)) {
+            row.orig_image_data = JSON.stringify(
+              imgs.map((_, idx) => `/api/timeline-image?postId=${row.repost_id || row.id}&index=${idx}`)
+            );
+          } else {
+            row.orig_image_data = JSON.stringify([`/api/timeline-image?postId=${row.repost_id || row.id}&index=0`]);
+          }
+        } catch (e) {
+          row.orig_image_data = JSON.stringify([`/api/timeline-image?postId=${row.repost_id || row.id}&index=0`]);
+        }
+      }
+      return row;
+    });
+
+    return new Response(JSON.stringify(optimizedResults), {
       headers: { 
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'

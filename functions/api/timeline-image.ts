@@ -9,6 +9,7 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
   const url = new URL(request.url);
   const postId = url.searchParams.get('postId');
+  const index = parseInt(url.searchParams.get('index') || '0', 10);
 
   if (!postId) {
     return new Response("Missing postId", { status: 400 });
@@ -16,9 +17,16 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
 
   try {
     // 1. Fetch image_data from timeline_posts table in D1 DB
-    const post = await env.D1_DB.prepare(
+    let post = await env.D1_DB.prepare(
       "SELECT image_data FROM timeline_posts WHERE id = ?"
     ).bind(postId).first() as { image_data?: string | null } | null;
+
+    // Fallback: Check in timeline_comments table
+    if (!post || !post.image_data) {
+      post = await env.D1_DB.prepare(
+        "SELECT image_data FROM timeline_comments WHERE id = ?"
+      ).bind(postId).first() as { image_data?: string | null } | null;
+    }
 
     if (post && post.image_data) {
       // 2. image_data is stored as a JSON stringified array of base64 data URLs
@@ -32,8 +40,8 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
         }
       }
 
-      if (Array.isArray(images) && images.length > 0 && typeof images[0] === 'string') {
-        const base64DataUrl = images[0];
+      if (Array.isArray(images) && images.length > index && typeof images[index] === 'string') {
+        const base64DataUrl = images[index];
         const matches = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/);
         
         if (matches && matches.length === 3) {
