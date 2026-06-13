@@ -1825,6 +1825,42 @@ h1 {
   }
 }
 
+/* ==========================================================================
+   軽量モード (Lite Mode) のパフォーマンス優先スタイル (v2.2.66)
+   ========================================================================== */
+body.lite-mode,
+body.lite-mode * {
+  /* 1. 全てのアニメーションとトランジションを無効化 */
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 2. ガラス効果 (backdrop-filter) を無効化し、不透明度の高い背景色に切り替える */
+body.lite-mode .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(16, 20, 30, 0.96) !important;
+}
+
+:root[data-theme='light'] body.lite-mode .glass {
+  background: rgba(245, 245, 247, 0.98) !important;
+}
+
+/* 3. モーダルの背景もぼかしを無効化 */
+body.lite-mode div[style*="backdropFilter"],
+body.lite-mode div[style*="backdrop-filter"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 4. ガレージ等のカードバッジのぼかしも無効化 */
+body.lite-mode .garage-card-status,
+body.lite-mode .wiki-fallback-badge {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(10, 12, 16, 0.95) !important;
+}
+
 
 
 

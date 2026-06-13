@@ -173,9 +173,28 @@ export default function App() {
   const [theme, setTheme] = useState<'dark'|'light'>(
     (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
   );
-  const [enterKeyBehavior, setEnterKeyBehavior] = useState<'enter' | 'shiftEnter'>(
-    (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
-  );
+  const [liteMode, setLiteMode] = useState<boolean>(() => {
+    const cached = localStorage.getItem('gvvr_lite_mode');
+    if (cached !== null) {
+      return cached === 'true';
+    }
+    // 自動判定: CPU 4コア以下、または RAM 4GB未満の場合デフォルトON
+    const cpuCores = navigator.hardwareConcurrency || 8;
+    const deviceMemory = (navigator as any).deviceMemory || 8;
+    return cpuCores <= 4 || deviceMemory < 4;
+  });
+
+  const handleToggleLiteMode = (enabled: boolean) => {
+    setLiteMode(enabled);
+    localStorage.setItem('gvvr_lite_mode', String(enabled));
+    triggerHaptic('light');
+  };
+
+  // 軽量モードのボディクラスのトグル
+  useEffect(() => {
+    document.body.classList.toggle('lite-mode', liteMode);
+  }, [liteMode]);
+
 
   useEffect(() => {
     localStorage.setItem('gvvr_enter_key_behavior', enterKeyBehavior);
@@ -1013,8 +1032,7 @@ export default function App() {
       setTargetTimelinePostId(postId);
     }
 
-    // Load external vehicle catalog
-    loadCatalog('gv');
+    // Redundant loadCatalog('gv') call removed for startup performance. Catalog is dynamically loaded when opening the Add Vehicle Modal.
   }, []);
 
   // ログイン状態に応じてバックグラウンドポーリングを開始・停止、およびFCMリアルタイムプッシュ通知の登録・解除 (v1.9.10)
@@ -1253,7 +1271,6 @@ export default function App() {
     setIsLoading(true);
     fetchVehicles();
     fetchApplication();
-    fetchQuestions();
     if (view === 'admin') {
       fetchUsers();
       fetchAllApplications();
@@ -1267,7 +1284,6 @@ export default function App() {
     const refreshData = () => {
       fetchVehicles();
       fetchApplication();
-      fetchQuestions();
       if (view === 'admin') {
         fetchUsers();
         fetchAllApplications();
@@ -1283,6 +1299,13 @@ export default function App() {
     }, 30000);
 
     return () => clearInterval(intervalId);
+  }, [isLoggedIn, view]);
+
+  // 市民申請画面 (apply) が開かれたタイミングで、設問データを遅延ロードする (起動速度改善)
+  useEffect(() => {
+    if (isLoggedIn && view === 'apply') {
+      fetchQuestions();
+    }
   }, [isLoggedIn, view]);
 
   useEffect(() => {
@@ -3394,6 +3417,8 @@ export default function App() {
             onTogglePushSetting={handleTogglePushSetting}
             enterKeyBehavior={enterKeyBehavior}
             setEnterKeyBehavior={setEnterKeyBehavior}
+            liteMode={liteMode}
+            onToggleLiteMode={handleToggleLiteMode}
           />
         ) : view === 'timeline' ? (
           <TimelineView

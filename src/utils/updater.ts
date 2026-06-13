@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.65'; // 2.2.65 (LiveUpdate自動更新時のHTTP 404エラーを解消するためJava側の手動リダイレクト追従・User-Agent保持を適用)
+export const CURRENT_VERSION = '2.2.66'; // 2.2.66 (低スペック端末向け軽量モードの追加、および起動時の無駄なAPI取得削除・遅延ロードによる起動速度向上)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
