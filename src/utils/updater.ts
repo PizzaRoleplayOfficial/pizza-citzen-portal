@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.61'; // 2.2.61 (モバイルUIでFAB（プラスボタン）がボトムナビに隠れる不具合の修正)
+export const CURRENT_VERSION = '2.2.62'; // 2.2.62 (モバイルUIのFABプラスボタン配置をさらに引き上げて、モヤモヤ（影）がボトムナビに被る不具合を解消)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

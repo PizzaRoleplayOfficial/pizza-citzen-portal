@@ -3626,7 +3626,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           style={{
             position: 'fixed',
-            bottom: 'calc(116px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(140px + env(safe-area-inset-bottom, 0px))',
             right: '24px',
             width: '56px',
             height: '56px',
