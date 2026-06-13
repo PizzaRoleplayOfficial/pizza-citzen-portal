@@ -3626,7 +3626,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           style={{
             position: 'fixed',
-            bottom: 'calc(92px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(116px + env(safe-area-inset-bottom, 0px))',
             right: '24px',
             width: '56px',
             height: '56px',
@@ -3638,7 +3638,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 999,
+            zIndex: 1001,
             cursor: 'pointer',
             transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
             flexShrink: 0
