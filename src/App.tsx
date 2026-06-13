@@ -173,6 +173,9 @@ export default function App() {
   const [theme, setTheme] = useState<'dark'|'light'>(
     (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
   );
+  const [enterKeyBehavior, setEnterKeyBehavior] = useState<'enter' | 'shiftEnter'>(
+    (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
+  );
   const [liteMode, setLiteMode] = useState<boolean>(() => {
     const cached = localStorage.getItem('gvvr_lite_mode');
     if (cached !== null) {
