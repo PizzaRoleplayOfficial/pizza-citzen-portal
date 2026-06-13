@@ -106,7 +106,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     if (isAdmin) {
       console.log("Admin list requested");
       const query = `
-        SELECT v.id, v.owner_id, v.maker, v.model, v.year, v.trim, v.color, v.plate, v.plate_region, v.status, v.reject_reason, v.vehicle_type, v.trailer_type, v.temp_plate, v.temp_expires_at, v.is_temp_registration, v.reviewed_at, v.created_at, v.roblox_username, v.image_data, v.game_type,
+        SELECT v.id, v.owner_id, v.maker, v.model, v.year, v.trim, v.color, v.plate, v.plate_region, v.status, v.reject_reason, v.vehicle_type, v.trailer_type, v.temp_plate, v.temp_expires_at, v.is_temp_registration, v.reviewed_at, v.created_at, v.roblox_username, v.game_type,
                u.username as discord_username, u.avatar as discord_avatar
         FROM vehicles v
         LEFT JOIN users u ON v.owner_id = u.id
@@ -122,7 +122,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     } else {
       console.log(`User vehicle list requested for: ${userId}`);
       const query = `
-        SELECT v.id, v.owner_id, v.maker, v.model, v.year, v.trim, v.color, v.plate, v.plate_region, v.status, v.reject_reason, v.vehicle_type, v.trailer_type, v.temp_plate, v.temp_expires_at, v.is_temp_registration, v.reviewed_at, v.created_at, v.roblox_username, v.image_data, v.game_type,
+        SELECT v.id, v.owner_id, v.maker, v.model, v.year, v.trim, v.color, v.plate, v.plate_region, v.status, v.reject_reason, v.vehicle_type, v.trailer_type, v.temp_plate, v.temp_expires_at, v.is_temp_registration, v.reviewed_at, v.created_at, v.roblox_username, v.game_type,
                u.username as discord_username, u.avatar as discord_avatar
         FROM vehicles v
         LEFT JOIN users u ON v.owner_id = u.id
