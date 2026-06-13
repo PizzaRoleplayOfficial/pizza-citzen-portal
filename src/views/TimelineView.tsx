@@ -3701,10 +3701,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           style={{
             position: 'fixed',
-            bottom: 'calc(140px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(90px + env(safe-area-inset-bottom, 0px))',
             right: '24px',
-            width: '56px',
-            height: '56px',
+            width: '64px',
+            height: '64px',
             borderRadius: '50%',
             background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
             color: '#000',
@@ -3720,7 +3720,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           }}
           title="新規ポストを作成"
         >
-          <Plus size={24} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+          <Plus size={28} strokeWidth={3} style={{ flexShrink: 0 }} />
         </button>
       )}
 

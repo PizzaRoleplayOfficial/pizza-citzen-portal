@@ -565,7 +565,7 @@ export const MyGarageView = ({
 
       {/* ====== Mobile FAB Speed Dial ====== */}
       {isMobile && myApplication?.status === 'approved' && (
-        <div ref={fabRef} style={{ position: 'fixed', bottom: 'calc(140px + env(safe-area-inset-bottom, 0px))', right: '24px', zIndex: 1001, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+        <div ref={fabRef} style={{ position: 'fixed', bottom: 'calc(90px + env(safe-area-inset-bottom, 0px))', right: '24px', zIndex: 1001, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
 
           {/* Speed Dial Items */}
           {fabOpen && (
@@ -655,8 +655,8 @@ export const MyGarageView = ({
               setFabOpen(prev => !prev);
             }}
             style={{
-              width: '56px',
-              height: '56px',
+              width: '64px',
+              height: '64px',
               borderRadius: '50%',
               background: fabOpen
                 ? 'rgba(255,255,255,0.12)'
@@ -680,7 +680,7 @@ export const MyGarageView = ({
             aria-label={fabOpen ? 'メニューを閉じる' : (garageTab === 'car' ? '車両を追加' : 'トレーラーを追加')}
             aria-expanded={fabOpen}
           >
-            <Plus size={24} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+            <Plus size={28} strokeWidth={3} style={{ flexShrink: 0 }} />
           </button>
         </div>
       )}
