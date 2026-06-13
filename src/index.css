@@ -1818,10 +1818,13 @@ h1 {
   background: rgba(0, 0, 0, 0.02) !important;
 }
 
-/* Zoomed-out Main Content for Mobile Viewport */
+/* App wide scaling for Mobile Viewport to keep UI elegant and high-density */
 @media (max-width: 768px) {
+  body {
+    zoom: 0.8; /* Scale down the whole app to 80% to solve 'chunky easy-phone' look on mobile */
+  }
   .mobile-zoomed-main {
-    zoom: 0.7;
+    zoom: 1; /* Reset main element zoom to let body zoom take over */
   }
 }
 
