@@ -35,34 +35,126 @@ export const ApplicationFormView = ({
           <h2 style={{ fontSize: '2.4rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>市民申請</h2>
           <p style={{ color: 'var(--text-muted)' }}>申請が承認されると車両登録が可能になります。</p>
         </div>
-        <button className="btn btn-secondary" onClick={handleManualRefresh} style={{ padding: '10px 16px' }} disabled={isLoading}>
-          <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
-        </button>
       </div>
 
       {myApplication?.status === 'approved' && (
-        <div className="glass settings-card" style={{ borderRadius: '20px', textAlign: 'center', border: '1px solid var(--success)', background: 'rgba(0, 255, 0, 0.05)' }}>
-          <CheckCircle2 size={64} style={{ color: 'var(--success)', marginBottom: '16px' }} />
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px', color: 'var(--success)' }}>申請が承認されました！</h3>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>マイガレージから車両を登録できます。</p>
-          <button className="btn btn-primary" onClick={() => setView('garage')} style={{ padding: '14px 32px' }}>マイガレージへ →</button>
+        <div 
+          className="glass settings-card" 
+          style={{ 
+            borderRadius: '24px', 
+            textAlign: 'center', 
+            border: '1px solid rgba(0, 193, 102, 0.3)', 
+            background: 'linear-gradient(135deg, rgba(0, 193, 102, 0.05) 0%, rgba(0, 193, 102, 0.01) 100%)', 
+            boxShadow: '0 8px 32px rgba(0, 193, 102, 0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '48px 24px',
+            gap: '20px'
+          }}
+        >
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: 'rgba(0, 193, 102, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(0, 193, 102, 0.2)'
+          }}>
+            <CheckCircle2 size={40} style={{ color: 'var(--primary)' }} />
+          </div>
+          <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>申請が承認されました！</h3>
+          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem', maxWidth: '360px', lineHeight: 1.6 }}>
+            マイガレージから車両を登録できます。
+          </p>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => setView('garage')} 
+            style={{ 
+              padding: '14px 36px', 
+              fontSize: '0.95rem', 
+              fontWeight: 700, 
+              borderRadius: '12px',
+              boxShadow: '0 4px 15px rgba(0, 193, 102, 0.25)' 
+            }}
+          >
+            マイガレージへ →
+          </button>
         </div>
       )}
 
       {myApplication?.status === 'pending' && (
-        <div className="glass settings-card" style={{ borderRadius: '20px', textAlign: 'center' }}>
-          <Clock size={64} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
-          <h3 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>審査中です</h3>
-          <p style={{ color: 'var(--text-muted)' }}>運営が確認中です。しばらくお待ちください。</p>
+        <div 
+          className="glass settings-card" 
+          style={{ 
+            borderRadius: '24px', 
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '48px 24px',
+            gap: '20px'
+          }}
+        >
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: 'rgba(255, 177, 66, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(255, 177, 66, 0.2)'
+          }}>
+            <Clock size={40} style={{ color: '#ffb142' }} />
+          </div>
+          <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>審査中です</h3>
+          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem', maxWidth: '360px', lineHeight: 1.6 }}>
+            運営が確認中です。しばらくお待ちください。
+          </p>
         </div>
       )}
 
       {myApplication?.status === 'rejected' && (
-        <div className="glass settings-card" style={{ borderRadius: '20px', marginBottom: '32px', border: '1px solid var(--error)', background: 'rgba(255,50,50,0.05)' }}>
-          <XCircle size={48} style={{ color: 'var(--error)', marginBottom: '16px' }} />
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px', color: 'var(--error)' }}>申請が却下されました</h3>
-          {myApplication.reject_reason && <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>理由: {myApplication.reject_reason}</p>}
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>下記のフォームで再申請できます。</p>
+        <div 
+          className="glass settings-card" 
+          style={{ 
+            borderRadius: '24px', 
+            marginBottom: '32px', 
+            border: '1px solid var(--error)', 
+            background: 'rgba(255,50,50,0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '36px 24px',
+            gap: '16px',
+            textAlign: 'center'
+          }}
+        >
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'rgba(255, 82, 82, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(255, 82, 82, 0.2)'
+          }}>
+            <XCircle size={32} style={{ color: 'var(--error)' }} />
+          </div>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--error)', margin: 0 }}>申請が却下されました</h3>
+          {myApplication.reject_reason && (
+            <p style={{ color: 'var(--text-main)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', padding: '12px 20px', borderRadius: '12px', margin: 0, fontSize: '0.9rem', maxWidth: '480px', lineHeight: 1.6 }}>
+              <strong>却下理由:</strong> {myApplication.reject_reason}
+            </p>
+          )}
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>下記のフォームで再申請できます。</p>
         </div>
       )}
 
