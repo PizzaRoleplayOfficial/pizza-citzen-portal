@@ -350,7 +350,7 @@ public class LiveUpdateService extends Service {
 
             while (true) {
                 connection = (HttpURLConnection) url.openConnection();
-                connection.setInstanceFollowRedirects(true);
+                connection.setInstanceFollowRedirects(false); // Disable automatic redirects to prevent User-Agent loss
                 connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36");
                 connection.setRequestProperty("Accept", "*/*");
                 connection.connect();
@@ -358,15 +358,21 @@ public class LiveUpdateService extends Service {
                 status = connection.getResponseCode();
                 if (status == HttpURLConnection.HTTP_MOVED_TEMP || 
                     status == HttpURLConnection.HTTP_MOVED_PERM || 
+                    status == HttpURLConnection.HTTP_SEE_OTHER ||
                     status == 307 || status == 308) {
                     
                     if (redirectCount > 8) {
                         throw new Exception("Too many redirects");
                     }
                     String newUrl = connection.getHeaderField("Location");
+                    if (newUrl == null || newUrl.isEmpty()) {
+                        throw new Exception("Redirect requested but Location header is missing");
+                    }
                     connection.disconnect();
-                    url = new URL(newUrl);
+                    // Resolve relative URLs using current url as base context
+                    url = new URL(url, newUrl);
                     redirectCount++;
+                    Log.d(TAG, "Redirecting to: " + url.toString());
                 } else {
                     break;
                 }
