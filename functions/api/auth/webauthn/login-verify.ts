@@ -50,7 +50,23 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 
     const url = new URL(request.url);
     const rpID = url.hostname;
-    const expectedOrigin = url.origin;
+
+    // Decode clientDataJSON to extract the client origin (e.g. android:apk-key-hash)
+    let clientOrigin = '';
+    try {
+      const clientDataJSONEncoded = body.response?.clientDataJSON;
+      if (clientDataJSONEncoded) {
+        const base64 = clientDataJSONEncoded.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+        const decoded = atob(base64 + padding);
+        clientOrigin = JSON.parse(decoded).origin;
+      }
+    } catch (e) {}
+
+    const expectedOrigin = [url.origin];
+    if (clientOrigin && clientOrigin.startsWith('android:apk-key-hash:')) {
+      expectedOrigin.push(clientOrigin);
+    }
 
     // Convert stored Base64 public key back to Uint8Array
     const publicKeyUint8 = new Uint8Array(
