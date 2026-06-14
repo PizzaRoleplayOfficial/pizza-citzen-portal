@@ -34,6 +34,7 @@ import { triggerHaptic, getLiveProgress, isNative } from '../utils/native';
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { MediaSession } from '@capgo/capacitor-media-session';
+import { addToOutbox } from '../utils/outbox';
 
 interface TimelineViewProps {
   currentUser: any;
@@ -83,6 +84,7 @@ interface TimelinePost {
   poll_option_1_votes?: number;
   poll_option_2_votes?: number;
   poll_option_3_votes?: number;
+  isPending?: boolean;
 }
 
 interface TimelineComment {
@@ -100,6 +102,7 @@ interface TimelineComment {
   image_data?: string | null;
   video_path?: string | null;
   views_count?: number;
+  isPending?: boolean;
 }
 
 interface TimelineVideoPlayerProps {
@@ -1776,7 +1779,17 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     const interval = setInterval(() => {
       fetchPosts(true);
     }, 1000);
-    return () => clearInterval(interval);
+
+    const refreshListener = () => {
+      console.log('Outbox synced. Refreshing timeline posts...');
+      fetchPosts();
+    };
+    window.addEventListener('gvvr-timeline-refresh', refreshListener);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('gvvr-timeline-refresh', refreshListener);
+    };
   }, [activeFeedTab]);
 
   useEffect(() => {
@@ -2138,37 +2151,86 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         allowMultiple: pollAllowMultiple
       } : null;
 
-      const res = await fetch('/api/timeline', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          content: newPostContent,
-          image_data: newPostImages.length > 0 ? JSON.stringify(newPostImages) : null,
-          video_path: videoPath,
-          poll: pollData,
-          isAnnouncement
-        })
-      });
+      const postPayload = {
+        userId: currentUser.id,
+        content: newPostContent,
+        image_data: newPostImages.length > 0 ? JSON.stringify(newPostImages) : null,
+        video_path: videoPath,
+        poll: pollData,
+        isAnnouncement
+      };
 
-      if (res.ok) {
-        setNewPostContent('');
-        setNewPostImages([]);
-        setSelectedVideoFile(null);
-        setShowPollComposer(false);
-        setPollOptions(['', '']);
-        setPollDuration(1440);
-        setPollAllowMultiple(false);
-        setIsAnnouncement(false);
-        setShowComposerModal(false);
-        await fetchPosts();
-      } else {
-        const err = await res.json() as any;
-        showToast("エラー", err.error || "投稿に失敗しました。", "error");
+      try {
+        const res = await fetch('/api/timeline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postPayload)
+        });
+
+        if (res.ok) {
+          setNewPostContent('');
+          setNewPostImages([]);
+          setSelectedVideoFile(null);
+          setShowPollComposer(false);
+          setPollOptions(['', '']);
+          setPollDuration(1440);
+          setPollAllowMultiple(false);
+          setIsAnnouncement(false);
+          setShowComposerModal(false);
+          await fetchPosts();
+        } else {
+          const err = await res.json() as any;
+          showToast("エラー", err.error || "投稿に失敗しました。", "error");
+        }
+      } catch (err) {
+        console.error("Post creation error:", err);
+        const isOffline = !window.navigator.onLine || (err instanceof TypeError && err.message.includes('fetch'));
+        if (isOffline) {
+          const tempId = 'temp_' + Date.now();
+          
+          addToOutbox({
+            url: '/api/timeline',
+            method: 'POST',
+            body: postPayload,
+            description: 'タイムラインの新規投稿',
+            tempId
+          });
+
+          // 楽観的UI更新
+          const tempPost: TimelinePost = {
+            id: tempId,
+            user_id: currentUser.id,
+            content: newPostContent,
+            image_data: newPostImages.length > 0 ? JSON.stringify(newPostImages) : null,
+            video_path: videoPath,
+            created_at: new Date().toISOString(),
+            author_username: currentUser.username || '自分',
+            author_avatar: currentUser.avatar || null,
+            author_roblox_username: currentUser.roblox_username || null,
+            likes_count: 0,
+            comments_count: 0,
+            is_liked: 0,
+            isPending: true
+          };
+
+          setPosts(prev => [tempPost, ...prev]);
+
+          // ステート初期化
+          setNewPostContent('');
+          setNewPostImages([]);
+          setSelectedVideoFile(null);
+          setShowPollComposer(false);
+          setPollOptions(['', '']);
+          setPollDuration(1440);
+          setPollAllowMultiple(false);
+          setIsAnnouncement(false);
+          setShowComposerModal(false);
+
+          showToast("オフライン", "オフラインのため、接続が回復したときに自動送信されます。", "info");
+        } else {
+          showToast("エラー", "ネットワークエラーが発生しました。", "error");
+        }
       }
-    } catch (err) {
-      console.error("Post creation error:", err);
-      showToast("エラー", "ネットワークエラーが発生しました。", "error");
     } finally {
       setIsSubmitting(false);
       if (hasVideo && isNative) {
@@ -2235,7 +2297,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       }
     } catch (err) {
       console.error("Like action failed:", err);
-      fetchPosts();
+      const isOffline = !window.navigator.onLine || (err instanceof TypeError && err.message.includes('fetch'));
+      if (isOffline) {
+        addToOutbox({
+          url: '/api/timeline',
+          method: 'PATCH',
+          body: {
+            postId: post.id,
+            userId: currentUser.id,
+            action
+          },
+          description: `投稿へのいいね (${action === 'like' ? '追加' : '削除'})`
+        });
+        showToast("オフライン", "オフラインのため、接続が回復したときにいいねが同期されます。", "info");
+      } else {
+        fetchPosts();
+      }
     }
   };
 
@@ -2294,7 +2371,33 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       }
     } catch (err) {
       console.error("Repost action failed:", err);
-      await fetchPosts();
+      const isOffline = !window.navigator.onLine || (err instanceof TypeError && err.message.includes('fetch'));
+      if (isOffline) {
+        if (action === 'repost') {
+          addToOutbox({
+            url: '/api/timeline',
+            method: 'POST',
+            body: {
+              userId: currentUser.id,
+              repostId: targetPost.id
+            },
+            description: 'リポストの追加'
+          });
+        } else {
+          const ourRepost = posts.find(p => p.repost_id === targetPost.id && p.user_id === currentUser.id);
+          if (ourRepost) {
+            addToOutbox({
+              url: `/api/timeline?id=${ourRepost.id}&userId=${currentUser.id}`,
+              method: 'DELETE',
+              body: null,
+              description: 'リポストの解除'
+            });
+          }
+        }
+        showToast("オフライン", "オフラインのため、接続が回復したときにリポストが同期されます。", "info");
+      } else {
+        await fetchPosts();
+      }
     }
   };
 
@@ -2515,40 +2618,98 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         }
       }
 
-      const res = await fetch('/api/timeline-comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          postId,
-          userId: currentUser.id,
-          content: newCommentText,
-          parentId: replyingToComment?.id || null,
-          image_data: newCommentImages.length > 0 ? JSON.stringify(newCommentImages) : null,
-          video_path: videoPath
-        })
-      });
+      const commentPayload = {
+        postId,
+        userId: currentUser.id,
+        content: newCommentText,
+        parentId: replyingToComment?.id || null,
+        image_data: newCommentImages.length > 0 ? JSON.stringify(newCommentImages) : null,
+        video_path: videoPath
+      };
 
-      if (res.ok) {
-        setNewCommentText('');
-        setReplyingToComment(null);
-        setNewCommentImages([]);
-        setSelectedCommentVideoFile(null);
-        // Refresh replies list
-        await fetchComments(postId);
-        // Increment reply count in posts list
-        setPosts(prev => prev.map(p => {
-          if (p.id === postId) {
-            return { ...p, comments_count: p.comments_count + 1 };
-          }
-          return p;
-        }));
-      } else {
-        const err = await res.json() as any;
-        showToast("エラー", err.error || "返信の投稿に失敗しました。", "error");
+      try {
+        const res = await fetch('/api/timeline-comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(commentPayload)
+        });
+
+        if (res.ok) {
+          setNewCommentText('');
+          setReplyingToComment(null);
+          setNewCommentImages([]);
+          setSelectedCommentVideoFile(null);
+          // Refresh replies list
+          await fetchComments(postId);
+          // Increment reply count in posts list
+          setPosts(prev => prev.map(p => {
+            if (p.id === postId) {
+              return { ...p, comments_count: p.comments_count + 1 };
+            }
+            return p;
+          }));
+        } else {
+          const err = await res.json() as any;
+          showToast("エラー", err.error || "返信の投稿に失敗しました。", "error");
+        }
+      } catch (err) {
+        console.error("Comment submission failed:", err);
+        const isOffline = !window.navigator.onLine || (err instanceof TypeError && err.message.includes('fetch'));
+        if (isOffline) {
+          const tempId = 'temp_' + Date.now();
+          
+          addToOutbox({
+            url: '/api/timeline-comments',
+            method: 'POST',
+            body: commentPayload,
+            description: 'コメントの投稿',
+            tempId
+          });
+
+          // 楽観的UI更新
+          const tempComment: TimelineComment = {
+            id: tempId,
+            post_id: postId,
+            user_id: currentUser.id,
+            content: newCommentText,
+            parent_id: replyingToComment?.id || null,
+            image_data: newCommentImages.length > 0 ? JSON.stringify(newCommentImages) : null,
+            video_path: videoPath,
+            created_at: new Date().toISOString(),
+            author_username: currentUser.username || '自分',
+            author_avatar: currentUser.avatar || null,
+            author_roblox_username: currentUser.roblox_username || null,
+            likes_count: 0,
+            is_liked: 0,
+            isPending: true
+          };
+
+          setPostComments(prev => {
+            const list = prev[postId] || [];
+            return {
+              ...prev,
+              [postId]: [...list, tempComment]
+            };
+          });
+
+          // 投稿のコメント数カウントをインクリメント
+          setPosts(prev => prev.map(p => {
+            if (p.id === postId) {
+              return { ...p, comments_count: p.comments_count + 1 };
+            }
+            return p;
+          }));
+
+          setNewCommentText('');
+          setReplyingToComment(null);
+          setNewCommentImages([]);
+          setSelectedCommentVideoFile(null);
+
+          showToast("オフライン", "オフラインのため、接続が回復したときに自動送信されます。", "info");
+        } else {
+          showToast("エラー", "通信エラーが発生しました。", "error");
+        }
       }
-    } catch (err) {
-      console.error("Comment submission failed:", err);
-      showToast("エラー", "通信エラーが発生しました。", "error");
     } finally {
       setIsSubmittingComment(false);
       if (hasVideo && isNative) {
@@ -3888,7 +4049,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           ? '0 8px 24px rgba(0, 193, 102, 0.08)'
                           : '0 8px 24px rgba(0, 255, 136, 0.06)')
                       : 'none',
-                    position: 'relative'
+                    position: 'relative',
+                    opacity: post.isPending ? 0.6 : 1,
+                    pointerEvents: post.isPending ? 'none' : 'auto'
                   }}
                 >
                   {/* Repost Header Label */}
@@ -4008,9 +4171,27 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                               📢 運営告知
                             </span>
                           )}
+                          {post.isPending && (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              background: 'rgba(234, 179, 8, 0.15)',
+                              border: '1px solid rgba(234, 179, 8, 0.3)',
+                              color: '#EAB308',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              marginLeft: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              verticalAlign: 'middle'
+                            }}>
+                              ⏳ 送信保留中 (オフライン)
+                            </span>
+                          )}
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>•</span>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            {formatRelativeTime(targetPost.created_at)}
+                            {post.isPending ? '現在同期待ち' : formatRelativeTime(targetPost.created_at)}
                           </span>
                         </div>
 
@@ -4841,7 +5022,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                       const isCommentLiked = comment.is_liked === 1;
 
                       return (
-                        <div key={comment.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '12px' }}>
+                        <div key={comment.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '12px', opacity: comment.isPending ? 0.6 : 1, pointerEvents: comment.isPending ? 'none' : 'auto' }}>
                           
                           {/* 1階層目: メインコメント */}
                           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
@@ -4875,9 +5056,26 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                     @{comment.author_roblox_username}
                                   </span>
                                 )}
+                                {comment.isPending && (
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    background: 'rgba(234, 179, 8, 0.15)',
+                                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                                    color: '#EAB308',
+                                    padding: '1px 6px',
+                                    borderRadius: '10px',
+                                    marginLeft: '4px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '2px'
+                                  }}>
+                                    ⏳ 保留中
+                                  </span>
+                                )}
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>•</span>
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                  {formatRelativeTime(comment.created_at)}
+                                  {comment.isPending ? '現在同期待ち' : formatRelativeTime(comment.created_at)}
                                 </span>
                               </div>
 
@@ -5007,7 +5205,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                 const isSubLiked = sub.is_liked === 1;
 
                                 return (
-                                  <div key={sub.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', paddingBottom: '4px' }}>
+                                  <div key={sub.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', paddingBottom: '4px', opacity: sub.isPending ? 0.6 : 1, pointerEvents: sub.isPending ? 'none' : 'auto' }}>
                                     <img 
                                       src={sub.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sub.author_username || 'C')}&background=00c166&color=fff`} 
                                       alt="Avatar" 
@@ -5024,9 +5222,25 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                             @{sub.author_roblox_username}
                                           </span>
                                         )}
+                                        {sub.isPending && (
+                                          <span style={{
+                                            fontSize: '0.62rem',
+                                            fontWeight: 800,
+                                            background: 'rgba(234, 179, 8, 0.15)',
+                                            border: '1px solid rgba(234, 179, 8, 0.3)',
+                                            color: '#EAB308',
+                                            padding: '0px 4px',
+                                            borderRadius: '8px',
+                                            marginLeft: '2px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center'
+                                          }}>
+                                            ⏳ 保留中
+                                          </span>
+                                        )}
                                         <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>•</span>
                                         <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                                          {formatRelativeTime(sub.created_at)}
+                                          {sub.isPending ? '現在同期待ち' : formatRelativeTime(sub.created_at)}
                                         </span>
                                       </div>
 

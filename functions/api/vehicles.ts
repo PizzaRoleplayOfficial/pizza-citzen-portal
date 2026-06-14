@@ -474,7 +474,11 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
           title,
           body: bodyText,
           channelId: 'application_results_channel',
-          data: { action: 'garage' }
+          data: { 
+            action: 'garage',
+            updateType: 'vehicle_application',
+            status: status
+          }
         }).catch(err => console.error('FCM send failure:', err));
       }
     }

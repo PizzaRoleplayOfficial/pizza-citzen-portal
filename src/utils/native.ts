@@ -461,6 +461,15 @@ export const registerPushNotifications = async (
       'pushNotificationReceived',
       async (notification: PushNotificationSchema) => {
         console.log('Push notification received in foreground:', notification);
+        
+        // メタデータが存在する場合、カスタム DOM イベントを発火させて React アプリ側に通知する
+        const data = notification.data;
+        if (data && data.updateType) {
+          console.log('FCM updateType detected, dispatching status update event:', data);
+          const event = new CustomEvent('gvvr-fcm-status-update', { detail: data });
+          window.dispatchEvent(event);
+        }
+
         // フォアグラウンドでの受信時はハプティクスなどを鳴らす
         await triggerHaptic('success');
       }

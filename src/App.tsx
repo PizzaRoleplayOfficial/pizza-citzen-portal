@@ -103,6 +103,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { BackGesture } from './utils/backGesture';
+import { getOutbox, removeFromOutbox } from './utils/outbox';
 
 const VEHICLE_REJECT_TEMPLATES = [
   "ナンバープレートが不鮮明 / 判別できません",
@@ -247,6 +248,7 @@ export default function App() {
   const initialParsed = getInitialHashState();
   const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline'>(initialParsed.view);
   const [isNavigatingBack, setIsNavigatingBack] = useState<boolean>(false);
+  const [isSyncingOutbox, setIsSyncingOutbox] = useState<boolean>(false);
 
   const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog'>(
     initialParsed.adminTab || (sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard'
@@ -875,6 +877,90 @@ export default function App() {
     }
   };
 
+  const flushOutbox = async () => {
+    const queue = getOutbox();
+    if (queue.length === 0 || isSyncingOutbox) return;
+
+    setIsSyncingOutbox(true);
+    console.log(`Starting to flush ${queue.length} offline item(s) from Outbox...`);
+
+    // Android LiveProgress 起動 (ネイティブ環境の場合)
+    if (isNative) {
+      try {
+        await getLiveProgress().start({
+          title: 'オフラインデータの同期',
+          text: `同期中... (0/${queue.length} 件)`,
+          progress: 0
+        });
+      } catch (err) {
+        console.error('Failed to start LiveProgress for outbox sync:', err);
+      }
+    }
+
+    let successCount = 0;
+    for (let i = 0; i < queue.length; i++) {
+      const item = queue[i];
+      
+      // 進捗表示更新
+      if (isNative) {
+        try {
+          await getLiveProgress().update({
+            title: 'オフラインデータの同期',
+            text: `同期中... (${i}/${queue.length} 件): ${item.description}`,
+            progress: Math.round((i / queue.length) * 100)
+          });
+        } catch (err) {
+          console.error('Failed to update LiveProgress during outbox sync:', err);
+        }
+      }
+
+      try {
+        const res = await fetch(item.url, {
+          method: item.method,
+          headers: { 'Content-Type': 'application/json' },
+          body: item.body ? JSON.stringify(item.body) : undefined
+        });
+
+        if (res.ok) {
+          removeFromOutbox(item.id);
+          successCount++;
+        } else {
+          console.error(`Failed to sync item ${item.id}: status ${res.status}`);
+          // リトライ不可能なエラー (400系) なら削除
+          if (res.status >= 400 && res.status < 500) {
+            removeFromOutbox(item.id);
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to connect during sync for item ${item.id}:`, err);
+        break; // オフライン等のネットワーク断絶ならそこで中断
+      }
+    }
+
+    // 終了処理
+    if (isNative) {
+      try {
+        await getLiveProgress().update({
+          title: 'オフラインデータの同期',
+          text: `同期が完了しました (${successCount} 件成功)`,
+          progress: 100
+        });
+        setTimeout(() => {
+          getLiveProgress().stop({ title: 'オフラインデータの同期' }).catch(e => console.error(e));
+        }, 1500);
+      } catch (err) {
+        console.error('Failed to stop LiveProgress for outbox sync:', err);
+      }
+    }
+
+    setIsSyncingOutbox(false);
+
+    if (successCount > 0) {
+      // タイムラインなどの画面にリフレッシュを促す
+      window.dispatchEvent(new CustomEvent('gvvr-timeline-refresh'));
+    }
+  };
+
   const fetchApplication = async () => {
     try {
       const res = await fetch('/api/applications');
@@ -1038,8 +1124,11 @@ export default function App() {
     // Redundant loadCatalog('gv') call removed for startup performance. Catalog is dynamically loaded when opening the Add Vehicle Modal.
   }, []);
 
-  // ログイン状態に応じてバックグラウンドポーリングを開始・停止、およびFCMリアルタイムプッシュ通知の登録・解除 (v1.9.10)
+  // ログイン状態に応じてバックグラウンドポーリングを開始・停止、およびFCMリアルタイムプッシュ通知の登録・解除、さらにオフライン自動同期監視 (v2.3.0)
   useEffect(() => {
+    let statusUpdateListener: ((e: Event) => void) | null = null;
+    let onlineListener: (() => void) | null = null;
+
     if (isLoggedIn && currentUser && currentUser.id) {
       startBackgroundPoll(
         currentUser.id,
@@ -1047,6 +1136,30 @@ export default function App() {
         window.location.origin
       );
       registerPushNotifications(currentUser.id, handlePushNotificationAction);
+
+      // FCMのステータス更新検知リスナーを追加
+      statusUpdateListener = (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        console.log('Received FCM status update event:', detail);
+        if (detail && detail.updateType === 'citizen_application') {
+          console.log('FCM trigger: Fetching updated citizen application...');
+          fetchApplication();
+        } else if (detail && detail.updateType === 'vehicle_application') {
+          console.log('FCM trigger: Fetching updated vehicles...');
+          fetchVehicles();
+        }
+      };
+      window.addEventListener('gvvr-fcm-status-update', statusUpdateListener);
+
+      // オンライン復帰時の自動同期監視を追加
+      onlineListener = () => {
+        console.log('Network status changed: ONLINE. Flushing outbox...');
+        flushOutbox();
+      };
+      window.addEventListener('online', onlineListener);
+
+      // ログイン初期ロード時にも未同期のキューがあればフラッシュ
+      flushOutbox();
     } else if (!isLoggedIn && !isLoading) {
       stopBackgroundPoll();
       if (currentUser && currentUser.id) {
@@ -1056,6 +1169,15 @@ export default function App() {
         getLiveProgress().stop().catch(err => console.error('Failed to stop LiveProgress on guest load:', err));
       }
     }
+
+    return () => {
+      if (statusUpdateListener) {
+        window.removeEventListener('gvvr-fcm-status-update', statusUpdateListener);
+      }
+      if (onlineListener) {
+        window.removeEventListener('online', onlineListener);
+      }
+    };
   }, [isLoggedIn, currentUser, isLoading]);
 
   // =========================================================================
