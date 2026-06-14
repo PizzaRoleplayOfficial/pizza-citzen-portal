@@ -544,13 +544,18 @@ export default function App() {
       // 3. Fully unmount the overlay after the fade transition completes (2.9s)
       const unmountTimer = setTimeout(() => {
         setShowBootSplash(false);
+        document.body.classList.remove('boot-loading');
       }, 2900);
 
       return () => {
         clearTimeout(hapticTimer);
         clearTimeout(fadeTimer);
         clearTimeout(unmountTimer);
+        document.body.classList.remove('boot-loading');
       };
+    } else {
+      // Web browser flow: remove boot-loading immediately if boot splash is skipped
+      document.body.classList.remove('boot-loading');
     }
   }, []);
 
