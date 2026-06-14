@@ -531,9 +531,6 @@ export default function App() {
 
   useEffect(() => {
     if (isNative) {
-      // Add boot-loading class to body to prevent zoom scaling during boot splash
-      document.body.classList.add('boot-loading');
-
       // 1. Trigger the premium double haptic welcome vibration shortly after mount
       const hapticTimer = setTimeout(() => {
         triggerHaptic('success');
@@ -547,14 +544,12 @@ export default function App() {
       // 3. Fully unmount the overlay after the fade transition completes (2.9s)
       const unmountTimer = setTimeout(() => {
         setShowBootSplash(false);
-        document.body.classList.remove('boot-loading');
       }, 2900);
 
       return () => {
         clearTimeout(hapticTimer);
         clearTimeout(fadeTimer);
         clearTimeout(unmountTimer);
-        document.body.classList.remove('boot-loading');
       };
     }
   }, []);

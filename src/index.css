@@ -1641,6 +1641,23 @@ h1 {
   pointer-events: none;
 }
 
+@media (max-width: 768px) {
+  .boot-splash {
+    width: 125vw !important;
+    height: 125vh !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+  }
+  .boot-logo-container,
+  .boot-title,
+  .boot-subtitle,
+  .boot-loader {
+    zoom: 1.25 !important;
+  }
+}
+
 /* Glowing logo container */
 .boot-logo-container {
   position: relative;
@@ -1820,7 +1837,7 @@ h1 {
 
 /* App wide scaling for Mobile Viewport to keep UI elegant and high-density */
 @media (max-width: 768px) {
-  body:not(.boot-loading) {
+  body {
     zoom: 0.8; /* Scale down the whole app to 80% to solve 'chunky easy-phone' look on mobile */
   }
   .mobile-zoomed-main {
