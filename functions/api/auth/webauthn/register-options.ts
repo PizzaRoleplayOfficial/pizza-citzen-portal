@@ -47,7 +47,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
-      userID: sessionUser.id,
+      userID: new TextEncoder().encode(sessionUser.id),
       userName: sessionUser.username,
       userDisplayName: sessionUser.username,
       authenticatorSelection: {
