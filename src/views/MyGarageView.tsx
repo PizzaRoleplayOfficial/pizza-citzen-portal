@@ -565,8 +565,8 @@ export const MyGarageView = ({
       )}
       </div>
 
-      {/* ====== Mobile FAB Speed Dial ====== */}
-      {isMobile && myApplication?.status === 'approved' && (
+      {/* Disable duplicate mobile FAB since it is integrated into bottom nav bar */}
+      {false && isMobile && myApplication?.status === 'approved' && (
         <div ref={fabRef} style={{ position: 'fixed', bottom: 'calc(90px + env(safe-area-inset-bottom, 0px))', right: '24px', zIndex: 1001, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
 
           {/* Speed Dial Items */}

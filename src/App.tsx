@@ -317,9 +317,7 @@ export default function App() {
   
   const handleMobilePlusClick = () => {
     triggerHaptic('medium');
-    if (view === 'garage') {
-      setShowAddModal(true);
-    } else if (view === 'timeline') {
+    if (view === 'timeline') {
       setTriggerTimelineComposer(true);
     } else {
       setShowQuickActionSheet(true);
@@ -4943,31 +4941,74 @@ export default function App() {
           <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: '8px' }}>
               <div style={{ width: '40px', height: '4px', background: 'rgba(255,255,255,0.2)', borderRadius: '2px', margin: '0 auto 12px' }}></div>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>新規登録・投稿</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>作成するアクションを選択してください</p>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                {view === 'garage' ? 'ガレージ登録メニュー' : '新規登録・投稿'}
+              </h4>
+              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                {view === 'garage' ? '登録方法またはタイプを選択してください' : '作成するアクションを選択してください'}
+              </p>
             </div>
             
-            <button className="mobile-action-item" onClick={() => {
-              setShowQuickActionSheet(false);
-              setView('garage');
-              setTimeout(() => {
-                setShowAddModal(true);
-              }, 100);
-            }}>
-              <Car size={20} />
-              車両を登録する
-            </button>
-            
-            <button className="mobile-action-item" onClick={() => {
-              setShowQuickActionSheet(false);
-              setView('timeline');
-              setTimeout(() => {
-                setTriggerTimelineComposer(true);
-              }, 100);
-            }}>
-              <MessageSquare size={20} />
-              タイムラインに投稿する
-            </button>
+            {view === 'garage' ? (
+              <>
+                <button className="mobile-action-item" onClick={() => {
+                  setShowQuickActionSheet(false);
+                  if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                  setFormData({ game_type: 'gv', maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                  setEditingVehicleId(null);
+                  setShowAddModal(true);
+                }}>
+                  <Car size={20} />
+                  車両を手動登録
+                </button>
+
+                <button className="mobile-action-item" onClick={() => {
+                  setShowQuickActionSheet(false);
+                  if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                  setFormData(prev => ({ ...prev, game_type: 'gv' }));
+                  setShowBetaAutoFillModal(true);
+                }}>
+                  ✨ 画像から自動登録 (Beta)
+                </button>
+                
+                <button className="mobile-action-item" onClick={() => {
+                  setShowQuickActionSheet(false);
+                  if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                  setTrailerFormData({ game_type: 'gv', model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+                  setEditingVehicleId(null);
+                  setShowTrailerModal(true);
+                }}>
+                  🚛 トレーラーを追加
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="mobile-action-item" onClick={() => {
+                  setShowQuickActionSheet(false);
+                  setView('garage');
+                  setTimeout(() => {
+                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                    setFormData({ game_type: 'gv', maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                    setEditingVehicleId(null);
+                    setShowAddModal(true);
+                  }, 150);
+                }}>
+                  <Car size={20} />
+                  車両を登録する
+                </button>
+                
+                <button className="mobile-action-item" onClick={() => {
+                  setShowQuickActionSheet(false);
+                  setView('timeline');
+                  setTimeout(() => {
+                    setTriggerTimelineComposer(true);
+                  }, 150);
+                }}>
+                  <MessageSquare size={20} />
+                  タイムラインに投稿する
+                </button>
+              </>
+            )}
             
             <button className="mobile-action-item mobile-action-cancel-btn" onClick={() => setShowQuickActionSheet(false)}>
               キャンセル
