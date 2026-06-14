@@ -16,6 +16,9 @@
     "allowsBackForwardNavigationGestures": true
   },
   "plugins": {
+    "CapacitorCookies": {
+      "enabled": true
+    },
     "App": {
       "disableBackButtonHandler": true
     }

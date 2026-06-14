@@ -46,8 +46,17 @@ export const LandingView = ({ onLoginSuccess }: LandingViewProps) => {
 
       const verifyData = await verifyRes.json();
       
-      if (onLoginSuccess && verifyData.user) {
-        onLoginSuccess(verifyData.user);
+      if (verifyData.user) {
+        if (Capacitor.isNativePlatform()) {
+          // WebViewの再起動によるクッキー消失を防ぐため、フロントエンドからも gv_user を明示的に設定
+          const cookieVal = `gv_user=${encodeURIComponent(JSON.stringify(verifyData.user))}; Path=/; Max-Age=2592000; SameSite=Lax`;
+          document.cookie = cookieVal;
+        }
+        if (onLoginSuccess) {
+          onLoginSuccess(verifyData.user);
+        } else {
+          window.location.reload();
+        }
       } else {
         window.location.reload();
       }
