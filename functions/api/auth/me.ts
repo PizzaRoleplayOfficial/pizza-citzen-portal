@@ -18,6 +18,19 @@ const ensureUserTable = async (db: any) => {
   } catch (e) {}
 };
 
+const ensurePasskeysTable = async (db: any) => {
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS user_passkeys (
+      credential_id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      public_key TEXT NOT NULL,
+      counter INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `).run();
+};
+
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const cookieHeader = request.headers.get('Cookie');
   const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('='))) : {};
@@ -26,6 +39,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   if (userCookie) {
     try {
       await ensureUserTable(env.D1_DB);
+      await ensurePasskeysTable(env.D1_DB);
       const sessionUser = JSON.parse(decodeURIComponent(userCookie));
       
       // Fetch latest info from DB to get roblox_username and current role/username
