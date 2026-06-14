@@ -1,7 +1,8 @@
 import React from 'react';
-import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info } from 'lucide-react';
+import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info, Key } from 'lucide-react';
 import { triggerHaptic, scheduleLocalNotification, isNative, getLiveProgress } from '../utils/native';
 import { CURRENT_VERSION, getLiveUpdate } from '../utils/updater';
+import { startRegistration } from '@simplewebauthn/browser';
 
 interface ProfileViewProps {
   currentUser: any;
@@ -50,6 +51,48 @@ export const ProfileView = ({
   liteMode,
   onToggleLiteMode
 }: ProfileViewProps) => {
+  const [passkeyLoading, setPasskeyLoading] = React.useState(false);
+  const [passkeyMessage, setPasskeyMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const handleRegisterPasskey = async () => {
+    setPasskeyLoading(true);
+    setPasskeyMessage(null);
+    triggerHaptic('light');
+    try {
+      const optionsRes = await fetch('/api/auth/webauthn/register-options');
+      if (!optionsRes.ok) {
+        const err = await optionsRes.json().catch(() => ({}));
+        throw new Error(err.error || '登録オプションの取得に失敗しました');
+      }
+      const options = await optionsRes.json();
+
+      const credential = await startRegistration(options);
+
+      const verifyRes = await fetch('/api/auth/webauthn/register-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credential)
+      });
+
+      if (!verifyRes.ok) {
+        const err = await verifyRes.json().catch(() => ({}));
+        throw new Error(err.error || 'パスキー検証に失敗しました');
+      }
+
+      setPasskeyMessage({ type: 'success', text: 'パスキーが正常に登録されました。次回からパスキーでログインできます。' });
+      triggerHaptic('success');
+      if (currentUser) {
+        setCurrentUser({ ...currentUser, hasPasskey: true });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setPasskeyMessage({ type: 'error', text: err.message || 'パスキーの登録中にエラーが発生しました' });
+      triggerHaptic('warning');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
+
   return (
     <div className="animate-fade" style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <div>
@@ -348,6 +391,57 @@ export const ProfileView = ({
           </div>
         </div>
       )}
+
+      {/* Passkey Settings Section */}
+      <div className="glass card settings-card" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(0,193,102,0.15)', borderRadius: '12px' }}>
+            <Key size={24} style={{ color: 'var(--primary)' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>パスキー設定</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>指紋・顔認証や画面ロックによる安全なログインを設定します。</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                {currentUser?.hasPasskey ? 'パスキーは登録済みです' : 'パスキーが登録されていません'}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {currentUser?.hasPasskey 
+                  ? 'このデバイスまたはブラウザで追加のパスキーを登録することもできます。' 
+                  : '登録すると、次回からDiscordログインなしで素早くサインインできます。'}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRegisterPasskey}
+              disabled={passkeyLoading}
+              className="btn btn-primary"
+              style={{ padding: '12px 20px', borderRadius: '10px', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            >
+              {passkeyLoading ? '登録中...' : (currentUser?.hasPasskey ? '別のキーを追加' : 'パスキーを登録')}
+            </button>
+          </div>
+
+          {passkeyMessage && (
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '12px',
+              fontSize: '0.9rem',
+              border: '1px solid',
+              borderColor: passkeyMessage.type === 'success' ? 'rgba(0,193,102,0.3)' : 'rgba(239,68,68,0.3)',
+              background: passkeyMessage.type === 'success' ? 'rgba(0,193,102,0.1)' : 'rgba(239,68,68,0.1)',
+              color: passkeyMessage.type === 'success' ? 'var(--success)' : 'var(--error)'
+            }}>
+              {passkeyMessage.text}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* App Information Section */}
       <div className="glass card settings-card" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>

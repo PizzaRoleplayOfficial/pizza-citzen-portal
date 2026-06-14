@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.70'; // 2.2.70 (管理パネル・マイガレージ車両画像のオンデマンド遅延ロード対応版)
+export const CURRENT_VERSION = '2.2.71'; // 2.2.71 (パスキー (Passkey/WebAuthn) ログイン機能搭載版)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

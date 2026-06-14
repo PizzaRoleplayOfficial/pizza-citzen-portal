@@ -1,12 +1,61 @@
 import React from 'react';
-import { LayoutDashboard, ShieldCheck, Search as SearchIcon, Compass } from 'lucide-react';
+import { LayoutDashboard, ShieldCheck, Search as SearchIcon, Compass, Key, RefreshCw } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { startAuthentication } from '@simplewebauthn/browser';
 
-export const LandingView = () => {
+interface LandingViewProps {
+  onLoginSuccess?: (user: any) => void;
+}
+
+export const LandingView = ({ onLoginSuccess }: LandingViewProps) => {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const mouseRef = React.useRef({ x: 0, y: 0, active: false });
   const [scrollY, setScrollY] = React.useState(0);
+  const [passkeyLoading, setPasskeyLoading] = React.useState(false);
+  const [passkeyError, setPasskeyError] = React.useState<string | null>(null);
+
+  const handlePasskeyLogin = async () => {
+    setPasskeyLoading(true);
+    setPasskeyError(null);
+    try {
+      const optionsRes = await fetch('/api/auth/webauthn/login-options');
+      if (!optionsRes.ok) {
+        const err = await optionsRes.json().catch(() => ({}));
+        throw new Error(err.error || 'ログインオプションの取得に失敗しました');
+      }
+      const options = await optionsRes.json();
+
+      const assertion = await startAuthentication(options);
+
+      const verifyRes = await fetch('/api/auth/webauthn/login-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(assertion)
+      });
+
+      if (!verifyRes.ok) {
+        const err = await verifyRes.json().catch(() => ({}));
+        throw new Error(err.error || '認証に失敗しました。パスキーが正しく登録されているか確認してください。');
+      }
+
+      const verifyData = await verifyRes.json();
+      
+      if (onLoginSuccess && verifyData.user) {
+        onLoginSuccess(verifyData.user);
+      } else {
+        window.location.reload();
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.name === 'NotAllowedError' || err.name === 'AbortError') {
+        return;
+      }
+      setPasskeyError(err.message || 'パスキーによるログイン中にエラーが発生しました');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -281,7 +330,7 @@ export const LandingView = () => {
         </p>
         
         {/* Discord ログインボタン（プレミアムネオングラデーション） */}
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <button 
             onClick={async () => {
               if (Capacitor.isNativePlatform()) {
@@ -313,6 +362,56 @@ export const LandingView = () => {
             <Compass size={20} style={{ marginRight: '10px' }} /> Discordでログイン
           </button>
         </div>
+
+        {/* パスキー ログインボタン */}
+        <div style={{ marginBottom: '24px' }}>
+          <button 
+            onClick={handlePasskeyLogin} 
+            disabled={passkeyLoading}
+            className="btn" 
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center',
+              justifyContent: 'center', 
+              width: '100%', 
+              maxWidth: '320px', 
+              padding: '18px 32px', 
+              fontSize: '1.1rem', 
+              borderRadius: '16px', 
+              textDecoration: 'none', 
+              color: '#fff', 
+              fontWeight: 800, 
+              border: '1px solid rgba(0, 193, 102, 0.4)', 
+              cursor: 'pointer',
+              background: 'rgba(0, 193, 102, 0.1)',
+              boxShadow: '0 4px 15px rgba(0, 193, 102, 0.15)',
+              transition: 'all 0.2s',
+            }}
+          >
+            {passkeyLoading ? (
+              <RefreshCw size={20} className="animate-spin" style={{ marginRight: '10px' }} />
+            ) : (
+              <Key size={20} style={{ marginRight: '10px' }} />
+            )}
+            {passkeyLoading ? '照合中...' : 'パスキーでログイン'}
+          </button>
+        </div>
+
+        {/* パスキーエラーメッセージ */}
+        {passkeyError && (
+          <div style={{
+            maxWidth: '320px',
+            margin: '0 auto 24px',
+            padding: '10px 16px',
+            borderRadius: '10px',
+            fontSize: '0.85rem',
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#ff8585'
+          }}>
+            {passkeyError}
+          </div>
+        )}
 
         {/* Discordサーバーへの招待リンク */}
         <div style={{ marginBottom: '64px' }}>

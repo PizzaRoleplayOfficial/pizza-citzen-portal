@@ -31,12 +31,16 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       // Fetch latest info from DB to get roblox_username and current role/username
       const dbUser = await env.D1_DB.prepare("SELECT * FROM users WHERE id = ?").bind(sessionUser.id).first() as any;
       
+      // Check if user has registered any passkeys
+      const passkey = await env.D1_DB.prepare("SELECT 1 FROM user_passkeys WHERE user_id = ? LIMIT 1").bind(sessionUser.id).first() as any;
+      
       const user = {
         id: sessionUser.id,
         username: dbUser?.username || sessionUser.username,
         avatar: dbUser?.avatar || sessionUser.avatar,
         role: dbUser?.role || sessionUser.role,
-        roblox_username: dbUser?.roblox_username || ''
+        roblox_username: dbUser?.roblox_username || '',
+        hasPasskey: !!passkey
       };
 
       return new Response(JSON.stringify(user), {

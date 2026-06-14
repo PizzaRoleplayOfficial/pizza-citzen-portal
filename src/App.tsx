@@ -2438,7 +2438,7 @@ export default function App() {
   }
 
 
-  if (!isLoggedIn) return <LandingView />;
+  if (!isLoggedIn) return <LandingView onLoginSuccess={(user) => { setCurrentUser(user); setIsLoggedIn(true); }} />;
 
   const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
 

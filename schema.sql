@@ -65,3 +65,13 @@ CREATE TABLE IF NOT EXISTS vehicle_catalog (
   data TEXT NOT NULL,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- User passkeys table for WebAuthn authentication
+CREATE TABLE IF NOT EXISTS user_passkeys (
+  credential_id TEXT PRIMARY KEY,   -- Base64URL encoded credential ID
+  user_id TEXT NOT NULL,            -- users.id (Discord ID)
+  public_key TEXT NOT NULL,         -- Base64 or PEM encoded public key
+  counter INTEGER DEFAULT 0,        -- Signature counter
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
