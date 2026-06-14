@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.3.3'; // 2.3.3 (Fix boot splash zoom via default HTML class and CSS body:not)
+export const CURRENT_VERSION = '2.3.4'; // 2.3.4 (Fix app wide body height scaling to resolve bottom layout gap on mobile)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

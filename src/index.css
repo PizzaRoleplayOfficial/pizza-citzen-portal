@@ -1822,9 +1822,11 @@ h1 {
 @media (max-width: 768px) {
   body:not(.boot-loading) {
     zoom: 0.8; /* Scale down the whole app to 80% to solve 'chunky easy-phone' look on mobile */
+    min-height: 125vh !important; /* Scale height up to 125% (1/0.8) to prevent bottom gap on mobile */
   }
   body.boot-loading {
     zoom: 1 !important;
+    min-height: 100vh !important; /* Keep 100vh during boot splash where zoom is 1.0 */
   }
   .mobile-zoomed-main {
     zoom: 1; /* Reset main element zoom to let body zoom take over */
