@@ -88,20 +88,38 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
     const { results } = await env.D1_DB.prepare(query).bind(userId, postId).all();
     
-    // Transform base64 image data to proxy URLs
+    // Transform base64 image data to proxy URLs and embed low-res thumbnails
     const optimizedResults = results.map((row: any) => {
       if (row.image_data) {
         try {
           const imgs = JSON.parse(row.image_data);
           if (Array.isArray(imgs)) {
             row.image_data = JSON.stringify(
-              imgs.map((_, idx) => `/api/timeline-image?postId=${row.id}&index=${idx}`)
+              imgs.map((img, idx) => {
+                if (typeof img === 'string') {
+                  return {
+                    low: img.startsWith('data:') ? img : '',
+                    highUrl: `/api/timeline-image?postId=${row.id}&index=${idx}`
+                  };
+                } else {
+                  return {
+                    low: img.low || '',
+                    highUrl: `/api/timeline-image?postId=${row.id}&index=${idx}`
+                  };
+                }
+              })
             );
           } else {
-            row.image_data = JSON.stringify([`/api/timeline-image?postId=${row.id}&index=0`]);
+            row.image_data = JSON.stringify([{
+              low: '',
+              highUrl: `/api/timeline-image?postId=${row.id}&index=0`
+            }]);
           }
         } catch (e) {
-          row.image_data = JSON.stringify([`/api/timeline-image?postId=${row.id}&index=0`]);
+          row.image_data = JSON.stringify([{
+            low: '',
+            highUrl: `/api/timeline-image?postId=${row.id}&index=0`
+          }]);
         }
       }
       return row;

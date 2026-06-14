@@ -42,8 +42,16 @@ interface TimelineViewProps {
   theme: 'dark' | 'light';
   targetPostId?: string | null;
   onClearTargetPost?: () => void;
-  enterKeyBehavior?: 'enter' | 'shiftEnter';
+  dataSaverEnabled?: boolean;
 }
+
+const compressDualImage = async (file: File): Promise<{ high: string; low: string }> => {
+  const [high, low] = await Promise.all([
+    compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.7 }),
+    compressImage(file, { maxWidth: 80, maxHeight: 80, quality: 0.15 })
+  ]);
+  return { high, low };
+};
 
 interface TimelinePost {
   id: string;
@@ -885,7 +893,112 @@ const highlightText = (text: string, highlight: string) => {
   );
 };
 
-export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onClearTargetPost, enterKeyBehavior = 'enter' }: TimelineViewProps) => {
+const ProgressiveImage = ({
+  lowSrc,
+  highSrc,
+  alt,
+  style,
+  onClick,
+  dataSaverEnabled
+}: {
+  lowSrc: string;
+  highSrc: string;
+  alt: string;
+  style?: React.CSSProperties;
+  onClick?: () => void;
+  dataSaverEnabled?: boolean;
+}) => {
+  const [currentSrc, setCurrentSrc] = useState<string>(lowSrc);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isManualLoaded, setIsManualLoaded] = useState<boolean>(false);
+
+  useEffect(() => {
+    // When data saver is enabled, do not load high resolution image until manually clicked
+    if (dataSaverEnabled && !isManualLoaded) {
+      return;
+    }
+
+    let isMounted = true;
+    const img = new Image();
+    img.src = highSrc;
+    img.onload = () => {
+      if (isMounted) {
+        setCurrentSrc(highSrc);
+        setIsLoaded(true);
+      }
+    };
+    return () => {
+      isMounted = false;
+    };
+  }, [highSrc, dataSaverEnabled, isManualLoaded]);
+
+  const handleManualLoad = (e: React.MouseEvent) => {
+    if (dataSaverEnabled && !isManualLoaded) {
+      e.stopPropagation();
+      triggerHaptic('light');
+      setIsManualLoaded(true);
+    }
+  };
+
+  const isSavingData = dataSaverEnabled && !isManualLoaded;
+
+  return (
+    <div 
+      onClick={isSavingData ? handleManualLoad : onClick}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        cursor: isSavingData ? 'pointer' : 'zoom-in',
+        background: 'rgba(0,0,0,0.2)'
+      }}
+    >
+      <img
+        src={currentSrc}
+        alt={alt}
+        style={{
+          ...style,
+          width: '100%',
+          height: '100%',
+          filter: isLoaded || isSavingData ? 'none' : 'blur(10px)',
+          transition: 'filter 0.3s ease-in-out, transform 0.2s',
+          opacity: isSavingData ? 0.6 : 1
+        }}
+      />
+      {isSavingData && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.4)',
+          gap: '8px'
+        }}>
+          <span style={{
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            background: 'var(--glass-bg)',
+            border: '1px solid var(--glass-border)',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            color: 'var(--primary)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            タップして読込 (データ節約中)
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onClearTargetPost, enterKeyBehavior = 'enter', dataSaverEnabled = false }: TimelineViewProps) => {
   const showToast = (title: string, desc: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
     window.dispatchEvent(new CustomEvent('gv-toast', { detail: { title, desc, type } }));
   };
@@ -896,7 +1009,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const [newPostContent, setNewPostContent] = useState('');
-  const [newPostImages, setNewPostImages] = useState<string[]>([]);
+  const [newPostImages, setNewPostImages] = useState<{ high: string; low: string }[]>([]);
   const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [showComposerModal, setShowComposerModal] = useState(false);
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
@@ -1343,7 +1456,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [replyingToComment, setReplyingToComment] = useState<TimelineComment | null>(null);
   // Comment Media States
-  const [newCommentImages, setNewCommentImages] = useState<string[]>([]);
+  const [newCommentImages, setNewCommentImages] = useState<{ high: string; low: string }[]>([]);
   const [selectedCommentVideoFile, setSelectedCommentVideoFile] = useState<File | null>(null);
   const [commentVideoPreviewUrl, setCommentVideoPreviewUrl] = useState<string | null>(null);
   const [isCompressingCommentVideo, setIsCompressingCommentVideo] = useState(false);
@@ -1944,7 +2057,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
     triggerHaptic('light');
     try {
-      const base64Images = await Promise.all(fileList.map(compressImage));
+      const base64Images = await Promise.all(fileList.map(compressDualImage));
       setNewPostImages(prev => [...prev, ...base64Images]);
     } catch (err) {
       console.error("Image compression failed:", err);
@@ -1992,7 +2105,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
     triggerHaptic('light');
     try {
-      const base64Images = await Promise.all(fileList.map(compressImage));
+      const base64Images = await Promise.all(fileList.map(compressDualImage));
       setNewCommentImages(prev => [...prev, ...base64Images]);
     } catch (err) {
       console.error("Comment image compression failed:", err);
@@ -2027,7 +2140,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
     triggerHaptic('light');
     try {
-      const base64Images = await Promise.all(files.map(compressImage));
+      const base64Images = await Promise.all(files.map(compressDualImage));
       setNewPostImages(prev => [...prev, ...base64Images]);
     } catch (err) {
       console.error("Pasted image compression failed:", err);
@@ -2823,10 +2936,20 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   };
 
   const renderImageGrid = (imagesJson: string | null, postId: string) => {
-    const urls = parseImages(imagesJson);
-    if (urls.length === 0) return null;
+    const rawImages = parseImages(imagesJson) as any[];
+    if (rawImages.length === 0) return null;
 
-    const count = urls.length;
+    const images = rawImages.map(img => {
+      if (typeof img === 'string') {
+        return { high: img, low: img };
+      }
+      return {
+        high: img.high || '',
+        low: img.low || ''
+      };
+    });
+
+    const count = images.length;
     let gridStyle: React.CSSProperties = {
       display: 'grid',
       gap: '8px',
@@ -2838,8 +2961,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
     if (count === 1) {
       return (
-        <div style={{ marginTop: '12px', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)', cursor: 'zoom-in' }} onClick={() => { setActiveZoomImage(urls[0]); incrementPostView(postId); }}>
-          <img src={urls[0]} alt="Attached 1" style={{ width: '100%', maxHeight: '420px', objectFit: 'cover', display: 'block' }} />
+        <div style={{ marginTop: '12px', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)', cursor: 'zoom-in' }}>
+          <ProgressiveImage 
+            lowSrc={images[0].low} 
+            highSrc={images[0].high} 
+            alt="Attached 1" 
+            dataSaverEnabled={dataSaverEnabled}
+            onClick={() => { setActiveZoomImage(images[0].high); incrementPostView(postId); }}
+            style={{ width: '100%', maxHeight: '420px', objectFit: 'cover', display: 'block' }} 
+          />
         </div>
       );
     } else if (count === 2) {
@@ -2856,8 +2986,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
     return (
       <div style={gridStyle}>
-        {urls.map((url, i) => {
-          let itemStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' };
+        {images.map((img, i) => {
+          let itemStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover' };
           let wrapperStyle: React.CSSProperties = { position: 'relative', overflow: 'hidden' };
           if (count === 3 && i === 0) {
             wrapperStyle.gridRow = '1 / span 2';
@@ -2867,8 +2997,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           }
 
           return (
-            <div key={i} style={wrapperStyle} onClick={() => { setActiveZoomImage(url); incrementPostView(postId); }}>
-              <img src={url} alt={`Attached ${i + 1}`} style={itemStyle} />
+            <div key={i} style={wrapperStyle}>
+              <ProgressiveImage 
+                lowSrc={img.low} 
+                highSrc={img.high} 
+                alt={`Attached ${i + 1}`} 
+                dataSaverEnabled={dataSaverEnabled}
+                onClick={() => { setActiveZoomImage(img.high); incrementPostView(postId); }}
+                style={itemStyle} 
+              />
             </div>
           );
         })}
@@ -3441,7 +3578,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${newPostImages.length === 1 ? 1 : 2}, 1fr)`, gap: '8px', marginTop: '8px' }}>
                       {newPostImages.map((img, i) => (
                         <div key={i} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: newPostImages.length === 1 ? '240px' : '120px', border: '1px solid var(--glass-border)' }}>
-                          <img src={img} alt={`Select ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={img.low} alt={`Select ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <button
                             type="button"
                             onClick={() => handleRemoveImage(i)}
@@ -5432,7 +5569,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${newCommentImages.length === 1 ? 1 : 2}, 1fr)`, gap: '8px', marginTop: '4px' }}>
               {newCommentImages.map((img, i) => (
                 <div key={i} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', height: newCommentImages.length === 1 ? '160px' : '80px', border: '1px solid var(--glass-border)' }}>
-                  <img src={img} alt={`Comment Select ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={img.low} alt={`Comment Select ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   <button
                     type="button"
                     onClick={() => handleRemoveCommentImage(i)}

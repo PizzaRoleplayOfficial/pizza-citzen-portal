@@ -1,12 +1,16 @@
-export const compressImage = (file: File): Promise<string> => {
+export const compressImage = (
+  file: File,
+  options?: { maxWidth?: number; maxHeight?: number; quality?: number }
+): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
+        const MAX_WIDTH = options?.maxWidth ?? 800;
+        const MAX_HEIGHT = options?.maxHeight ?? 800;
+        const quality = options?.quality ?? 0.7;
         let width = img.width;
         let height = img.height;
 
@@ -19,7 +23,7 @@ export const compressImage = (file: File): Promise<string> => {
         canvas.height = Math.floor(height);
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7)); // High compression
+        resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.onerror = reject;
       img.src = e.target?.result as string;

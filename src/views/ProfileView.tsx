@@ -31,6 +31,8 @@ interface ProfileViewProps {
   setEnterKeyBehavior: (val: 'enter' | 'shiftEnter') => void;
   liteMode: boolean;
   onToggleLiteMode: (enabled: boolean) => void;
+  dataSaverEnabled: boolean;
+  onToggleDataSaver: (enabled: boolean) => void;
 }
 
 export const ProfileView = ({
@@ -49,7 +51,9 @@ export const ProfileView = ({
   enterKeyBehavior,
   setEnterKeyBehavior,
   liteMode,
-  onToggleLiteMode
+  onToggleLiteMode,
+  dataSaverEnabled,
+  onToggleDataSaver
 }: ProfileViewProps) => {
   const [passkeyLoading, setPasskeyLoading] = React.useState(false);
   const [passkeyMessage, setPasskeyMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -666,6 +670,42 @@ export const ProfileView = ({
                 left: liteMode ? '26px' : '4px',
                 bottom: '4px',
                 backgroundColor: liteMode ? '#000' : '#fff',
+                transition: '0.3s',
+                borderRadius: '50%',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+              }} />
+            </span>
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+          <div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>データセーバー (低速回線向け)</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>タイムライン等の画像を低解像度でプレースホルダー表示し、タップするまで高画質画像のロードを抑制します。</div>
+          </div>
+          <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+            <input 
+              type="checkbox" 
+              checked={dataSaverEnabled} 
+              onChange={(e) => onToggleDataSaver(e.target.checked)} 
+              style={{ opacity: 0, width: 0, height: 0 }} 
+            />
+            <span style={{
+              position: 'absolute',
+              cursor: 'pointer',
+              inset: 0,
+              backgroundColor: dataSaverEnabled ? 'var(--primary)' : '#444',
+              transition: '0.3s',
+              borderRadius: '34px'
+            }}>
+              <span style={{
+                position: 'absolute',
+                content: '""',
+                height: '20px',
+                width: '20px',
+                left: dataSaverEnabled ? '26px' : '4px',
+                bottom: '4px',
+                backgroundColor: dataSaverEnabled ? '#000' : '#fff',
                 transition: '0.3s',
                 borderRadius: '50%',
                 boxShadow: '0 2px 5px rgba(0,0,0,0.3)'

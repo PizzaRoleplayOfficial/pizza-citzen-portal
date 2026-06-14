@@ -194,6 +194,16 @@ export default function App() {
     triggerHaptic('light');
   };
 
+  const [dataSaverEnabled, setDataSaverEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('gvvr_data_saver') === 'true';
+  });
+
+  const handleToggleDataSaver = (enabled: boolean) => {
+    setDataSaverEnabled(enabled);
+    localStorage.setItem('gvvr_data_saver', String(enabled));
+    triggerHaptic('light');
+  };
+
   // 軽量モードのボディクラスのトグル
   useEffect(() => {
     document.body.classList.toggle('lite-mode', liteMode);
@@ -3549,6 +3559,8 @@ export default function App() {
             setEnterKeyBehavior={setEnterKeyBehavior}
             liteMode={liteMode}
             onToggleLiteMode={handleToggleLiteMode}
+            dataSaverEnabled={dataSaverEnabled}
+            onToggleDataSaver={handleToggleDataSaver}
           />
         ) : view === 'timeline' ? (
           <TimelineView
@@ -3558,6 +3570,7 @@ export default function App() {
             targetPostId={targetTimelinePostId}
             onClearTargetPost={() => setTargetTimelinePostId(null)}
             enterKeyBehavior={enterKeyBehavior}
+            dataSaverEnabled={dataSaverEnabled}
           />
         ) : (
           <AdminDashboardView
