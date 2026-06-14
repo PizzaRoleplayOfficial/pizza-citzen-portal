@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.2.77'; // 2.2.77 (Android WebView WebAuthn Origin対応版)
+export const CURRENT_VERSION = '2.2.78'; // 2.2.78 (Settings layout responsiveness fix)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

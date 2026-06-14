@@ -178,13 +178,20 @@ export const ProfileView = ({
   };
 
   return (
-    <div className="animate-fade" style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div className="animate-fade" style={{ width: '100%', maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <div>
         <h2 style={{ fontSize: '2rem', marginBottom: '8px', fontWeight: 700, color: 'var(--text-main)' }}>設定</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '0px' }}>アカウント設定を管理します。</p>
       </div>
 
-      <form onSubmit={handleUpdateProfile} className="glass card settings-card">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+        gap: '24px',
+        alignItems: 'start',
+        width: '100%'
+      }}>
+        <form onSubmit={handleUpdateProfile} className="glass card settings-card">
         <div>
           <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Roblox ユーザー名</label>
           <div style={{ position: 'relative' }}>
@@ -910,6 +917,7 @@ export const ProfileView = ({
           </a>
         </div>
       )}
+      </div>
     </div>
   );
 };
