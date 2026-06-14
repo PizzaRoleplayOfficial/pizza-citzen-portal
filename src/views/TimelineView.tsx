@@ -3855,7 +3855,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       )}
 
       {/* Floating Action Button (FAB) for mobile viewports */}
-      {isMobile && (
+      {isMobile && !isLoading && (
         <button
           onClick={() => { triggerHaptic('light'); setShowComposerModal(true); }}
           onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.91)'; }}

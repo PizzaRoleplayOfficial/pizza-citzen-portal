@@ -1820,7 +1820,7 @@ h1 {
 
 /* App wide scaling for Mobile Viewport to keep UI elegant and high-density */
 @media (max-width: 768px) {
-  body {
+  body:not(.boot-loading) {
     zoom: 0.8; /* Scale down the whole app to 80% to solve 'chunky easy-phone' look on mobile */
   }
   .mobile-zoomed-main {
