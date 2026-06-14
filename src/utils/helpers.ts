@@ -236,3 +236,11 @@ export const isSlowConnection = (): boolean => {
   }
   return false;
 };
+
+export const compressDualImage = async (file: File): Promise<{ high: string; low: string }> => {
+  const [high, low] = await Promise.all([
+    compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.7 }),
+    compressImage(file, { maxWidth: 80, maxHeight: 80, quality: 0.15 })
+  ]);
+  return { high, low };
+};

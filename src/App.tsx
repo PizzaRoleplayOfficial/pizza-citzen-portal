@@ -91,7 +91,7 @@ const INITIAL_USER: User = {
 };
 
 import { StatusBadge, parseImages } from './components/UIBase';
-import { compressImage } from './utils/helpers';
+import { compressImage, compressDualImage } from './utils/helpers';
 import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';
 import { VehicleImageGallery } from './components/VehicleImageGallery';
@@ -1468,7 +1468,7 @@ export default function App() {
       }
 
       try {
-        const base64Images = await Promise.all(files.map(compressImage));
+        const base64Images = await Promise.all(files.map(compressDualImage));
         const combined = [...existing, ...base64Images];
         setFormData(prev => ({ ...prev, image_data: JSON.stringify(combined) }));
       } catch (err) {
@@ -1592,7 +1592,7 @@ export default function App() {
     
     setIsLoading(true);
     try {
-      const base64Images = await Promise.all(files.map(compressImage));
+      const base64Images = await Promise.all(files.map(compressDualImage));
       const combined = [...existing, ...base64Images];
       setFormData({ ...formData, image_data: JSON.stringify(combined) });
     } catch (err) {
@@ -3540,6 +3540,7 @@ export default function App() {
             handleStartEdit={handleStartEdit}
             handleDeleteVehicle={handleDeleteVehicle}
             isMobile={isMobile}
+            dataSaverEnabled={dataSaverEnabled}
           />
         ) : view === 'profile' ? (
           <ProfileView

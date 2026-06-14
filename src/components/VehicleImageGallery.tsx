@@ -3,17 +3,21 @@ import { RefreshCw, ImageIcon, ChevronLeft, ChevronRight, ArrowLeft } from 'luci
 import { parseImages } from './UIBase';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { ImageLightbox } from './ImageLightbox';
+import { isSlowConnection } from '../utils/helpers';
+import { ProgressiveImage } from './ProgressiveImage';
 
 export const VehicleImageGallery = ({ 
   vehicleId, 
   imageData, 
   fallbackQuery, 
-  targetTrim 
+  targetTrim,
+  dataSaverEnabled = false
 }: { 
   vehicleId?: string; 
   imageData?: string; 
   fallbackQuery?: string; 
-  targetTrim?: string 
+  targetTrim?: string;
+  dataSaverEnabled?: boolean;
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -32,7 +36,8 @@ export const VehicleImageGallery = ({
 
     let cancelled = false;
     setImageLoading(true);
-    fetch(`/api/vehicle-image?id=${vehicleId}`)
+    const lowConnection = dataSaverEnabled || isSlowConnection();
+    fetch(`/api/vehicle-image?id=${vehicleId}${lowConnection ? '&lowConnection=true' : ''}`)
       .then(r => r.ok ? r.json() : null)
       .then((data: any) => {
         if (!cancelled && data?.image_data) {
@@ -45,9 +50,20 @@ export const VehicleImageGallery = ({
       });
 
     return () => { cancelled = true; };
-  }, [vehicleId, imageData]);
+  }, [vehicleId, imageData, dataSaverEnabled]);
 
-  const images = parseImages(fetchedImageData);
+  const rawImages = parseImages(fetchedImageData) as any[];
+  const images = rawImages.map(img => {
+    if (typeof img === 'string') {
+      return { high: img, low: img };
+    }
+    return {
+      high: img.high || '',
+      low: img.low || '',
+      highUrl: img.highUrl || ''
+    };
+  });
+
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -103,8 +119,17 @@ export const VehicleImageGallery = ({
   if (images.length === 1) {
     return (
       <>
-        <div onClick={e => openAt(e, 0)} style={{ height: '200px', backgroundImage: `url(${images[0]})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: 'var(--image-bg)', borderBottom: '1px solid var(--glass-border)', cursor: 'zoom-in' }} />
-        {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+        <div style={{ height: '200px', backgroundColor: 'var(--image-bg)', borderBottom: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+          <ProgressiveImage
+            lowSrc={images[0].low}
+            highSrc={images[0].highUrl || images[0].high}
+            alt="Vehicle"
+            dataSaverEnabled={dataSaverEnabled}
+            onClick={e => openAt(e, 0)}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in' }}
+          />
+        </div>
+        {isFullscreen && <ImageLightbox images={images.map(img => img.highUrl || img.high)} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
       </>
     );
   }
@@ -114,11 +139,20 @@ export const VehicleImageGallery = ({
       <>
         <div className="image-gallery" style={{ height: '200px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', borderBottom: '1px solid var(--glass-border)', position: 'relative' }}>
           {images.map((img, i) => (
-            <div key={i} onClick={e => openAt(e, i)} style={{ minWidth: '100%', height: '100%', backgroundImage: `url(${img})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: 'var(--image-bg)', scrollSnapAlign: 'start', cursor: 'zoom-in' }} />
+            <div key={i} style={{ minWidth: '100%', height: '100%', scrollSnapAlign: 'start', overflow: 'hidden' }}>
+              <ProgressiveImage
+                lowSrc={img.low}
+                highSrc={img.highUrl || img.high}
+                alt={`Vehicle ${i}`}
+                dataSaverEnabled={dataSaverEnabled}
+                onClick={e => openAt(e, i)}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in' }}
+              />
+            </div>
           ))}
           <span className="image-count-badge" style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '0.7rem', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold', pointerEvents: 'none', zIndex: 2 }}>画像 {images.length}枚 <ChevronRight size={10} style={{display:'inline', verticalAlign:'middle'}}/></span>
         </div>
-        {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+        {isFullscreen && <ImageLightbox images={images.map(img => img.highUrl || img.high)} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
       </>
     );
   }
@@ -126,12 +160,19 @@ export const VehicleImageGallery = ({
   return (
     <>
       <div style={{ height: '200px', position: 'relative', borderBottom: '1px solid var(--glass-border)', overflow: 'hidden' }}>
-        <div onClick={e => openAt(e, currentIndex)} style={{ width: '100%', height: '100%', backgroundImage: `url(${images[currentIndex]})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: 'var(--image-bg)', transition: 'background-image 0.2s ease-in-out', cursor: 'zoom-in' }} />
+        <ProgressiveImage
+          lowSrc={images[currentIndex].low}
+          highSrc={images[currentIndex].highUrl || images[currentIndex].high}
+          alt="Vehicle"
+          dataSaverEnabled={dataSaverEnabled}
+          onClick={e => openAt(e, currentIndex)}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in' }}
+        />
         <button onClick={prevImage} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}><ArrowLeft size={16} /></button>
         <button onClick={nextImage} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}><ChevronRight size={16} /></button>
         <span className="image-count-badge" style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold', pointerEvents: 'none', zIndex: 2 }}>{currentIndex + 1} / {images.length}</span>
       </div>
-      {isFullscreen && <ImageLightbox images={images} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
+      {isFullscreen && <ImageLightbox images={images.map(img => img.highUrl || img.high)} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
     </>
   );
 };
