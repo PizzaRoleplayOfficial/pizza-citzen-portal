@@ -44,6 +44,9 @@ interface TimelineViewProps {
   targetPostId?: string | null;
   onClearTargetPost?: () => void;
   dataSaverEnabled?: boolean;
+  enterKeyBehavior?: 'enter' | 'shiftEnter';
+  triggerComposer?: boolean;
+  onComposerTriggered?: () => void;
 }
 
 
@@ -889,7 +892,7 @@ const highlightText = (text: string, highlight: string) => {
 
 
 
-export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onClearTargetPost, enterKeyBehavior = 'enter', dataSaverEnabled = false }: TimelineViewProps) => {
+export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onClearTargetPost, enterKeyBehavior = 'enter', dataSaverEnabled = false, triggerComposer, onComposerTriggered }: TimelineViewProps) => {
   const showToast = (title: string, desc: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
     window.dispatchEvent(new CustomEvent('gv-toast', { detail: { title, desc, type } }));
   };
@@ -903,6 +906,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [newPostImages, setNewPostImages] = useState<{ high: string; low: string }[]>([]);
   const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [showComposerModal, setShowComposerModal] = useState(false);
+
+  useEffect(() => {
+    if (triggerComposer) {
+      setShowComposerModal(true);
+      if (onComposerTriggered) {
+        onComposerTriggered();
+      }
+    }
+  }, [triggerComposer, onComposerTriggered]);
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isCompressingVideo, setIsCompressingVideo] = useState(false);

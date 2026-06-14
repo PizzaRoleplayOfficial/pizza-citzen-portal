@@ -312,6 +312,20 @@ export default function App() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showQuickActionSheet, setShowQuickActionSheet] = useState(false);
+  const [triggerTimelineComposer, setTriggerTimelineComposer] = useState(false);
+  
+  const handleMobilePlusClick = () => {
+    triggerHaptic('medium');
+    if (view === 'garage') {
+      setShowAddModal(true);
+    } else if (view === 'timeline') {
+      setTriggerTimelineComposer(true);
+    } else {
+      setShowQuickActionSheet(true);
+    }
+  };
+
   const [registrationMode, setRegistrationMode] = useState<'normal' | 'temp'>('normal');
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [showBetaAutoFillModal, setShowBetaAutoFillModal] = useState(false);
@@ -3572,6 +3586,8 @@ export default function App() {
             onClearTargetPost={() => setTargetTimelinePostId(null)}
             enterKeyBehavior={enterKeyBehavior}
             dataSaverEnabled={dataSaverEnabled}
+            triggerComposer={triggerTimelineComposer}
+            onComposerTriggered={() => setTriggerTimelineComposer(false)}
           />
         ) : (
           <AdminDashboardView
@@ -3624,6 +3640,11 @@ export default function App() {
             <LayoutDashboard size={24} />
             <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>ガレージ</span>
           </button>
+          <div className="mobile-nav-plus-wrapper" style={{ flex: 1 }}>
+            <button className="mobile-nav-plus-btn" onClick={handleMobilePlusClick} aria-label="新規登録">
+              <Plus size={28} />
+            </button>
+          </div>
           <button onClick={() => setView('timeline')} style={{ background: 'none', border: 'none', color: view === 'timeline' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
             <MessageSquare size={24} />
             <span style={{ fontSize: '0.62rem', fontWeight: 600, whiteSpace: 'nowrap' }}>タイムライン</span>
@@ -4913,6 +4934,45 @@ export default function App() {
         }}>
           <div>🔄 BACK SWIPING ACTIVE</div>
           <div>Progress: {backProgress.toFixed(3)}</div>
+        </div>
+      )}
+
+      {/* Quick Action Bottom Sheet */}
+      {showQuickActionSheet && (
+        <div className="mobile-action-menu-overlay" onClick={() => setShowQuickActionSheet(false)}>
+          <div className="mobile-action-menu" onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+              <div style={{ width: '40px', height: '4px', background: 'rgba(255,255,255,0.2)', borderRadius: '2px', margin: '0 auto 12px' }}></div>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>新規登録・投稿</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>作成するアクションを選択してください</p>
+            </div>
+            
+            <button className="mobile-action-item" onClick={() => {
+              setShowQuickActionSheet(false);
+              setView('garage');
+              setTimeout(() => {
+                setShowAddModal(true);
+              }, 100);
+            }}>
+              <Car size={20} />
+              車両を登録する
+            </button>
+            
+            <button className="mobile-action-item" onClick={() => {
+              setShowQuickActionSheet(false);
+              setView('timeline');
+              setTimeout(() => {
+                setTriggerTimelineComposer(true);
+              }, 100);
+            }}>
+              <MessageSquare size={20} />
+              タイムラインに投稿する
+            </button>
+            
+            <button className="mobile-action-item mobile-action-cancel-btn" onClick={() => setShowQuickActionSheet(false)}>
+              キャンセル
+            </button>
+          </div>
         </div>
       )}
 
