@@ -218,16 +218,21 @@ export const compressVideo = (file: File): Promise<Blob> => {
         drawFrame();
       };
 
-      video.onerror = () => {
-        recorder.stop();
+      video.onerror = (e) => {
+        console.error("Transcoder video load error:", e);
+        URL.revokeObjectURL(fileUrl);
         resolve(file);
       };
     };
-
-    video.onerror = (e) => {
-      console.error("Transcoder video load error:", e);
-      URL.revokeObjectURL(fileUrl);
-      resolve(file);
-    };
   });
+};
+
+export const isSlowConnection = (): boolean => {
+  const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+  if (conn) {
+    if (conn.saveData) return true;
+    const type = conn.effectiveType;
+    return type === 'slow-2g' || type === '2g' || type === '3g';
+  }
+  return false;
 };

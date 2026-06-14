@@ -28,7 +28,7 @@ import {
   Compass,
   BookOpen
 } from 'lucide-react';
-import { compressImage, compressVideo } from '../utils/helpers';
+import { compressImage, compressVideo, isSlowConnection } from '../utils/helpers';
 import { parseImages } from '../components/UIBase';
 import { triggerHaptic, getLiveProgress, isNative } from '../utils/native';
 import { Capacitor } from '@capacitor/core';
@@ -908,11 +908,15 @@ const ProgressiveImage = ({
   onClick?: () => void;
   dataSaverEnabled?: boolean;
 }) => {
-  const [currentSrc, setCurrentSrc] = useState<string>(lowSrc);
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [currentSrc, setCurrentSrc] = useState<string>(lowSrc || highSrc);
+  const [isLoaded, setIsLoaded] = useState<boolean>(!lowSrc);
   const [isManualLoaded, setIsManualLoaded] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!lowSrc) {
+      return;
+    }
+
     // When data saver is enabled, do not load high resolution image until manually clicked
     if (dataSaverEnabled && !isManualLoaded) {
       return;
@@ -930,7 +934,7 @@ const ProgressiveImage = ({
     return () => {
       isMounted = false;
     };
-  }, [highSrc, dataSaverEnabled, isManualLoaded]);
+  }, [highSrc, lowSrc, dataSaverEnabled, isManualLoaded]);
 
   const handleManualLoad = (e: React.MouseEvent) => {
     if (dataSaverEnabled && !isManualLoaded) {
@@ -1540,8 +1544,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         setExpandedPostId(postParam);
         
         try {
-          // Attempt to fetch the specific post in case it's not in the initially loaded feed
-          const res = await fetch(`/api/timeline?userId=${currentUser.id}&postId=${postParam}`);
+          const isLow = dataSaverEnabled || isSlowConnection();
+          const res = await fetch(`/api/timeline?userId=${currentUser.id}&postId=${postParam}${isLow ? '&lowConnection=true' : ''}`);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
@@ -1757,7 +1761,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       }
     }
     try {
-      let url = `/api/timeline?userId=${currentUser.id}&feed=${activeFeedTab}&limit=20`;
+      const isLow = dataSaverEnabled || isSlowConnection();
+      let url = `/api/timeline?userId=${currentUser.id}&feed=${activeFeedTab}&limit=20${isLow ? '&lowConnection=true' : ''}`;
       
       // If we are appending page and have posts, pass the before timestamp cursor
       if (append && posts.length > 0) {
@@ -1812,7 +1817,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const fetchComments = async (postId: string, isBackground = false) => {
     if (!isBackground) setIsCommentsLoading(prev => ({ ...prev, [postId]: true }));
     try {
-      const res = await fetch(`/api/timeline-comments?postId=${postId}&userId=${currentUser.id}`);
+      const isLow = dataSaverEnabled || isSlowConnection();
+      const res = await fetch(`/api/timeline-comments?postId=${postId}&userId=${currentUser.id}${isLow ? '&lowConnection=true' : ''}`);
       if (res.ok) {
         const data = await res.json();
         setPostComments(prev => ({ ...prev, [postId]: Array.isArray(data) ? data : [] }));

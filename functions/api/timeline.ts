@@ -140,6 +140,7 @@ export { ensureTimelineTables };
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const url = new URL(request.url);
   const userId = url.searchParams.get('userId') || '';
+  const lowConnection = url.searchParams.get('lowConnection') === 'true';
 
   try {
     await ensureTimelineTables(env.D1_DB);
@@ -239,39 +240,51 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     const stmt = await env.D1_DB.prepare(query).bind(...bindParams).all();
     const results = stmt.results;
     
-    // Transform base64 image data to proxy URLs and embed low-res thumbnails
+    // Transform base64 image data based on connection speed
     const optimizedResults = results.map((row: any) => {
       // Proxy image_data
       if (row.image_data) {
         try {
           const imgs = JSON.parse(row.image_data);
           if (Array.isArray(imgs)) {
-            row.image_data = JSON.stringify(
-              imgs.map((img, idx) => {
-                if (typeof img === 'string') {
-                  return {
-                    low: img.startsWith('data:') ? img : '',
-                    highUrl: `/api/timeline-image?postId=${row.id}&index=${idx}`
-                  };
-                } else {
-                  return {
-                    low: img.low || '',
-                    highUrl: `/api/timeline-image?postId=${row.id}&index=${idx}`
-                  };
-                }
-              })
-            );
+            if (lowConnection) {
+              row.image_data = JSON.stringify(
+                imgs.map((img, idx) => {
+                  if (typeof img === 'string') {
+                    return {
+                      low: img.startsWith('data:') ? img : '',
+                      highUrl: `/api/timeline-image?postId=${row.id}&index=${idx}`
+                    };
+                  } else {
+                    return {
+                      low: img.low || '',
+                      highUrl: `/api/timeline-image?postId=${row.id}&index=${idx}`
+                    };
+                  }
+                })
+              );
+            } else {
+              row.image_data = JSON.stringify(
+                imgs.map((img) => {
+                  if (typeof img === 'string') {
+                    return img;
+                  } else {
+                    return img.high || img.low || '';
+                  }
+                })
+              );
+            }
           } else {
-            row.image_data = JSON.stringify([{
+            row.image_data = lowConnection ? JSON.stringify([{
               low: '',
               highUrl: `/api/timeline-image?postId=${row.id}&index=0`
-            }]);
+            }]) : JSON.stringify([]);
           }
         } catch (e) {
-          row.image_data = JSON.stringify([{
+          row.image_data = lowConnection ? JSON.stringify([{
             low: '',
             highUrl: `/api/timeline-image?postId=${row.id}&index=0`
-          }]);
+          }]) : JSON.stringify([]);
         }
       }
       // Proxy orig_image_data
@@ -280,32 +293,44 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
           const imgs = JSON.parse(row.orig_image_data);
           const targetPostId = row.repost_id || row.id;
           if (Array.isArray(imgs)) {
-            row.orig_image_data = JSON.stringify(
-              imgs.map((img, idx) => {
-                if (typeof img === 'string') {
-                  return {
-                    low: img.startsWith('data:') ? img : '',
-                    highUrl: `/api/timeline-image?postId=${targetPostId}&index=${idx}`
-                  };
-                } else {
-                  return {
-                    low: img.low || '',
-                    highUrl: `/api/timeline-image?postId=${targetPostId}&index=${idx}`
-                  };
-                }
-              })
-            );
+            if (lowConnection) {
+              row.orig_image_data = JSON.stringify(
+                imgs.map((img, idx) => {
+                  if (typeof img === 'string') {
+                    return {
+                      low: img.startsWith('data:') ? img : '',
+                      highUrl: `/api/timeline-image?postId=${targetPostId}&index=${idx}`
+                    };
+                  } else {
+                    return {
+                      low: img.low || '',
+                      highUrl: `/api/timeline-image?postId=${targetPostId}&index=${idx}`
+                    };
+                  }
+                })
+              );
+            } else {
+              row.orig_image_data = JSON.stringify(
+                imgs.map((img) => {
+                  if (typeof img === 'string') {
+                    return img;
+                  } else {
+                    return img.high || img.low || '';
+                  }
+                })
+              );
+            }
           } else {
-            row.orig_image_data = JSON.stringify([{
+            row.orig_image_data = lowConnection ? JSON.stringify([{
               low: '',
               highUrl: `/api/timeline-image?postId=${targetPostId}&index=0`
-            }]);
+            }]) : JSON.stringify([]);
           }
         } catch (e) {
-          row.orig_image_data = JSON.stringify([{
+          row.orig_image_data = lowConnection ? JSON.stringify([{
             low: '',
             highUrl: `/api/timeline-image?postId=${row.repost_id || row.id}&index=0`
-          }]);
+          }]) : JSON.stringify([]);
         }
       }
       return row;
