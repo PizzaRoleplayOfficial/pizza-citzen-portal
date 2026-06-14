@@ -19,7 +19,10 @@ const ensureUserTable = async (db: any) => {
 
 const getAdminStatus = async (request: Request) => {
     const cookieHeader = request.headers.get('Cookie');
-    const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('='))) : {};
+    const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => {
+        const [k, ...v] = c.trim().split('=');
+        return [k, v.join('=')];
+    })) : {};
     const userCookie = cookies['gv_user'];
     if (!userCookie) return false;
     try {
@@ -51,7 +54,10 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
 export const onRequestPatch = async ({ env, request }: { env: any, request: Request }) => {
   const cookieHeader = request.headers.get('Cookie');
-  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('='))) : {};
+  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => {
+    const [k, ...v] = c.trim().split('=');
+    return [k, v.join('=')];
+  })) : {};
   const userCookieStr = cookies['gv_user'];
   
   if (!userCookieStr) return new Response("Unauthorized", { status: 401 });

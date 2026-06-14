@@ -39,7 +39,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const cookieHeader = context.request.headers.get('Cookie');
-    const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('='))) : {};
+    const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => {
+      const [k, ...v] = c.trim().split('=');
+      return [k, v.join('=')];
+    })) : {};
     const userCookieStr = cookies['gv_user'];
     
     if (!userCookieStr) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });

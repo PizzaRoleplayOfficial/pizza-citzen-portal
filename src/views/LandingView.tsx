@@ -14,6 +14,11 @@ export const LandingView = ({ onLoginSuccess }: LandingViewProps) => {
   const [scrollY, setScrollY] = React.useState(0);
   const [passkeyLoading, setPasskeyLoading] = React.useState(false);
   const [passkeyError, setPasskeyError] = React.useState<string | null>(null);
+  const [isWebAuthnSupported, setIsWebAuthnSupported] = React.useState(true);
+
+  React.useEffect(() => {
+    setIsWebAuthnSupported(typeof window.PublicKeyCredential !== 'undefined');
+  }, []);
 
   const handlePasskeyLogin = async () => {
     setPasskeyLoading(true);
@@ -26,7 +31,7 @@ export const LandingView = ({ onLoginSuccess }: LandingViewProps) => {
       }
       const options = await optionsRes.json();
 
-      const assertion = await startAuthentication(options);
+      const assertion = await startAuthentication({ optionsJSON: options });
 
       const verifyRes = await fetch('/api/auth/webauthn/login-verify', {
         method: 'POST',
@@ -364,38 +369,40 @@ export const LandingView = ({ onLoginSuccess }: LandingViewProps) => {
         </div>
 
         {/* パスキー ログインボタン */}
-        <div style={{ marginBottom: '24px' }}>
-          <button 
-            onClick={handlePasskeyLogin} 
-            disabled={passkeyLoading}
-            className="btn" 
-            style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center',
-              justifyContent: 'center', 
-              width: '100%', 
-              maxWidth: '320px', 
-              padding: '18px 32px', 
-              fontSize: '1.1rem', 
-              borderRadius: '16px', 
-              textDecoration: 'none', 
-              color: '#fff', 
-              fontWeight: 800, 
-              border: '1px solid rgba(0, 193, 102, 0.4)', 
-              cursor: 'pointer',
-              background: 'rgba(0, 193, 102, 0.1)',
-              boxShadow: '0 4px 15px rgba(0, 193, 102, 0.15)',
-              transition: 'all 0.2s',
-            }}
-          >
-            {passkeyLoading ? (
-              <RefreshCw size={20} className="animate-spin" style={{ marginRight: '10px' }} />
-            ) : (
-              <Key size={20} style={{ marginRight: '10px' }} />
-            )}
-            {passkeyLoading ? '照合中...' : 'パスキーでログイン'}
-          </button>
-        </div>
+        {isWebAuthnSupported && (
+          <div style={{ marginBottom: '24px' }}>
+            <button 
+              onClick={handlePasskeyLogin} 
+              disabled={passkeyLoading}
+              className="btn" 
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center',
+                justifyContent: 'center', 
+                width: '100%', 
+                maxWidth: '320px', 
+                padding: '18px 32px', 
+                fontSize: '1.1rem', 
+                borderRadius: '16px', 
+                textDecoration: 'none', 
+                color: '#fff', 
+                fontWeight: 800, 
+                border: '1px solid rgba(0, 193, 102, 0.4)', 
+                cursor: 'pointer',
+                background: 'rgba(0, 193, 102, 0.1)',
+                boxShadow: '0 4px 15px rgba(0, 193, 102, 0.15)',
+                transition: 'all 0.2s',
+              }}
+            >
+              {passkeyLoading ? (
+                <RefreshCw size={20} className="animate-spin" style={{ marginRight: '10px' }} />
+              ) : (
+                <Key size={20} style={{ marginRight: '10px' }} />
+              )}
+              {passkeyLoading ? '照合中...' : 'パスキーでログイン'}
+            </button>
+          </div>
+        )}
 
         {/* パスキーエラーメッセージ */}
         {passkeyError && (

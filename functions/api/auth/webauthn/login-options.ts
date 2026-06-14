@@ -7,10 +7,15 @@ const ensurePasskeysTable = async (db: any) => {
       user_id TEXT NOT NULL,
       public_key TEXT NOT NULL,
       counter INTEGER DEFAULT 0,
+      key_name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `).run();
+
+  try {
+    await db.prepare("ALTER TABLE user_passkeys ADD COLUMN key_name TEXT").run();
+  } catch (e) {}
 };
 
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
@@ -26,7 +31,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     });
 
     // Store challenge in temporary cookie
-    const challengeCookie = `gv_passkey_login_challenge=${encodeURIComponent(options.challenge)}; Path=/; Max-Age=120; HttpOnly; Secure; SameSite=Lax`;
+    const challengeCookie = `gv_passkey_login_challenge=${encodeURIComponent(options.challenge)}; Path=/; Max-Age=120; HttpOnly; SameSite=Lax`;
 
     return new Response(JSON.stringify(options), {
       headers: {

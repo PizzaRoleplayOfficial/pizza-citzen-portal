@@ -53,8 +53,91 @@ export const ProfileView = ({
 }: ProfileViewProps) => {
   const [passkeyLoading, setPasskeyLoading] = React.useState(false);
   const [passkeyMessage, setPasskeyMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [passkeys, setPasskeys] = React.useState<{ credential_id: string, key_name: string | null, created_at: string }[]>([]);
+  const [isWebAuthnSupported, setIsWebAuthnSupported] = React.useState(true);
+
+  const fetchPasskeys = async () => {
+    try {
+      const res = await fetch('/api/auth/webauthn/keys');
+      if (res.ok) {
+        const data = await res.json();
+        setPasskeys(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch passkeys:', e);
+    }
+  };
+
+  React.useEffect(() => {
+    setIsWebAuthnSupported(typeof window.PublicKeyCredential !== 'undefined');
+    fetchPasskeys();
+  }, []);
+
+  const handleDeletePasskey = async (credentialId: string) => {
+    if (!confirm('このパスキーを削除してもよろしいですか？\n削除すると、このパスキーを使用したログインはできなくなります。')) return;
+    
+    setPasskeyLoading(true);
+    setPasskeyMessage(null);
+    triggerHaptic('light');
+    try {
+      const res = await fetch(`/api/auth/webauthn/keys?id=${encodeURIComponent(credentialId)}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'パスキーの削除に失敗しました');
+      }
+      setPasskeyMessage({ type: 'success', text: 'パスキーを削除しました。' });
+      triggerHaptic('success');
+      await fetchPasskeys();
+      
+      if (currentUser) {
+        const remaining = passkeys.filter(k => k.credential_id !== credentialId).length > 0;
+        setCurrentUser({ ...currentUser, hasPasskey: remaining });
+      }
+    } catch (e: any) {
+      console.error(e);
+      setPasskeyMessage({ type: 'error', text: e.message || 'パスキーの削除中にエラーが発生しました' });
+      triggerHaptic('warning');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
+
+  const handleRenamePasskey = async (credentialId: string, currentName: string) => {
+    const newName = prompt('パスキーの新しい名前を入力してください:', currentName || 'パスキー');
+    if (!newName || newName.trim() === '' || newName === currentName) return;
+    
+    setPasskeyLoading(true);
+    setPasskeyMessage(null);
+    triggerHaptic('light');
+    try {
+      const res = await fetch('/api/auth/webauthn/keys', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: credentialId, name: newName.trim() })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'パスキー名の変更に失敗しました');
+      }
+      setPasskeyMessage({ type: 'success', text: 'パスキー名を変更しました。' });
+      triggerHaptic('success');
+      await fetchPasskeys();
+    } catch (e: any) {
+      console.error(e);
+      setPasskeyMessage({ type: 'error', text: e.message || 'パスキー名の変更中にエラーが発生しました' });
+      triggerHaptic('warning');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
 
   const handleRegisterPasskey = async () => {
+    const keyNameInput = prompt('新しいパスキーの名前を入力してください (例: 自分のiPhone, 自宅のPC):', '');
+    if (keyNameInput === null) return;
+    const keyName = keyNameInput.trim() || 'パスキー';
+
     setPasskeyLoading(true);
     setPasskeyMessage(null);
     triggerHaptic('light');
@@ -66,12 +149,12 @@ export const ProfileView = ({
       }
       const options = await optionsRes.json();
 
-      const credential = await startRegistration(options);
+      const credential = await startRegistration({ optionsJSON: options });
 
       const verifyRes = await fetch('/api/auth/webauthn/register-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credential)
+        body: JSON.stringify({ credential, keyName })
       });
 
       if (!verifyRes.ok) {
@@ -81,6 +164,7 @@ export const ProfileView = ({
 
       setPasskeyMessage({ type: 'success', text: 'パスキーが正常に登録されました。次回からパスキーでログインできます。' });
       triggerHaptic('success');
+      await fetchPasskeys();
       if (currentUser) {
         setCurrentUser({ ...currentUser, hasPasskey: true });
       }
@@ -405,27 +489,63 @@ export const ProfileView = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-            <div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                {currentUser?.hasPasskey ? 'パスキーは登録済みです' : 'パスキーが登録されていません'}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                {currentUser?.hasPasskey 
-                  ? 'このデバイスまたはブラウザで追加のパスキーを登録することもできます。' 
-                  : '登録すると、次回からDiscordログインなしで素早くサインインできます。'}
-              </div>
+          {!isWebAuthnSupported ? (
+            <div style={{ padding: '16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ff8585', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              ⚠️ <strong>このアプリ内ブラウザ（または端末環境）はパスキーをサポートしていません。</strong><br />
+              パスキーの新規登録や管理を行う場合は、お手数ですが Chrome、Safari、Edge などの標準ブラウザで本サイト（<a href="https://pizza-citzen-portal.pages.dev" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>https://pizza-citzen-portal.pages.dev</a>）にアクセスし、ログインした上でプロフィール画面から操作してください。
             </div>
-            <button
-              type="button"
-              onClick={handleRegisterPasskey}
-              disabled={passkeyLoading}
-              className="btn btn-primary"
-              style={{ padding: '12px 20px', borderRadius: '10px', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              {passkeyLoading ? '登録中...' : (currentUser?.hasPasskey ? '別のキーを追加' : 'パスキーを登録')}
-            </button>
-          </div>
+          ) : (
+            <>
+              {passkeys.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>登録済みのパスキー ({passkeys.length})</div>
+                  {passkeys.map(k => (
+                    <div key={k.credential_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span>{k.key_name || '登録済みのキー'}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRenamePasskey(k.credential_id, k.key_name || '')}
+                            style={{ background: 'rgba(0, 193, 102, 0.1)', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}
+                          >
+                            名前変更
+                          </button>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                          登録日時: {new Date(k.created_at).toLocaleString('ja-JP')}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePasskey(k.credential_id)}
+                        disabled={passkeyLoading}
+                        style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--error)', padding: '8px 16px', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        削除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px dashed var(--glass-border)' }}>
+                  パスキーが登録されていません。登録すると、次回からDiscordのログインなしで素早くサインインできます。
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleRegisterPasskey}
+                  disabled={passkeyLoading}
+                  className="btn btn-primary"
+                  style={{ padding: '16px 24px', borderRadius: '12px', fontSize: '0.95rem', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
+                >
+                  {passkeyLoading ? '処理中...' : (passkeys.length > 0 ? '＋ 別のパスキーを追加' : 'パスキーを登録する')}
+                </button>
+              </div>
+            </>
+          )}
 
           {passkeyMessage && (
             <div style={{

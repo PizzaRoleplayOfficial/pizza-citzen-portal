@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pizza.portal",
+      "sha256_cert_fingerprints": [
+        "02:35:FC:DE:CE:E7:A3:BB:14:C9:6A:AB:55:16:98:81:17:27:0E:78:7C:5A:36:14:8A:28:53:86:3F:E9:39:8D"
+      ]
+    }
+  }
+]

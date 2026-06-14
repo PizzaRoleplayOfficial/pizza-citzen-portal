@@ -5,7 +5,10 @@ import { sendFcmNotificationToUser, sendFcmNotificationToAdmins } from '../utils
 const getUserSession = (request: Request) => {
   const cookieHeader = request.headers.get('Cookie');
   const cookies = cookieHeader
-    ? Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('=')))
+    ? Object.fromEntries(cookieHeader.split(';').map(c => {
+        const [k, ...v] = c.trim().split('=');
+        return [k, v.join('=')];
+      }))
     : {};
   const userCookie = cookies['gv_user'];
   if (!userCookie) return null;

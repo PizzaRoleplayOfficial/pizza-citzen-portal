@@ -7,16 +7,24 @@ const ensurePasskeysTable = async (db: any) => {
       user_id TEXT NOT NULL,
       public_key TEXT NOT NULL,
       counter INTEGER DEFAULT 0,
+      key_name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `).run();
+
+  try {
+    await db.prepare("ALTER TABLE user_passkeys ADD COLUMN key_name TEXT").run();
+  } catch (e) {}
 };
 
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   // 1. Get logged-in user
   const cookieHeader = request.headers.get('Cookie');
-  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('='))) : {};
+  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => {
+    const [k, ...v] = c.trim().split('=');
+    return [k, v.join('=')];
+  })) : {};
   const userCookie = cookies['gv_user'];
   if (!userCookie) {
     return new Response(JSON.stringify({ error: "ログインが必要です" }), { status: 401, headers: { 'Content-Type': 'application/json' } });
@@ -58,8 +66,8 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       attestationType: 'none',
     });
 
-    // Store the challenge in a temporary, secure cookie (valid for 2 minutes)
-    const challengeCookie = `gv_passkey_reg_challenge=${encodeURIComponent(options.challenge)}; Path=/; Max-Age=120; HttpOnly; Secure; SameSite=Lax`;
+    // Store the challenge in a temporary cookie (valid for 2 minutes)
+    const challengeCookie = `gv_passkey_reg_challenge=${encodeURIComponent(options.challenge)}; Path=/; Max-Age=120; HttpOnly; SameSite=Lax`;
 
     return new Response(JSON.stringify(options), {
       headers: {

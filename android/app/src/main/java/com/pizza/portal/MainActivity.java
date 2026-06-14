@@ -28,6 +28,21 @@ public class MainActivity extends BridgeActivity {
                 webView.loadUrl("file:///android_asset/public/offline.html");
             }
         }
+
+        // Enable WebAuthn/Passkey support in WebView (v2.2.76)
+        WebView webView = this.bridge.getWebView();
+        if (webView != null) {
+            try {
+                if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.WEB_AUTHENTICATION)) {
+                    androidx.webkit.WebSettingsCompat.setWebAuthenticationSupport(
+                        webView.getSettings(),
+                        androidx.webkit.WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP
+                    );
+                }
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private boolean isNetworkAvailable() {

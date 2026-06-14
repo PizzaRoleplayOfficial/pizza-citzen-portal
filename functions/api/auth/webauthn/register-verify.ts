@@ -7,16 +7,24 @@ const ensurePasskeysTable = async (db: any) => {
       user_id TEXT NOT NULL,
       public_key TEXT NOT NULL,
       counter INTEGER DEFAULT 0,
+      key_name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `).run();
+
+  try {
+    await db.prepare("ALTER TABLE user_passkeys ADD COLUMN key_name TEXT").run();
+  } catch (e) {}
 };
 
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   // 1. Get logged-in user
   const cookieHeader = request.headers.get('Cookie');
-  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('='))) : {};
+  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => {
+    const [k, ...v] = c.trim().split('=');
+    return [k, v.join('=')];
+  })) : {};
   const userCookie = cookies['gv_user'];
   if (!userCookie) {
     return new Response(JSON.stringify({ error: "ログインが必要です" }), { status: 401, headers: { 'Content-Type': 'application/json' } });
@@ -37,12 +45,15 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 
   try {
     const body = await request.json() as any;
+    const credential = body.credential || body;
+    const keyName = body.keyName || 'パスキー';
+
     const url = new URL(request.url);
     const rpID = url.hostname;
     const expectedOrigin = url.origin;
 
     const verification = await verifyRegistrationResponse({
-      response: body,
+      response: credential,
       expectedChallenge: decodeURIComponent(expectedChallenge),
       expectedOrigin,
       expectedRPID: rpID,
@@ -50,7 +61,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     });
 
     if (verification.verified && verification.registrationInfo) {
-      const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+      const { credential } = verification.registrationInfo;
+      const { id: credentialID, publicKey: credentialPublicKey, counter } = credential;
 
       // Convert Uint8Array public key to Base64 to store in SQLite D1
       const publicKeyBase64 = btoa(String.fromCharCode(...Array.from(credentialPublicKey)));
@@ -59,11 +71,11 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 
       // Insert new passkey linked to user ID
       await env.D1_DB.prepare(
-        "INSERT INTO user_passkeys (credential_id, user_id, public_key, counter) VALUES (?, ?, ?, ?)"
-      ).bind(credentialID, sessionUser.id, publicKeyBase64, counter).run();
+        "INSERT INTO user_passkeys (credential_id, user_id, public_key, counter, key_name) VALUES (?, ?, ?, ?, ?)"
+      ).bind(credentialID, sessionUser.id, publicKeyBase64, counter, keyName).run();
 
       // Clear registration challenge cookie
-      const clearCookie = `gv_passkey_reg_challenge=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
+      const clearCookie = `gv_passkey_reg_challenge=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`;
 
       return new Response(JSON.stringify({ success: true }), {
         headers: {

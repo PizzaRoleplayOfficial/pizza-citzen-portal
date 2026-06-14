@@ -7,15 +7,23 @@ const ensurePasskeysTable = async (db: any) => {
       user_id TEXT NOT NULL,
       public_key TEXT NOT NULL,
       counter INTEGER DEFAULT 0,
+      key_name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `).run();
+
+  try {
+    await db.prepare("ALTER TABLE user_passkeys ADD COLUMN key_name TEXT").run();
+  } catch (e) {}
 };
 
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   const cookieHeader = request.headers.get('Cookie');
-  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => c.trim().split('='))) : {};
+  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => {
+    const [k, ...v] = c.trim().split('=');
+    return [k, v.join('=')];
+  })) : {};
   const expectedChallenge = cookies['gv_passkey_login_challenge'];
 
   if (!expectedChallenge) {
@@ -86,7 +94,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 
       // Set user session cookie (gv_user) and clear login challenge cookie
       const sessionCookie = `gv_user=${encodeURIComponent(JSON.stringify(user))}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax`;
-      const clearChallengeCookie = `gv_passkey_login_challenge=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
+      const clearChallengeCookie = `gv_passkey_login_challenge=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`;
 
       const headers = new Headers({
         'Content-Type': 'application/json'
