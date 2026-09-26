@@ -101,6 +101,43 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   const userId = url.searchParams.get('userId') || '12345';
   const isAdmin = url.searchParams.get('admin') === 'true';
 
+  // Fast pre-flight check for duplicate plate (real-time validation)
+  const checkPlate = url.searchParams.get('checkPlate');
+  if (checkPlate) {
+    const gameType = (url.searchParams.get('gameType') || 'gv').trim().toLowerCase();
+    const excludeId = url.searchParams.get('excludeId') || '';
+    const cleanPlate = checkPlate.replace(/[\s\-_]/g, '').trim().toLowerCase();
+    
+    if (!cleanPlate) {
+      return new Response(JSON.stringify({ duplicate: false }), { 
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } 
+      });
+    }
+
+    try {
+      const checkSql = `
+        SELECT id, maker, model, year, plate FROM vehicles 
+        WHERE status != 'rejected'
+          AND id != ?
+          AND LOWER(COALESCE(game_type, 'gv')) = ?
+          AND REPLACE(REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', ''), '_', '') = ?
+        LIMIT 1
+      `;
+      const found = await env.D1_DB.prepare(checkSql).bind(excludeId, gameType, cleanPlate).first();
+      return new Response(JSON.stringify({ 
+        duplicate: !!found,
+        vehicle: found || null,
+        message: found ? '既にこの車両は登録されています！' : null
+      }), { 
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } 
+      });
+    } catch (e: any) {
+      return new Response(JSON.stringify({ duplicate: false, error: e.message }), { 
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } 
+      });
+    }
+  }
+
   try {
     // Skip ensureTable on GET for speed - schema is ensured on write operations
     if (isAdmin) {
@@ -171,7 +208,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 
     // Duplicate check: Verify if vehicle with same plate or same content already exists
     const cleanGame = (game_type || 'gv').trim().toLowerCase();
-    const cleanPlate = (plate || '').replace(/[\s\-]/g, '').trim().toLowerCase();
+    const cleanPlate = (plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase();
     const cleanMaker = (maker || '').trim().toLowerCase();
     const cleanModel = (model || '').trim().toLowerCase();
     const cleanColor = (color || '').trim().toLowerCase();
@@ -185,7 +222,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       SELECT id FROM vehicles 
       WHERE status != 'rejected'
         AND (
-          (? != '' AND COALESCE(game_type, 'gv') = ? AND REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') = ?)
+          (? != '' AND LOWER(COALESCE(game_type, 'gv')) = ? AND REPLACE(REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', ''), '_', '') = ?)
           OR
           (
             ? != '' AND owner_id = ?
@@ -336,7 +373,7 @@ export const onRequestPut = async ({ env, request }: { env: any, request: Reques
 
     // Duplicate check on edit (excluding the current vehicle itself)
     const cleanGame = (game_type || existing.game_type || 'gv').trim().toLowerCase();
-    const cleanPlate = (plate || existing.plate || '').replace(/[\s\-]/g, '').trim().toLowerCase();
+    const cleanPlate = (plate || existing.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase();
     const cleanMaker = (maker ?? existing.maker ?? '').trim().toLowerCase();
     const cleanModel = (model ?? existing.model ?? '').trim().toLowerCase();
     const cleanColor = (color ?? existing.color ?? '').trim().toLowerCase();
@@ -351,7 +388,7 @@ export const onRequestPut = async ({ env, request }: { env: any, request: Reques
       WHERE id != ?
         AND status != 'rejected'
         AND (
-          (? != '' AND COALESCE(game_type, 'gv') = ? AND REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') = ?)
+          (? != '' AND LOWER(COALESCE(game_type, 'gv')) = ? AND REPLACE(REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', ''), '_', '') = ?)
           OR
           (
             ? != '' AND owner_id = ?

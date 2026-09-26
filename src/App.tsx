@@ -735,6 +735,12 @@ export default function App() {
     image_data: ''
   });
 
+  const [vehicleSubmitting, setVehicleSubmitting] = useState(false);
+  const [plateChecking, setPlateChecking] = useState(false);
+  const [plateDuplicateWarning, setPlateDuplicateWarning] = useState<string | null>(null);
+  const [trailerPlateChecking, setTrailerPlateChecking] = useState(false);
+  const [trailerPlateDuplicateWarning, setTrailerPlateDuplicateWarning] = useState<string | null>(null);
+
   useEffect(() => {
     if (view === 'admin') {
       const targetHash = adminTab === 'dashboard' ? 'admin' : `admin/${adminTab}`;
@@ -787,14 +793,145 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Real-time pre-flight duplicate plate checking for cars
+  useEffect(() => {
+    if (!showAddModal) {
+      setPlateDuplicateWarning(null);
+      setPlateChecking(false);
+      return;
+    }
+    const cleanPlate = (formData.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase();
+    if (cleanPlate.length < 2) {
+      setPlateDuplicateWarning(null);
+      setPlateChecking(false);
+      return;
+    }
+
+    // Instant local memory check
+    const game = (formData.game_type || 'gv').toLowerCase();
+    const localMatch = vehicles.find(v => 
+      v.status !== 'rejected' &&
+      v.id !== editingVehicleId &&
+      (v.game_type || 'gv').toLowerCase() === game &&
+      (v.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase() === cleanPlate
+    );
+    if (localMatch) {
+      setPlateDuplicateWarning('既にこの車両は登録されています！');
+    }
+
+    setPlateChecking(true);
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          checkPlate: cleanPlate,
+          gameType: formData.game_type || 'gv',
+          excludeId: editingVehicleId || ''
+        });
+        const res = await fetch(`/api/vehicles?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json() as any;
+          if (data.duplicate) {
+            setPlateDuplicateWarning('既にこの車両は登録されています！');
+          } else if (!localMatch) {
+            setPlateDuplicateWarning(null);
+          }
+        }
+      } catch (err) {
+        console.error('Plate pre-check failed:', err);
+      } finally {
+        setPlateChecking(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [formData.plate, formData.game_type, showAddModal, editingVehicleId, vehicles]);
+
+  // Real-time pre-flight duplicate plate checking for trailers
+  useEffect(() => {
+    if (!showTrailerModal) {
+      setTrailerPlateDuplicateWarning(null);
+      setTrailerPlateChecking(false);
+      return;
+    }
+    const cleanPlate = (trailerFormData.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase();
+    if (cleanPlate.length < 2) {
+      setTrailerPlateDuplicateWarning(null);
+      setTrailerPlateChecking(false);
+      return;
+    }
+
+    // Instant local memory check
+    const game = (trailerFormData.game_type || 'gv').toLowerCase();
+    const localMatch = vehicles.find(v => 
+      v.status !== 'rejected' &&
+      v.id !== editingVehicleId &&
+      (v.game_type || 'gv').toLowerCase() === game &&
+      (v.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase() === cleanPlate
+    );
+    if (localMatch) {
+      setTrailerPlateDuplicateWarning('既にこの車両は登録されています！');
+    }
+
+    setTrailerPlateChecking(true);
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          checkPlate: cleanPlate,
+          gameType: trailerFormData.game_type || 'gv',
+          excludeId: editingVehicleId || ''
+        });
+        const res = await fetch(`/api/vehicles?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json() as any;
+          if (data.duplicate) {
+            setTrailerPlateDuplicateWarning('既にこの車両は登録されています！');
+          } else if (!localMatch) {
+            setTrailerPlateDuplicateWarning(null);
+          }
+        }
+      } catch (err) {
+        console.error('Trailer plate pre-check failed:', err);
+      } finally {
+        setTrailerPlateChecking(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [trailerFormData.plate, trailerFormData.game_type, showTrailerModal, editingVehicleId, vehicles]);
+
   const handleSubmitTrailer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (trailerSubmitting) return;
+
+    if (trailerPlateDuplicateWarning) {
+      alert('既にこの車両は登録されています！別のナンバープレートを指定してください。');
+      triggerHaptic('error');
+      return;
+    }
+
     if (!trailerFormData.model || !trailerFormData.plate) {
       alert('モデル名とナンバープレートは必須です。');
       triggerHaptic('warning');
       return;
     }
+
+    const cleanPlate = (trailerFormData.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase();
+    if (cleanPlate) {
+      const game = (trailerFormData.game_type || 'gv').toLowerCase();
+      const duplicateFound = vehicles.find(v => 
+        v.status !== 'rejected' &&
+        v.id !== editingVehicleId &&
+        (v.game_type || 'gv').toLowerCase() === game &&
+        (v.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase() === cleanPlate
+      );
+      if (duplicateFound) {
+        setTrailerPlateDuplicateWarning('既にこの車両は登録されています！');
+        alert('既にこの車両は登録されています！別のナンバープレートを指定してください。');
+        triggerHaptic('error');
+        return;
+      }
+    }
+
     setTrailerSubmitting(true);
     const method = editingVehicleId ? 'PUT' : 'POST';
     try {
@@ -813,9 +950,13 @@ export default function App() {
       });
       if (!res.ok) {
         const err = await res.json() as any;
-        alert(err.error || '登録に失敗しました。');
+        const errMsg = err.error || '登録に失敗しました。';
+        if (res.status === 409 || errMsg.includes('既にこの車両は登録されています')) {
+          setTrailerPlateDuplicateWarning('既にこの車両は登録されています！');
+        }
+        alert(errMsg);
         window.dispatchEvent(new CustomEvent('gv-toast', {
-          detail: { title: '登録エラー', desc: err.error || '登録に失敗しました。', type: 'error' }
+          detail: { title: '登録エラー', desc: errMsg, type: 'error' }
         }));
         triggerHaptic('error');
         return;
@@ -823,6 +964,7 @@ export default function App() {
       setShowTrailerModal(false);
       setEditingVehicleId(null);
       setTrailerFormData({ game_type: 'gv', model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+      setTrailerPlateDuplicateWarning(null);
       await fetchVehicles();
       const message = editingVehicleId ? 'トレーラー情報の更新申請を送信しました。再審査待ちになります。' : 'トレーラー登録申請を送信しました！審査待ちになります。';
       alert(message);
@@ -2389,6 +2531,32 @@ export default function App() {
 
   const handleSubmitVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (vehicleSubmitting) return;
+
+    if (plateDuplicateWarning) {
+      alert('既にこの車両は登録されています！別のナンバープレートを指定してください。');
+      triggerHaptic('error');
+      return;
+    }
+
+    const cleanPlate = (formData.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase();
+    if (cleanPlate) {
+      const game = (formData.game_type || 'gv').toLowerCase();
+      const duplicateFound = vehicles.find(v => 
+        v.status !== 'rejected' &&
+        v.id !== editingVehicleId &&
+        (v.game_type || 'gv').toLowerCase() === game &&
+        (v.plate || '').replace(/[\s\-_]/g, '').trim().toLowerCase() === cleanPlate
+      );
+      if (duplicateFound) {
+        setPlateDuplicateWarning('既にこの車両は登録されています！');
+        alert('既にこの車両は登録されています！別のナンバープレートを指定してください。');
+        triggerHaptic('error');
+        return;
+      }
+    }
+
+    setVehicleSubmitting(true);
     const method = editingVehicleId ? 'PUT' : 'POST';
     try {
       const payload = { 
@@ -2406,6 +2574,7 @@ export default function App() {
         setEditingVehicleId(null);
         setRegistrationMode('normal');
         setFormData({ game_type: 'gv', maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+        setPlateDuplicateWarning(null);
         fetchVehicles();
         triggerHaptic('success');
         scheduleLocalNotification(
@@ -2416,15 +2585,22 @@ export default function App() {
         );
       } else {
         const err = await res.json() as any;
-        alert(err.error || '車両登録に失敗しました。');
+        const errMsg = err.error || '車両登録に失敗しました。';
+        if (res.status === 409 || errMsg.includes('既にこの車両は登録されています')) {
+          setPlateDuplicateWarning('既にこの車両は登録されています！');
+        }
+        alert(errMsg);
         window.dispatchEvent(new CustomEvent('gv-toast', {
-          detail: { title: '登録エラー', desc: err.error || '車両登録に失敗しました。', type: 'error' }
+          detail: { title: '登録エラー', desc: errMsg, type: 'error' }
         }));
         triggerHaptic('error');
       }
     } catch (e) {
       console.error("Submit vehicle failed:", e);
+      alert('ネットワークエラーが発生しました。もう一度お試しください。');
       triggerHaptic('error');
+    } finally {
+      setVehicleSubmitting(false);
     }
   };
 
@@ -4137,8 +4313,56 @@ export default function App() {
               </div>
               
               <div>
-                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Number</label>
-                 <input type="text" placeholder="例: ABC-1234" value={formData.plate} onChange={e => setFormData({...formData, plate: e.target.value.toUpperCase()})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1.2rem', fontFamily: 'monospace', fontWeight: 700, background: 'var(--input-bg)' }} />
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                   <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Number *</label>
+                   {plateChecking && (
+                     <span style={{ fontSize: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                       <RefreshCw size={12} className="spin" /> 重複確認中...
+                     </span>
+                   )}
+                 </div>
+                 <input
+                   type="text"
+                   placeholder="例: ABC-1234"
+                   value={formData.plate}
+                   onChange={e => {
+                     setFormData({...formData, plate: e.target.value.toUpperCase()});
+                     if (plateDuplicateWarning) setPlateDuplicateWarning(null);
+                   }}
+                   required
+                   className="glass"
+                   style={{
+                     width: '100%',
+                     padding: '14px',
+                     borderRadius: '12px',
+                     border: plateDuplicateWarning ? '2px solid #ff4d4f' : '1px solid rgba(255,255,255,0.1)',
+                     boxShadow: plateDuplicateWarning ? '0 0 12px rgba(255, 77, 79, 0.25)' : 'none',
+                     color: 'var(--text-main)',
+                     fontSize: '1.2rem',
+                     fontFamily: 'monospace',
+                     fontWeight: 700,
+                     background: plateDuplicateWarning ? 'rgba(255, 77, 79, 0.08)' : 'var(--input-bg)',
+                     transition: 'all 0.2s ease'
+                   }}
+                 />
+                 {plateDuplicateWarning && (
+                   <div style={{
+                     marginTop: '8px',
+                     padding: '10px 14px',
+                     borderRadius: '10px',
+                     background: 'rgba(255, 77, 79, 0.15)',
+                     border: '1px solid rgba(255, 77, 79, 0.4)',
+                     color: '#ff7875',
+                     fontSize: '0.85rem',
+                     fontWeight: 600,
+                     display: 'flex',
+                     alignItems: 'center',
+                     gap: '8px'
+                   }}>
+                     <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                     <span>既にこの車両は登録されています！別のナンバーを入力してください。</span>
+                   </div>
+                 )}
               </div>
 
               <div>
@@ -4190,13 +4414,36 @@ export default function App() {
 
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary" style={{ flex: 1, padding: '16px', fontSize: '1rem', borderRadius: '12px' }}>キャンセル</button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, padding: '16px', fontSize: '1rem', borderRadius: '12px' }}
+                  disabled={vehicleSubmitting}
+                >
+                  キャンセル
+                </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  style={{ flex: 2, padding: '16px', fontSize: '1rem', borderRadius: '12px' }}
+                  disabled={vehicleSubmitting || !!plateDuplicateWarning || plateChecking}
+                  style={{
+                    flex: 2,
+                    padding: '16px',
+                    fontSize: '1rem',
+                    borderRadius: '12px',
+                    fontWeight: 'bold',
+                    cursor: (vehicleSubmitting || !!plateDuplicateWarning || plateChecking) ? 'not-allowed' : 'pointer',
+                    opacity: (vehicleSubmitting || !!plateDuplicateWarning || plateChecking) ? 0.6 : 1,
+                    background: plateDuplicateWarning ? '#ff4d4f' : undefined,
+                    transition: 'all 0.2s ease'
+                  }}
                 >
-                  {editingVehicleId ? '変更を保存する' : '申請を送信する'}
+                  {vehicleSubmitting
+                    ? '送信中...'
+                    : plateDuplicateWarning
+                    ? '🚫 重複のため申請できません'
+                    : (editingVehicleId ? '変更を保存する' : '申請を送信する')}
                 </button>
               </div>
             </form>
@@ -4482,13 +4729,88 @@ export default function App() {
                 <input type="text" placeholder="例: WISCONSIN" value={trailerFormData.plate_region} onChange={e => setTrailerFormData({...trailerFormData, plate_region: e.target.value.toUpperCase()})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Number *</label>
-                <input type="text" placeholder="例: TRL-1234" value={trailerFormData.plate} onChange={e => setTrailerFormData({...trailerFormData, plate: e.target.value.toUpperCase()})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1.2rem', fontFamily: 'monospace', fontWeight: 700, background: 'var(--input-bg)' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Number *</label>
+                  {trailerPlateChecking && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <RefreshCw size={12} className="spin" /> 重複確認中...
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder="例: TRL-1234"
+                  value={trailerFormData.plate}
+                  onChange={e => {
+                    setTrailerFormData({...trailerFormData, plate: e.target.value.toUpperCase()});
+                    if (trailerPlateDuplicateWarning) setTrailerPlateDuplicateWarning(null);
+                  }}
+                  required
+                  className="glass"
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: trailerPlateDuplicateWarning ? '2px solid #ff4d4f' : '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: trailerPlateDuplicateWarning ? '0 0 12px rgba(255, 77, 79, 0.25)' : 'none',
+                    color: 'var(--text-main)',
+                    fontSize: '1.2rem',
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    background: trailerPlateDuplicateWarning ? 'rgba(255, 77, 79, 0.08)' : 'var(--input-bg)',
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+                {trailerPlateDuplicateWarning && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: 'rgba(255, 77, 79, 0.15)',
+                    border: '1px solid rgba(255, 77, 79, 0.4)',
+                    color: '#ff7875',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                    <span>既にこの車両は登録されています！別のナンバーを入力してください。</span>
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                <button type="button" onClick={() => setShowTrailerModal(false)} className="btn btn-secondary" style={{ flex: 1, padding: '16px', borderRadius: '12px' }} disabled={trailerSubmitting}>キャンセル</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }} disabled={trailerSubmitting}>
-                  {trailerSubmitting ? '送信中...' : '🚛 登録申請を送信'}
+                <button
+                  type="button"
+                  onClick={() => setShowTrailerModal(false)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, padding: '16px', borderRadius: '12px' }}
+                  disabled={trailerSubmitting}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{
+                    flex: 2,
+                    padding: '16px',
+                    borderRadius: '12px',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    cursor: (trailerSubmitting || !!trailerPlateDuplicateWarning || trailerPlateChecking) ? 'not-allowed' : 'pointer',
+                    opacity: (trailerSubmitting || !!trailerPlateDuplicateWarning || trailerPlateChecking) ? 0.6 : 1,
+                    background: trailerPlateDuplicateWarning ? '#ff4d4f' : undefined,
+                    transition: 'all 0.2s ease'
+                  }}
+                  disabled={trailerSubmitting || !!trailerPlateDuplicateWarning || trailerPlateChecking}
+                >
+                  {trailerSubmitting
+                    ? '送信中...'
+                    : trailerPlateDuplicateWarning
+                    ? '🚫 重複のため申請できません'
+                    : '🚛 登録申請を送信'}
                 </button>
               </div>
             </form>
