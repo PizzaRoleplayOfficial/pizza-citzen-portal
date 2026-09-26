@@ -1203,7 +1203,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
   useEffect(() => {
     fetchTrends();
-    const interval = setInterval(fetchTrends, 45000); // refresh every 45s
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      fetchTrends();
+    }, 60000); // refresh every 60s
     return () => clearInterval(interval);
   }, []);
 
@@ -1789,14 +1792,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     };
   }, [hasMore, isLoading, isNewLoading, posts]);
 
-  // Poll timeline posts every 1 second for real-time likes, views and new posts
+  // Poll timeline posts every 15 seconds (pause when tab is hidden to save requests)
   useEffect(() => {
     setPosts([]);
     setHasMore(true);
     fetchPosts();
     const interval = setInterval(() => {
+      if (document.hidden) return;
       fetchPosts(true);
-    }, 1000);
+    }, 15000);
 
     const refreshListener = () => {
       console.log('Outbox synced. Refreshing timeline posts...');
@@ -1816,16 +1820,17 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     }
   }, [expandedPostId, activeFeedTab]);
 
-  // Poll active reply thread comments every 1 second when a thread is expanded
+  // Poll active reply thread comments every 8 seconds when a thread is expanded (pause when hidden)
   useEffect(() => {
     if (!expandedPostId) return;
 
     fetchComments(expandedPostId);
 
     const interval = setInterval(() => {
+      if (document.hidden) return;
       // Fetch in background to prevent flickering or losing focus
       fetchComments(expandedPostId, true);
-    }, 1000);
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [expandedPostId]);

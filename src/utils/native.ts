@@ -237,8 +237,12 @@ export const scheduleLocalNotification = async (
       }
     }
 
-    // 2. 通知のスケジュール実行
-    const notificationId = Math.floor(Math.random() * 1000000);
+    // 2. 通知のスケジュール実行 (同一チャンネル通知は上書き更新し、無限スタックを防止)
+    let notificationId = Math.floor(Math.random() * 1000000);
+    if (channelId === 'admin_notifications_channel') notificationId = 1001;
+    else if (channelId === 'admin_edit_notifications_channel') notificationId = 1002;
+    else if (channelId === 'application_results_channel') notificationId = 1003;
+    else if (channelId === 'live_update_channel') notificationId = 1004;
     const scheduleAt = delayMs > 0 ? new Date(Date.now() + delayMs) : undefined;
 
     await LocalNotifications.schedule({

@@ -532,7 +532,7 @@ export const AdminDashboardView = ({
         {adminTab === 'dashboard' && (
           <div className="animate-fade">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '12px' : '24px' }}>
-              {isLoading ? (
+              {isLoading && allUsers.length === 0 && allSearchVehicles.length === 0 ? (
                 [1, 2, 3].map(i => (
                   <div key={i} className="glass card" style={{ 
                     padding: isMobile ? '12px 14px' : '32px', 
@@ -637,7 +637,7 @@ export const AdminDashboardView = ({
                 </>
               )}
             </div>
-            {!isLoading && (
+            {(allSearchVehicles.length > 0 || !isLoading) && (
               <>
                 <DashboardCharts 
                   vehicles={allSearchVehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter)} 
@@ -822,7 +822,7 @@ export const AdminDashboardView = ({
 
         {adminTab === 'vehicles' && (
           <div className="animate-fade">
-             {isLoading ? (
+            {isLoading && vehicles.length === 0 ? (
                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 420px))', gap: '24px' }}>
                  {[1, 2, 3].map(i => (
                    <div key={i} className="glass card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '480px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
@@ -964,7 +964,7 @@ export const AdminDashboardView = ({
 
         {adminTab === 'applications' && (
           <div className="animate-fade">
-            {isLoading ? (
+            {isLoading && allApplications.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {[1, 2].map(i => (
                   <div key={i} className="glass card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--panel-bg)' }}>
@@ -1096,7 +1096,7 @@ export const AdminDashboardView = ({
               </div>
 
                <div className={lookupViewMode === 'grid' ? "card-grid" : "list-view"}>
-                  {isLoading ?
+                  {isLoading && allSearchVehicles.length === 0 ?
                     [1, 2, 3].map(i => (
                       <div key={i} className="glass card animate-fade" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: lookupViewMode === 'grid' ? 'column' : 'row', height: lookupViewMode === 'grid' ? (isMobile ? '280px' : '380px') : 'auto', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
                         <div style={{ height: (isMobile && lookupViewMode === 'grid') ? '130px' : (lookupViewMode === 'grid' ? '220px' : '200px'), width: lookupViewMode === 'grid' ? '100%' : (isMobile ? '100px' : '250px'), minHeight: lookupViewMode === 'grid' ? 'auto' : (isMobile ? '100px' : '200px'), position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
@@ -1275,7 +1275,7 @@ export const AdminDashboardView = ({
 
              {/* ユーザー表示グリッド/リスト */}
              <div className={usersViewMode === 'grid' ? 'user-grid' : 'user-list'}>
-               {isLoading ? (
+               {isLoading && allUsers.length === 0 ? (
                  [1, 2, 3, 4].map(i => (
                    <div key={i} className="glass card" style={{ padding: '24px', borderRadius: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '16px', height: '175px' }}>
                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

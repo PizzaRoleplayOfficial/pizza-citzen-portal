@@ -394,7 +394,7 @@ export const MyGarageView = ({
           
 
           <div className={garageViewMode === 'grid' ? "card-grid" : "list-view"}>
-            {isLoading ? (
+            {isLoading && vehicles.length === 0 ? (
               [1, 2, 3].map((i) => (
                 garageViewMode === 'grid' ? (
                   <div key={i} className="glass card" style={{ padding: '0', borderRadius: '16px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '400px' }}>

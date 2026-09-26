@@ -83,14 +83,15 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     const tnEnabled = timelineNewPostEnabled === undefined || timelineNewPostEnabled === null ? 1 : (timelineNewPostEnabled ? 1 : 0);
 
     // デバイス重複の排除 (同じデバイスID、または古いトークンのレコードを事前削除)
+    // デバイス重複の排除 (同一ユーザー+プラットフォーム重複、デバイスID、または古いトークンのレコードを事前削除)
     if (deviceId) {
       await env.D1_DB.prepare(
-        "DELETE FROM user_push_tokens WHERE device_id = ? OR token = ?"
-      ).bind(deviceId, token).run();
+        "DELETE FROM user_push_tokens WHERE (user_id = ? AND platform = ?) OR device_id = ? OR token = ?"
+      ).bind(userId, platform, deviceId, token).run();
     } else {
       await env.D1_DB.prepare(
-        "DELETE FROM user_push_tokens WHERE token = ?"
-      ).bind(token).run();
+        "DELETE FROM user_push_tokens WHERE (user_id = ? AND platform = ?) OR token = ?"
+      ).bind(userId, platform, token).run();
     }
 
     await env.D1_DB.prepare(`

@@ -95,7 +95,7 @@ import { compressImage, compressDualImage } from './utils/helpers';
 import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';
 import { VehicleImageGallery } from './components/VehicleImageGallery';
-import { formatDate } from './utils/helpers';
+import { formatDate, parseUTCDate } from './utils/helpers';
 import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications, updateApplicationTrackerNotification, getLiveProgress, updateVehicleTrackerNotification } from './utils/native';
 import { Capacitor } from '@capacitor/core';
 import { handleAvatarError } from './utils/avatarFallback';
@@ -391,12 +391,14 @@ export default function App() {
           if (newUnread.length > 0) {
             const newest = newUnread[0];
             
-            // Push system notification
-            scheduleLocalNotification(
-              newest.title || 'ぴっざぁ市民ポータル',
-              newest.body || '新しい通知が届きました。',
-              0
-            );
+            // Push system notification (Web環境のみ。アプリではFCMが直接届くため重複防止)
+            if (!isNative) {
+              scheduleLocalNotification(
+                newest.title || 'ぴっざぁ市民ポータル',
+                newest.body || '新しい通知が届きました。',
+                0
+              );
+            }
 
             // Trigger beautiful in-app sliding glassmorphic toast
             setInAppToast({
@@ -486,9 +488,10 @@ export default function App() {
 
   const formatTimeAgo = (dateStr: string) => {
     try {
-      const past = new Date(dateStr);
+      const past = parseUTCDate(dateStr);
+      if (!past || past.getTime() === 0) return '';
       const now = new Date();
-      const diffMs = now.getTime() - past.getTime();
+      const diffMs = Math.max(0, now.getTime() - past.getTime());
       const diffMins = Math.floor(diffMs / 60000);
       if (diffMins < 1) return '今';
       if (diffMins < 60) return `${diffMins}分前`;
@@ -542,7 +545,10 @@ export default function App() {
   useEffect(() => {
     if (isLoggedIn && currentUser?.id) {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 20000);
+      const interval = setInterval(() => {
+        if (document.hidden) return;
+        fetchNotifications();
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [isLoggedIn, currentUser?.id]);
@@ -823,8 +829,8 @@ export default function App() {
     return () => { cancelled = true; };
   }, [formData.maker, formData.model, formData.year, formData.trim, formData.game_type, showAddModal]);
 
-  const fetchVehicles = async () => {
-    setIsLoading(true);
+  const fetchVehicles = async (showLoading = false) => {
+    if (showLoading) setIsLoading(true);
     const isAdminView = view === 'admin';
     const endpoint = isAdminView ? "/api/vehicles?admin=true" : `/api/vehicles?userId=${currentUser.id}`;
     try {
@@ -850,7 +856,10 @@ export default function App() {
               const body = count === 1
                 ? `新規の登録申請が届きました: ${firstCar.roblox_username}さんの「${firstCar.maker} ${firstCar.model}」`
                 : `新規の登録申請が${count}件届きました。`;
-              scheduleLocalNotification(title, body, 0, 'admin_notifications_channel');
+              // アプリ（FCM受信環境）では通知の2重送信を防ぐため、ローカル通知はWeb環境のみ実行
+              if (!isNative) {
+                scheduleLocalNotification(title, body, 0, 'admin_notifications_channel');
+              }
             }
           }
           localStorage.setItem('gvvr_admin_pending_ids', JSON.stringify(currentPendingIds));
@@ -882,12 +891,15 @@ export default function App() {
           setVehicles(list);
           updateVehicleTrackerNotification(list);
         }
-        updateBackgroundPollCache(list);
+        // 管理者がマイガレージ閲覧中（個人車両のみ取得時）に全件キャッシュを壊さないよう保護
+        if (currentUser.role !== 'admin' || isAdminView) {
+          updateBackgroundPollCache(list);
+        }
       }
     } catch (e) {
       console.error("Fetch vehicles failed:", e);
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -1173,7 +1185,7 @@ export default function App() {
           fetchApplication();
         } else if (detail && detail.updateType === 'vehicle_application') {
           console.log('FCM trigger: Fetching updated vehicles...');
-          fetchVehicles();
+          fetchVehicles(false);
         }
       };
       window.addEventListener('gvvr-fcm-status-update', statusUpdateListener);
@@ -1421,7 +1433,7 @@ export default function App() {
   const handleManualRefresh = () => {
     if (!isLoggedIn) return;
     setIsLoading(true);
-    fetchVehicles();
+    fetchVehicles(true);
     fetchApplication();
     if (view === 'admin') {
       fetchUsers();
@@ -1433,8 +1445,8 @@ export default function App() {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    const refreshData = () => {
-      fetchVehicles();
+    const refreshData = (showLoading = false) => {
+      fetchVehicles(showLoading);
       fetchApplication();
       if (view === 'admin') {
         fetchUsers();
@@ -1443,11 +1455,12 @@ export default function App() {
       }
     };
 
-    refreshData();
+    refreshData(vehicles.length === 0);
 
-    // 30 Seconds background polling
+    // 30 Seconds background polling (pause when document is hidden)
     const intervalId = setInterval(() => {
-      refreshData();
+      if (document.hidden) return;
+      refreshData(false);
     }, 30000);
 
     return () => clearInterval(intervalId);
@@ -1531,8 +1544,8 @@ export default function App() {
         body: JSON.stringify({ id, status, reject_reason: rejectReason, expected_status: expectedStatus, days })
       });
       if (res.ok) {
-        fetchVehicles();
-        if (view === 'admin') fetchAllApplications(); // Refresh related data
+        fetchVehicles(false);
+        if (view === "admin") fetchAllApplications(); // Refresh related data
       } else if (res.status === 409) {
         alert("エラー: この車両申請はすでに他の管理者によってステータスが変更されています。最新情報に更新します。");
         fetchVehicles();
@@ -1585,7 +1598,7 @@ export default function App() {
     if (!confirm("車両を削除しますか？")) return;
     try {
       const res = await fetch(`/api/vehicles?id=${id}`, { method: 'DELETE' });
-      if (res.ok) fetchVehicles();
+      if (res.ok) fetchVehicles(false);
     } catch (e) {
       console.error("Delete vehicle failed:", e);
     }
@@ -1899,11 +1912,9 @@ export default function App() {
         img.src = URL.createObjectURL(file);
       });
 
-      const origin = window.location.origin;
-      const tesseractOptions: any = isNative ? {
-        // スマホアプリ（ネイティブ）環境では、WebViewのローカルリソース制約・Web Worker内のオリジン制限（blob: スキームからのアクセスブロック）を回避するため、
-        // 信頼性の高い公式の高速外部CDNを使用して100%安定してOCRを初期化させます。
-        logger: m => {
+      // Web・アプリ（ネイティブ）両環境で公式高速CDN（jsDelivr）からワーカー・言語データを取得して安定化
+      const tesseractOptions: any = {
+        logger: (m: any) => {
           if (m && typeof m === 'object') {
             let statusText = '';
             switch (m.status) {
@@ -1914,41 +1925,14 @@ export default function App() {
                 statusText = 'APIを初期化中...';
                 break;
               case 'recognizing text':
-                statusText = `文字を認識中: ${Math.round(m.progress * 100)}%`;
+                statusText = `文字を認識中: ${Math.round((m.progress || 0) * 100)}%`;
                 break;
               default:
-                statusText = m.status;
+                statusText = m.status || '';
                 break;
             }
             setOcrStatus(statusText);
-            setOcrProgress(0.1 + m.progress * 0.9);
-          }
-        }
-      } : {
-        // Web環境では、パフォーマンス向上のためローカルホストの静的アセットを使用します。
-        workerPath: `${origin}/tesseract/worker.min.js`,
-        corePath: `${origin}/tesseract/tesseract-core.js`,
-        langPath: `${origin}/tesseract/langs`,
-        workerBlobURL: false,
-        logger: m => {
-          if (m && typeof m === 'object') {
-            let statusText = '';
-            switch (m.status) {
-              case 'loading tesseract core':
-                statusText = 'OCRエンジンをロード中...';
-                break;
-              case 'initializing api':
-                statusText = 'APIを初期化中...';
-                break;
-              case 'recognizing text':
-                statusText = `文字を認識中: ${Math.round(m.progress * 100)}%`;
-                break;
-              default:
-                statusText = m.status;
-                break;
-            }
-            setOcrStatus(statusText);
-            setOcrProgress(0.1 + m.progress * 0.9);
+            setOcrProgress(0.1 + (m.progress || 0) * 0.9);
           }
         }
       };

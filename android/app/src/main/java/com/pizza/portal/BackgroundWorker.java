@@ -247,8 +247,8 @@ public class BackgroundWorker extends Worker {
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
 
-        // 通知IDの作成 (一意なIDを設定)
-        int notificationId = (int) System.currentTimeMillis();
+        // 通知IDの作成 (同一チャンネルの通知は上書き更新して連打スタックを防止)
+        int notificationId = channelId != null ? channelId.hashCode() : (int) System.currentTimeMillis();
         notificationManager.notify(notificationId, builder.build());
         Log.d(TAG, "Local notification pushed: " + title);
     }
