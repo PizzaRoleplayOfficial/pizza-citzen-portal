@@ -2947,6 +2947,194 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     return undefined;
   })();
 
+  const renderPoll = (post: TimelinePost, compact = false) => {
+    let pollOptionsList: { text: string }[] = [];
+    try {
+      if (post.poll_options) {
+        pollOptionsList = JSON.parse(post.poll_options);
+      }
+    } catch (e) {
+      console.error("Failed to parse poll options:", e);
+    }
+    if (pollOptionsList.length === 0) return null;
+
+    const isPollExpired = post.poll_expires_at ? new Date(post.poll_expires_at) < new Date() : false;
+    const userVotedOptionsList = post.user_voted_options 
+      ? post.user_voted_options.split(',').map(Number) 
+      : (post.user_voted_option !== null && post.user_voted_option !== undefined ? [post.user_voted_option] : []);
+    const hasVoted = userVotedOptionsList.length > 0;
+    const isMultiple = post.poll_allow_multiple === 1;
+
+    const pollVotes = [
+      post.poll_option_0_votes || 0,
+      post.poll_option_1_votes || 0,
+      post.poll_option_2_votes || 0,
+      post.poll_option_3_votes || 0
+    ];
+    const totalVotes = post.poll_total_votes || 0;
+
+    return (
+      <div 
+        style={{ 
+          marginTop: '12px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '8px', 
+          maxWidth: '480px',
+          width: '100%'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {pollOptionsList.map((opt, idx) => {
+          const votes = pollVotes[idx] || 0;
+          const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+          const maxVotes = Math.max(...pollOptionsList.map((_, i) => pollVotes[i] || 0));
+          const isWinner = isPollExpired && votes === maxVotes && maxVotes > 0;
+          const showResults = hasVoted || isPollExpired;
+          const isUserChoice = userVotedOptionsList.includes(idx);
+          const isSelected = (selectedPollOptions[post.id] || []).includes(idx);
+
+          return (
+            <div 
+              key={idx}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (showResults) return;
+                if (isMultiple) {
+                  const selected = selectedPollOptions[post.id] || [];
+                  const newSelected = selected.includes(idx)
+                    ? selected.filter(i => i !== idx)
+                    : [...selected, idx];
+                  setSelectedPollOptions(prev => ({ ...prev, [post.id]: newSelected }));
+                } else {
+                  handleVote(post.id, idx);
+                }
+              }}
+              style={{
+                position: 'relative',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                border: '1px solid var(--glass-border)',
+                cursor: showResults ? 'default' : 'pointer',
+                padding: '12px 16px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                transition: 'border-color 0.2s, background 0.2s'
+              }}
+              onMouseEnter={e => {
+                if (!showResults) e.currentTarget.style.borderColor = 'var(--primary)';
+              }}
+              onMouseLeave={e => {
+                if (!showResults) e.currentTarget.style.borderColor = 'var(--glass-border)';
+              }}
+            >
+              {showResults && (
+                <div 
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: `${percent}%`,
+                    background: isUserChoice ? 'rgba(0, 193, 102, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                    zIndex: 0,
+                    transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                />
+              )}
+              
+              <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                {isMultiple && !showResults && (
+                  <div style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '4px',
+                    border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--text-muted)'}`,
+                    background: isSelected ? 'var(--primary)' : 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                    flexShrink: 0
+                  }}>
+                    {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 900 }}>✓</span>}
+                  </div>
+                )}
+                <span style={{ 
+                  fontWeight: isUserChoice || isWinner ? 700 : 500,
+                  color: isWinner ? 'var(--primary)' : 'var(--text-main)',
+                  fontSize: compact ? '0.88rem' : '0.9rem',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {opt.text}
+                </span>
+                {isUserChoice && (
+                  <span style={{
+                    fontSize: compact ? '0.7rem' : '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--primary)',
+                    background: 'rgba(0,193,102,0.1)',
+                    padding: compact ? '1px 5px' : '2px 6px',
+                    borderRadius: '4px'
+                  }}>
+                    投票済み
+                  </span>
+                )}
+              </div>
+
+              {showResults && (
+                <span style={{ 
+                  zIndex: 1, 
+                  fontWeight: isUserChoice || isWinner ? 700 : 500,
+                  color: isWinner ? 'var(--primary)' : 'var(--text-main)',
+                  fontSize: compact ? '0.88rem' : '0.9rem' 
+                }}>
+                  {percent}%
+                </span>
+              )}
+            </div>
+          );
+        })}
+
+        {isMultiple && !showResults && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <button
+              type="button"
+              disabled={(selectedPollOptions[post.id] || []).length === 0}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMultiVote(post.id);
+              }}
+              className="btn btn-primary"
+              style={{
+                padding: '6px 16px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: (selectedPollOptions[post.id] || []).length === 0 ? 'not-allowed' : 'pointer',
+                opacity: (selectedPollOptions[post.id] || []).length === 0 ? 0.5 : 1
+              }}
+            >
+              投票する
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', fontSize: compact ? '0.78rem' : '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+          <span>{totalVotes.toLocaleString()} 票</span>
+          <span>•</span>
+          <span>{isMultiple ? '複数投票可' : '単一投票'}</span>
+          <span>•</span>
+          <span>{isPollExpired ? '最終結果' : '投票受付中'}</span>
+        </div>
+      </div>
+    );
+  };
+
   // Synced following/followers counts from D1 database
   const followingCount = profileInfo ? profileInfo.followingCount : 0;
   const followerCount = profileInfo ? profileInfo.followerCount : 0;
@@ -4045,6 +4233,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 <div style={{ fontSize: '1.05rem', color: 'var(--text-main)', fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {latestAnnouncement.content}
                 </div>
+                {renderPoll(latestAnnouncement)}
                 {latestAnnouncement.image_data && renderImageGrid(latestAnnouncement.image_data, latestAnnouncement.id)}
                 {latestAnnouncement.video_path && (
                   <div style={{ marginTop: '8px', pointerEvents: 'none' }}>
@@ -4286,190 +4475,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           </div>
                         )}
 
-                        {(() => {
-                          let pollOptionsList: { text: string }[] = [];
-                          try {
-                            if (targetPost.poll_options) {
-                              pollOptionsList = JSON.parse(targetPost.poll_options);
-                            }
-                          } catch (e) {
-                            console.error("Failed to parse poll options:", e);
-                          }
-                          if (pollOptionsList.length === 0) return null;
-
-                          const isPollExpired = targetPost.poll_expires_at ? new Date(targetPost.poll_expires_at) < new Date() : false;
-                          const userVotedOptionsList = targetPost.user_voted_options 
-                            ? targetPost.user_voted_options.split(',').map(Number) 
-                            : (targetPost.user_voted_option !== null && targetPost.user_voted_option !== undefined ? [targetPost.user_voted_option] : []);
-                          const hasVoted = userVotedOptionsList.length > 0;
-                          const isMultiple = targetPost.poll_allow_multiple === 1;
-
-                          const pollVotes = [
-                            targetPost.poll_option_0_votes || 0,
-                            targetPost.poll_option_1_votes || 0,
-                            targetPost.poll_option_2_votes || 0,
-                            targetPost.poll_option_3_votes || 0
-                          ];
-                          const totalVotes = targetPost.poll_total_votes || 0;
-
-                          return (
-                            <div 
-                              style={{ 
-                                marginTop: '12px', 
-                                display: 'flex', 
-                                flexDirection: 'column', 
-                                gap: '8px', 
-                                maxWidth: '480px' 
-                              }}
-                            >
-                              {pollOptionsList.map((opt, idx) => {
-                                const votes = pollVotes[idx] || 0;
-                                const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-                                const maxVotes = Math.max(...pollOptionsList.map((_, i) => pollVotes[i] || 0));
-                                const isWinner = isPollExpired && votes === maxVotes && maxVotes > 0;
-                                const showResults = hasVoted || isPollExpired;
-                                const isUserChoice = userVotedOptionsList.includes(idx);
-                                const isSelected = (selectedPollOptions[targetPost.id] || []).includes(idx);
-
-                                return (
-                                  <div 
-                                    key={idx}
-                                    onClick={() => {
-                                      if (showResults) return;
-                                      if (isMultiple) {
-                                        const selected = selectedPollOptions[targetPost.id] || [];
-                                        const newSelected = selected.includes(idx)
-                                          ? selected.filter(i => i !== idx)
-                                          : [...selected, idx];
-                                        setSelectedPollOptions(prev => ({ ...prev, [targetPost.id]: newSelected }));
-                                      } else {
-                                        handleVote(targetPost.id, idx);
-                                      }
-                                    }}
-                                    style={{
-                                      position: 'relative',
-                                      borderRadius: '10px',
-                                      overflow: 'hidden',
-                                      border: '1px solid var(--glass-border)',
-                                      cursor: showResults ? 'default' : 'pointer',
-                                      padding: '12px 16px',
-                                      background: 'rgba(255, 255, 255, 0.02)',
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                      transition: 'border-color 0.2s, background 0.2s'
-                                    }}
-                                    onMouseEnter={e => {
-                                      if (!showResults) e.currentTarget.style.borderColor = 'var(--primary)';
-                                    }}
-                                    onMouseLeave={e => {
-                                      if (!showResults) e.currentTarget.style.borderColor = 'var(--glass-border)';
-                                    }}
-                                  >
-                                    {showResults && (
-                                      <div 
-                                        style={{
-                                          position: 'absolute',
-                                          left: 0,
-                                          top: 0,
-                                          bottom: 0,
-                                          width: `${percent}%`,
-                                          background: isUserChoice ? 'rgba(0, 193, 102, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                                          zIndex: 0,
-                                          transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-                                        }}
-                                      />
-                                    )}
-                                    
-                                    <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                                      {isMultiple && !showResults && (
-                                        <div style={{
-                                          width: '18px',
-                                          height: '18px',
-                                          borderRadius: '4px',
-                                          border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--text-muted)'}`,
-                                          background: isSelected ? 'var(--primary)' : 'transparent',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          transition: 'all 0.2s',
-                                          flexShrink: 0
-                                        }}>
-                                          {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 900 }}>✓</span>}
-                                        </div>
-                                      )}
-                                      <span style={{ 
-                                        fontWeight: isUserChoice || isWinner ? 700 : 500,
-                                        color: isWinner ? 'var(--primary)' : 'var(--text-main)',
-                                        fontSize: '0.9rem',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap'
-                                      }}>
-                                        {opt.text}
-                                      </span>
-                                      {isUserChoice && (
-                                        <span style={{
-                                          fontSize: '0.75rem',
-                                          fontWeight: 700,
-                                          color: 'var(--primary)',
-                                          background: 'rgba(0,193,102,0.1)',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px'
-                                        }}>
-                                          投票済み
-                                        </span>
-                                      )}
-                                    </div>
-
-                                    {showResults && (
-                                      <span style={{ 
-                                        zIndex: 1, 
-                                        fontWeight: isUserChoice || isWinner ? 700 : 500,
-                                        color: isWinner ? 'var(--primary)' : 'var(--text-main)',
-                                        fontSize: '0.9rem' 
-                                      }}>
-                                        {percent}%
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-
-                              {isMultiple && !showResults && (
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                                  <button
-                                    type="button"
-                                    disabled={(selectedPollOptions[targetPost.id] || []).length === 0}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMultiVote(targetPost.id);
-                                    }}
-                                    className="btn btn-primary"
-                                    style={{
-                                      padding: '6px 16px',
-                                      borderRadius: '8px',
-                                      fontSize: '0.8rem',
-                                      fontWeight: 700,
-                                      cursor: (selectedPollOptions[targetPost.id] || []).length === 0 ? 'not-allowed' : 'pointer',
-                                      opacity: (selectedPollOptions[targetPost.id] || []).length === 0 ? 0.5 : 1
-                                    }}
-                                  >
-                                    投票する
-                                  </button>
-                                </div>
-                              )}
-
-                              <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                <span>{totalVotes.toLocaleString()} 票</span>
-                                <span>•</span>
-                                <span>{isMultiple ? '複数投票可' : '単一投票'}</span>
-                                <span>•</span>
-                                <span>{isPollExpired ? '最終結果' : '投票受付中'}</span>
-                              </div>
-                            </div>
-                          );
-                        })()}
+                        {renderPoll(targetPost)}
 
                         {/* Post Stats & Actions Bar */}
                         <div style={{ display: 'flex', gap: '32px', marginTop: '16px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
@@ -4863,189 +4869,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     </div>
                   )}
 
-                  {(() => {
-                    let pollOptionsList: { text: string }[] = [];
-                    try {
-                      if (activePost.poll_options) {
-                        pollOptionsList = JSON.parse(activePost.poll_options);
-                      }
-                    } catch (e) {
-                      console.error("Failed to parse poll options:", e);
-                    }
-                    if (pollOptionsList.length === 0) return null;
-
-                    const isPollExpired = activePost.poll_expires_at ? new Date(activePost.poll_expires_at) < new Date() : false;
-                    const userVotedOptionsList = activePost.user_voted_options 
-                      ? activePost.user_voted_options.split(',').map(Number) 
-                      : (activePost.user_voted_option !== null && activePost.user_voted_option !== undefined ? [activePost.user_voted_option] : []);
-                    const hasVoted = userVotedOptionsList.length > 0;
-                    const isMultiple = activePost.poll_allow_multiple === 1;
-
-                    const pollVotes = [
-                      activePost.poll_option_0_votes || 0,
-                      activePost.poll_option_1_votes || 0,
-                      activePost.poll_option_2_votes || 0,
-                      activePost.poll_option_3_votes || 0
-                    ];
-                    const totalVotes = activePost.poll_total_votes || 0;
-
-                    return (
-                      <div 
-                        style={{ 
-                          marginTop: '12px', 
-                          display: 'flex', 
-                          flexDirection: 'column', 
-                          gap: '8px'
-                        }}
-                      >
-                        {pollOptionsList.map((opt, idx) => {
-                          const votes = pollVotes[idx] || 0;
-                          const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-                          const maxVotes = Math.max(...pollOptionsList.map((_, i) => pollVotes[i] || 0));
-                          const isWinner = isPollExpired && votes === maxVotes && maxVotes > 0;
-                          const showResults = hasVoted || isPollExpired;
-                          const isUserChoice = userVotedOptionsList.includes(idx);
-                          const isSelected = (selectedPollOptions[activePost.id] || []).includes(idx);
-
-                          return (
-                            <div 
-                              key={idx}
-                              onClick={() => {
-                                if (showResults) return;
-                                if (isMultiple) {
-                                  const selected = selectedPollOptions[activePost.id] || [];
-                                  const newSelected = selected.includes(idx)
-                                    ? selected.filter(i => i !== idx)
-                                    : [...selected, idx];
-                                  setSelectedPollOptions(prev => ({ ...prev, [activePost.id]: newSelected }));
-                                } else {
-                                  handleVote(activePost.id, idx);
-                                }
-                              }}
-                              style={{
-                                position: 'relative',
-                                borderRadius: '10px',
-                                overflow: 'hidden',
-                                border: '1px solid var(--glass-border)',
-                                cursor: showResults ? 'default' : 'pointer',
-                                padding: '12px 16px',
-                                background: 'rgba(255, 255, 255, 0.02)',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                transition: 'border-color 0.2s, background 0.2s'
-                              }}
-                              onMouseEnter={e => {
-                                if (!showResults) e.currentTarget.style.borderColor = 'var(--primary)';
-                              }}
-                              onMouseLeave={e => {
-                                if (!showResults) e.currentTarget.style.borderColor = 'var(--glass-border)';
-                              }}
-                            >
-                              {showResults && (
-                                <div 
-                                  style={{
-                                    position: 'absolute',
-                                    left: 0,
-                                    top: 0,
-                                    bottom: 0,
-                                    width: `${percent}%`,
-                                    background: isUserChoice ? 'rgba(0, 193, 102, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                                    zIndex: 0,
-                                    transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-                                  }}
-                                />
-                              )}
-                              
-                              <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                                {isMultiple && !showResults && (
-                                  <div style={{
-                                    width: '18px',
-                                    height: '18px',
-                                    borderRadius: '4px',
-                                    border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--text-muted)'}`,
-                                    background: isSelected ? 'var(--primary)' : 'transparent',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    transition: 'all 0.2s',
-                                    flexShrink: 0
-                                  }}>
-                                    {isSelected && <span style={{ color: '#000', fontSize: '0.75rem', fontWeight: 900 }}>✓</span>}
-                                  </div>
-                                )}
-                                <span style={{ 
-                                  fontWeight: isUserChoice || isWinner ? 700 : 500,
-                                  color: isWinner ? 'var(--primary)' : 'var(--text-main)',
-                                  fontSize: '0.88rem',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  {opt.text}
-                                </span>
-                                {isUserChoice && (
-                                  <span style={{
-                                    fontSize: '0.7rem',
-                                    fontWeight: 700,
-                                    color: 'var(--primary)',
-                                    background: 'rgba(0,193,102,0.1)',
-                                    padding: '1px 5px',
-                                    borderRadius: '4px'
-                                  }}>
-                                    投票済み
-                                  </span>
-                                )}
-                              </div>
-
-                              {showResults && (
-                                <span style={{ 
-                                  zIndex: 1, 
-                                  fontWeight: isUserChoice || isWinner ? 700 : 500,
-                                  color: isWinner ? 'var(--primary)' : 'var(--text-main)',
-                                  fontSize: '0.88rem' 
-                                }}>
-                                  {percent}%
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-
-                        {isMultiple && !showResults && (
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                            <button
-                              type="button"
-                              disabled={(selectedPollOptions[activePost.id] || []).length === 0}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleMultiVote(activePost.id);
-                              }}
-                              className="btn btn-primary"
-                              style={{
-                                padding: '6px 16px',
-                                borderRadius: '8px',
-                                fontSize: '0.8rem',
-                                fontWeight: 700,
-                                cursor: (selectedPollOptions[activePost.id] || []).length === 0 ? 'not-allowed' : 'pointer',
-                                opacity: (selectedPollOptions[activePost.id] || []).length === 0 ? 0.5 : 1
-                              }}
-                            >
-                              投票する
-                            </button>
-                          </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: '8px', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                          <span>{totalVotes.toLocaleString()} 票</span>
-                          <span>•</span>
-                          <span>{isMultiple ? '複数投票可' : '単一投票'}</span>
-                          <span>•</span>
-                          <span>{isPollExpired ? '最終結果' : '投票受付中'}</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {renderPoll(activePost, true)}
                 </div>
               </div>
 
