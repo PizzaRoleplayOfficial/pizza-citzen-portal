@@ -245,21 +245,41 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
     await ensureCommentsTable(env.D1_DB);
 
     if (action === 'like') {
-      await env.D1_DB.prepare(
+      const insertRes = await env.D1_DB.prepare(
         "INSERT OR IGNORE INTO timeline_comment_likes (comment_id, user_id) VALUES (?, ?)"
       ).bind(commentId, userId).run();
+
+      const changes = insertRes?.meta?.changes ?? 0;
+      if (changes === 0) {
+        return new Response(JSON.stringify({ success: true, alreadyLiked: true }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
 
       try {
         const comment = await env.D1_DB.prepare("SELECT user_id, content, post_id FROM timeline_comments WHERE id = ?").bind(commentId).first() as any;
         const liker = await env.D1_DB.prepare("SELECT username FROM users WHERE id = ?").bind(userId).first() as any;
         if (comment && liker && comment.user_id !== userId) {
           const preview = comment.content.length > 20 ? comment.content.substring(0, 20) + '...' : comment.content;
-          await sendFcmNotificationToUser(env, comment.user_id, {
-            title: '❤️ 返信コメントへのいいね',
-            body: `${liker.username}さんがあなたの返信「${preview}」にいいねしました。`,
-            channelId: 'timeline_likes_channel',
-            data: { action: `timeline?postId=${comment.post_id}` }
-          });
+          
+          // Cooldown guard: 15-minute rate limit for repeated comment like toggles
+          const recentNotif = await env.D1_DB.prepare(`
+            SELECT id FROM notifications 
+            WHERE user_id = ? 
+              AND type = 'timeline_likes_channel' 
+              AND body LIKE ?
+              AND created_at > datetime('now', '-15 minutes')
+            LIMIT 1
+          `).bind(comment.user_id, `%${liker.username}%${preview}%`).first();
+
+          if (!recentNotif) {
+            await sendFcmNotificationToUser(env, comment.user_id, {
+              title: '💖 コメントへのいいね',
+              body: `${liker.username}さんがあなたのコメント「${preview}」にいいねしました。`,
+              channelId: 'timeline_likes_channel',
+              data: { action: `timeline?postId=${comment.post_id}` }
+            });
+          }
         }
       } catch (err) {
         console.error("Failed to send comment like notification:", err);

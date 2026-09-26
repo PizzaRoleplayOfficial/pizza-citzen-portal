@@ -1352,6 +1352,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeZoomImage, setActiveZoomImage] = useState<string | null>(null);
   const [likeAnimatingPostId, setLikeAnimatingPostId] = useState<string | null>(null);
+  const pendingLikesRef = useRef<Set<string>>(new Set());
+  const pendingCommentLikesRef = useRef<Set<string>>(new Set());
   
   // Comments related states
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
@@ -2286,6 +2288,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   };
 
   const handleLikeToggle = async (post: TimelinePost) => {
+    if (pendingLikesRef.current.has(post.id)) return;
+    pendingLikesRef.current.add(post.id);
     const action = post.is_liked ? 'unlike' : 'like';
     
     if (action === 'like') {
@@ -2742,6 +2746,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   };
 
   const handleCommentLikeToggle = async (postId: string, commentId: string, currentIsLiked: boolean) => {
+    if (pendingCommentLikesRef.current.has(commentId)) return;
+    pendingCommentLikesRef.current.add(commentId);
     const action = currentIsLiked ? 'unlike' : 'like';
     
     // Optimistic Update

@@ -473,9 +473,16 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
     await ensureTimelineTables(env.D1_DB);
 
     if (action === 'like') {
-      await env.D1_DB.prepare(
+      const insertRes = await env.D1_DB.prepare(
         "INSERT OR IGNORE INTO timeline_likes (post_id, user_id) VALUES (?, ?)"
       ).bind(postId, userId).run();
+
+      const changes = insertRes?.meta?.changes ?? 0;
+      if (changes === 0) {
+        return new Response(JSON.stringify({ success: true, alreadyLiked: true }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
 
       try {
         // Send in-app & push notification to the author of the post (if not the same person)
@@ -483,12 +490,25 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
         const liker = await env.D1_DB.prepare("SELECT username FROM users WHERE id = ?").bind(userId).first() as any;
         if (post && liker && post.user_id !== userId) {
           const preview = post.content.length > 20 ? post.content.substring(0, 20) + '...' : post.content;
-          await sendFcmNotificationToUser(env, post.user_id, {
-            title: '❤️ タイムライン投稿へのいいね',
-            body: `${liker.username}さんがあなたの投稿「${preview}」にいいねしました。`,
-            channelId: 'timeline_likes_channel',
-            data: { action: `timeline?postId=${postId}` }
-          });
+          
+          // Cooldown guard: 15-minute rate limit for repeated like/unlike toggles on the same post
+          const recentNotif = await env.D1_DB.prepare(`
+            SELECT id FROM notifications 
+            WHERE user_id = ? 
+              AND type = 'timeline_likes_channel' 
+              AND body LIKE ?
+              AND created_at > datetime('now', '-15 minutes')
+            LIMIT 1
+          `).bind(post.user_id, `%${liker.username}%${preview}%`).first();
+
+          if (!recentNotif) {
+            await sendFcmNotificationToUser(env, post.user_id, {
+              title: '💖 タイムライン投稿へのいいね',
+              body: `${liker.username}さんがあなたの投稿「${preview}」にいいねしました。`,
+              channelId: 'timeline_likes_channel',
+              data: { action: `timeline?postId=${postId}` }
+            });
+          }
         }
       } catch (err) {
         console.error("Failed to send timeline like notification:", err);

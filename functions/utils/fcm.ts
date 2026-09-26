@@ -132,7 +132,7 @@ async function saveInAppNotification(
   db: any,
   userId: string,
   payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
-) {
+): Promise<boolean> {
   try {
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS notifications (
@@ -147,6 +147,18 @@ async function saveInAppNotification(
       );
     `).run();
 
+    // Deduplication check: drop duplicate identical notification if created within last 5 minutes
+    const recent = await db.prepare(`
+      SELECT id FROM notifications 
+      WHERE user_id = ? AND title = ? AND body = ? AND created_at > datetime('now', '-5 minutes')
+      LIMIT 1
+    `).bind(userId, payload.title, payload.body).first();
+
+    if (recent) {
+      console.log(`[Deduplication] Dropping duplicate in-app notification for user ${userId}: ${payload.title}`);
+      return false;
+    }
+
     const id = crypto.randomUUID();
     const type = payload.channelId || 'general';
     const linkAction = payload.data?.action || null;
@@ -156,8 +168,10 @@ async function saveInAppNotification(
       VALUES (?, ?, ?, ?, ?, ?)
     `).bind(id, userId, payload.title, payload.body, type, linkAction).run();
     console.log(`Saved in-app notification for user ${userId}: ${payload.title}`);
+    return true;
   } catch (err) {
     console.error('Failed to save in-app notification in DB:', err);
+    return false;
   }
 }
 
@@ -175,8 +189,12 @@ export async function sendFcmNotificationToUser(
       return 0;
     }
 
-    // Automatically record in-app notification
-    await saveInAppNotification(env.D1_DB, userId, payload);
+    // Automatically record in-app notification (with 5-minute deduplication)
+    const saved = await saveInAppNotification(env.D1_DB, userId, payload);
+    if (!saved) {
+      console.log(`[Deduplication] Dropping FCM push notification because it is a duplicate: ${payload.title}`);
+      return 0;
+    }
 
     // チャンネル種別に応じて購読トグルのフィルタリングを変更 (v2.2.2)
     const isChannelAdmin = payload.channelId === 'admin_notifications_channel';
