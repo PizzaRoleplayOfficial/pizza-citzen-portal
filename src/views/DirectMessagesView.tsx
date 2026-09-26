@@ -95,10 +95,24 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollTimerRef = useRef<any>(null);
 
-  // Format timestamp helper
+  // Helper to safely parse UTC date strings from SQLite ("YYYY-MM-DD HH:MM:SS") or ISO
+  const parseUtcDate = (dateStr: string | null): Date | null => {
+    if (!dateStr) return null;
+    let s = dateStr.trim();
+    if (s.indexOf(' ') !== -1 && s.indexOf('T') === -1) {
+      s = s.replace(' ', 'T') + 'Z';
+    } else if (s.indexOf('T') !== -1 && !s.endsWith('Z') && !/[+\-]\d{2}:\d{2}$/.test(s)) {
+      s = s + 'Z';
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Format timestamp helper (Converts UTC to user's local timezone / JST)
   const formatTime = (dateStr: string | null) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
+    const date = parseUtcDate(dateStr);
+    if (!date) return '';
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
     

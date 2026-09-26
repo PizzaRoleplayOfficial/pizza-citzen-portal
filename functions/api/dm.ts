@@ -123,7 +123,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
       // Check if conversation exists
       let conv = await env.D1_DB.prepare(
-        "SELECT id, user1_id, user2_id, last_message_text, last_message_at, updated_at FROM dm_conversations WHERE user1_id = ? AND user2_id = ?"
+        "SELECT id, user1_id, user2_id, last_message_text, strftime('%Y-%m-%dT%H:%M:%SZ', last_message_at) as last_message_at, strftime('%Y-%m-%dT%H:%M:%SZ', updated_at) as updated_at FROM dm_conversations WHERE user1_id = ? AND user2_id = ?"
       ).bind(u1, u2).first() as any;
 
       if (!conv) {
@@ -199,7 +199,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
       // Fetch messages (up to 100 recent)
       const { results: rawMessages } = await env.D1_DB.prepare(`
-        SELECT id, conversation_id, sender_id, recipient_id, content, image_data, is_read, read_at, created_at
+        SELECT id, conversation_id, sender_id, recipient_id, content, image_data, is_read, read_at, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) as created_at
         FROM dm_messages
         WHERE conversation_id = ?
         ORDER BY created_at ASC
@@ -222,8 +222,8 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         c.user1_id,
         c.user2_id,
         c.last_message_text,
-        c.last_message_at,
-        c.updated_at,
+        strftime('%Y-%m-%dT%H:%M:%SZ', c.last_message_at) as last_message_at,
+        strftime('%Y-%m-%dT%H:%M:%SZ', c.updated_at) as updated_at,
         CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END as partner_id,
         u.username as partner_username,
         u.roblox_username as partner_roblox_username,
