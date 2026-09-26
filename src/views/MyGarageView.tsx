@@ -7,13 +7,29 @@ import { triggerHaptic } from '../utils/native';
 
 export const GarageTiltCard = ({ children, className }: { children: React.ReactNode, className?: string }) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [canHover, setCanHover] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+      setCanHover(mq.matches);
+      const listener = (e: MediaQueryListEvent) => setCanHover(e.matches);
+      if (mq.addEventListener) {
+        mq.addEventListener('change', listener);
+        return () => mq.removeEventListener('change', listener);
+      } else if ((mq as any).addListener) {
+        (mq as any).addListener(listener);
+        return () => (mq as any).removeListener(listener);
+      }
+    }
+  }, []);
+
   const [tiltStyle, setTiltStyle] = useState<React.CSSProperties>({
-    transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-    transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.5s ease',
     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
   });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canHover) return;
     const card = cardRef.current;
     if (!card) return;
 
@@ -36,12 +52,27 @@ export const GarageTiltCard = ({ children, className }: { children: React.ReactN
   };
 
   const handleMouseLeave = () => {
+    if (!canHover) return;
     setTiltStyle({
-      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+      transform: 'none',
       transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.5s ease',
       boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
     });
   };
+
+  if (!canHover) {
+    return (
+      <div 
+        ref={cardRef}
+        className={className}
+        style={{
+          position: 'relative'
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div 

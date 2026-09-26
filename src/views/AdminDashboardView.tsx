@@ -1534,7 +1534,7 @@ export const AdminDashboardView = ({
              </div>
 
              {editingQuestion && (
-               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }}>
+               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, isolation: 'isolate', WebkitTransform: 'translateZ(0)', transform: 'translateZ(0)' }}>
                  <div className="glass card" style={{ width: '500px', padding: '32px' }}>
                    <h3 style={{ marginBottom: '20px' }}>問題を編集</h3>
                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1558,7 +1558,7 @@ export const AdminDashboardView = ({
       </div>
 
       {tempApproveVehicle && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,12,16,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '24px' }} className="animate-fade">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,12,16,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, isolation: 'isolate', WebkitTransform: 'translateZ(0)', transform: 'translateZ(0)', padding: '24px' }} className="animate-fade">
           <div className="glass card" style={{ width: '100%', maxWidth: '480px', padding: '32px', borderRadius: '24px', background: 'var(--panel-bg)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>

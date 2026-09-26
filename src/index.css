@@ -1167,9 +1167,14 @@ h1 {
     gap: 12px !important;
   }
   
-  .card-grid .garage-card {
+  .card-grid .garage-card,
+  .list-view .garage-card {
     position: relative !important;
     border-radius: 12px !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    perspective: none !important;
+    -webkit-perspective: none !important;
   }
 
   /* Target the wrapped image container on mobile grid view */

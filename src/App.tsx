@@ -3155,8 +3155,8 @@ export default function App() {
                   alignItems: 'center',
                   flex: 1.4,
                   minWidth: 0,
-                  transformStyle: 'preserve-3d',
-                  transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(${holoPos.active ? '1.025' : '1'}, ${holoPos.active ? '1.025' : '1'}, 1)`,
+                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
+                  transform: isMobile ? 'none' : `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(${holoPos.active ? '1.025' : '1'}, ${holoPos.active ? '1.025' : '1'}, 1)`,
                   transition: 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease, border-color 0.2s ease',
                   backfaceVisibility: 'hidden'
                 }}
@@ -3748,12 +3748,16 @@ export default function App() {
           position: 'fixed', 
           inset: 0, 
           background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          WebkitBackdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)',
           backdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)', 
           opacity: isBackSwiping ? 1 - backProgress : 1,
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          zIndex: 1000, 
+          zIndex: 10000, 
+          isolation: 'isolate',
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
           padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))',
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
@@ -4059,12 +4063,16 @@ export default function App() {
           position: 'fixed', 
           inset: 0, 
           background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          WebkitBackdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)',
           backdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)', 
           opacity: isBackSwiping ? 1 - backProgress : 1,
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          zIndex: 1000, 
+          zIndex: 10000, 
+          isolation: 'isolate',
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
           padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))',
           overflowY: 'auto',
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
@@ -4347,12 +4355,16 @@ export default function App() {
           position: 'fixed', 
           inset: 0, 
           background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          WebkitBackdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)',
           backdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)', 
           opacity: isBackSwiping ? 1 - backProgress : 1,
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          zIndex: 1000, 
+          zIndex: 10000, 
+          isolation: 'isolate',
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
           padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))',
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
@@ -4446,12 +4458,16 @@ export default function App() {
           position: 'fixed', 
           inset: 0, 
           background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          WebkitBackdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)',
           backdropFilter: isBackSwiping ? `blur(${6 * (1 - backProgress)}px)` : 'blur(6px)', 
           opacity: isBackSwiping ? 1 - backProgress : 1,
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          zIndex: 1100, 
+          zIndex: 10100, 
+          isolation: 'isolate',
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
           padding: 'calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left))',
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
@@ -4583,12 +4599,16 @@ export default function App() {
           position: 'fixed', 
           inset: 0, 
           background: 'var(--modal-overlay, rgba(10,12,16,0.85))', 
+          WebkitBackdropFilter: isBackSwiping ? `blur(${16 * (1 - backProgress)}px)` : 'blur(16px)',
           backdropFilter: isBackSwiping ? `blur(${16 * (1 - backProgress)}px)` : 'blur(16px)', 
           opacity: isBackSwiping ? 1 - backProgress : 1,
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          zIndex: 2000, 
+          zIndex: 10200, 
+          isolation: 'isolate',
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
           padding: '24px',
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
@@ -4696,7 +4716,7 @@ export default function App() {
       {/* ====== Info / Notice Modal (update status, errors) ====== */}
       {infoModal.isOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '24px' }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--modal-overlay, rgba(10,12,16,0.85))', WebkitBackdropFilter: 'blur(20px)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10300, isolation: 'isolate', WebkitTransform: 'translateZ(0)', transform: 'translateZ(0)', padding: '24px' }}
           onClick={() => { setInfoModal(prev => ({ ...prev, isOpen: false })); triggerHaptic('light'); }}
         >
           <div
