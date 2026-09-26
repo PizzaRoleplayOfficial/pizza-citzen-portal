@@ -279,11 +279,12 @@ export default function App() {
 
   useEffect(() => {
     fetchUnreadDmCount();
+    // 高速未読数同期 (4秒間隔)
     const interval = setInterval(() => {
       if (!document.hidden && currentUser?.id) {
         fetchUnreadDmCount();
       }
-    }, 15000);
+    }, 4000);
 
     const handleOpenDmEvent = (e: any) => {
       if (e.detail?.targetUserId) {
@@ -296,11 +297,63 @@ export default function App() {
     };
     window.addEventListener('gv-open-dm', handleOpenDmEvent);
 
+    // 通知センターやDM既読時の即時バッジ更新リスナー
+    const handleNotifRefresh = () => {
+      fetchUnreadDmCount();
+      fetchNotifications();
+    };
+    window.addEventListener('gv-notifications-refresh', handleNotifRefresh);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('gv-open-dm', handleOpenDmEvent);
+      window.removeEventListener('gv-notifications-refresh', handleNotifRefresh);
     };
   }, [currentUser?.id]);
+
+  // PC/Web利用時のリアルタイム存在検知 (PC操作中にスマホアプリへ二重プッシュ通知を送らない制御)
+  useEffect(() => {
+    if (!currentUser?.id || isNative) return;
+
+    const pingPresence = (status = 'online') => {
+      if (document.hidden && status === 'online') return;
+      try {
+        fetch('/api/user-presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, platform: 'web', status }),
+          keepalive: true
+        }).catch(() => {});
+      } catch {}
+    };
+
+    pingPresence('online');
+    const presenceTimer = setInterval(() => {
+      pingPresence('online');
+    }, 20000);
+
+    const handleVis = () => {
+      if (!document.hidden) pingPresence('online');
+    };
+
+    const handleBeforeUnload = () => {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(
+          '/api/user-presence',
+          new Blob([JSON.stringify({ userId: currentUser.id, platform: 'web', status: 'offline' })], { type: 'application/json' })
+        );
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVis);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(presenceTimer);
+      document.removeEventListener('visibilitychange', handleVis);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentUser?.id, isNative]);
 
 
   const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog'>(

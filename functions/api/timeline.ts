@@ -39,6 +39,7 @@ const ensureTimelineTables = async (db: any) => {
       console.log("Adding repost_id column to timeline_posts table...");
       await db.prepare("ALTER TABLE timeline_posts ADD COLUMN repost_id TEXT").run();
     }
+    await db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_timeline_unique_repost ON timeline_posts(user_id, repost_id) WHERE repost_id IS NOT NULL;").run().catch(() => {});
 
     const hasIsAnnouncement = tableInfo.results.some((col: any) => col.name === 'is_announcement');
     if (!hasIsAnnouncement) {
@@ -383,6 +384,20 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       }
     }
 
+    if (repostId) {
+      // Check if user already reposted this post (toggle un-repost and prevent duplicate spam)
+      const existingRepost = await env.D1_DB.prepare(
+        "SELECT id FROM timeline_posts WHERE user_id = ? AND repost_id = ? LIMIT 1"
+      ).bind(userId, repostId).first() as any;
+
+      if (existingRepost) {
+        await env.D1_DB.prepare("DELETE FROM timeline_posts WHERE id = ?").bind(existingRepost.id).run();
+        return new Response(JSON.stringify({ success: true, action: 'unreposted', repostId }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     await env.D1_DB.prepare(
       "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path, repost_id, is_announcement) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     ).bind(id, userId, content || "", image_data || null, initialViews, video_path || null, repostId || null, isAnnouncementFlag).run();
@@ -415,6 +430,17 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
   const url = new URL(request.url);
   const id = url.searchParams.get('id');
   const userId = url.searchParams.get('userId');
+
+  const repostId = url.searchParams.get('repostId');
+  if (repostId && userId) {
+    await ensureTimelineTables(env.D1_DB);
+    await env.D1_DB.prepare(
+      "DELETE FROM timeline_posts WHERE user_id = ? AND repost_id = ?"
+    ).bind(userId, repostId).run();
+    return new Response(JSON.stringify({ success: true, action: 'unreposted' }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
   if (!id || !userId) {
     return new Response(JSON.stringify({ error: "Missing ID or user ID" }), { status: 400 });

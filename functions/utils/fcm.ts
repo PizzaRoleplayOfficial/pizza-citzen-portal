@@ -197,6 +197,24 @@ export async function sendFcmNotificationToUser(
       return 0;
     }
 
+    // PC/Web active check: If recipient is actively using PC/Web (active within last 45s), suppress mobile push
+    try {
+      const webActive = await env.D1_DB.prepare(`
+        SELECT 1 FROM user_presence 
+        WHERE user_id = ? 
+          AND platform = 'web' 
+          AND last_active_at > datetime('now', '-45 seconds')
+        LIMIT 1
+      `).bind(userId).first();
+
+      if (webActive) {
+        console.log(`[FCM] Suppressed mobile push notification for user ${userId} because user is actively using PC/Web.`);
+        return 0;
+      }
+    } catch (presenceErr) {
+      // Table might not exist yet or minor error, proceed normally
+    }
+
     // チャンネル種別に応じて購読トグルのフィルタリングを変更 (v2.2.2)
     const isChannelAdmin = payload.channelId === 'admin_notifications_channel';
     const isChannelAdminEdit = payload.channelId === 'admin_edit_notifications_channel';

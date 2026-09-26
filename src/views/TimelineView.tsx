@@ -898,6 +898,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   };
 
   const [posts, setPosts] = useState<TimelinePost[]>([]);
+  const [repostingIds, setRepostingIds] = useState<Set<string>>(new Set());
   const [hasMore, setHasMore] = useState(true);
   const [isNewLoading, setIsNewLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -2347,24 +2348,25 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
   const handleRepostToggle = async (post: TimelinePost) => {
     const targetPost = post.repost_id ? getTargetPost(post) : post;
+    const targetId = targetPost.id;
+
+    // 連打対策: 処理中の場合は無視
+    if (repostingIds.has(targetId)) return;
+    setRepostingIds(prev => new Set(prev).add(targetId));
+
     const isCurrentlyReposted = targetPost.is_reposted === 1;
+    const nextReposted = !isCurrentlyReposted;
     const action = isCurrentlyReposted ? 'unrepost' : 'repost';
 
     triggerHaptic('light');
 
     // Optimistic UI updates
     setPosts(prev => prev.map(p => {
-      if (p.id === targetPost.id) {
+      if (p.id === targetId || p.repost_id === targetId) {
         return {
           ...p,
-          is_reposted: isCurrentlyReposted ? 0 : 1,
-          reposts_count: Math.max(0, (p.reposts_count || 0) + (isCurrentlyReposted ? -1 : 1))
-        };
-      }
-      if (p.repost_id === targetPost.id) {
-        return {
-          ...p,
-          reposts_count: Math.max(0, (p.reposts_count || 0) + (isCurrentlyReposted ? -1 : 1))
+          is_reposted: nextReposted ? 1 : 0,
+          reposts_count: Math.max(0, (p.reposts_count || 0) + (nextReposted ? 1 : -1))
         };
       }
       return p;
@@ -2377,25 +2379,18 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: currentUser.id,
-            repostId: targetPost.id
+            repostId: targetId
           })
         });
         if (!res.ok) {
           await fetchPosts();
-        } else {
-          await fetchPosts();
         }
       } else {
-        const ourRepost = posts.find(p => p.repost_id === targetPost.id && p.user_id === currentUser.id);
-        if (ourRepost) {
-          const res = await fetch(`/api/timeline?id=${ourRepost.id}&userId=${currentUser.id}`, {
-            method: 'DELETE'
-          });
-          if (!res.ok) {
-            await fetchPosts();
-          } else {
-            await fetchPosts();
-          }
+        const res = await fetch(`/api/timeline?repostId=${targetId}&userId=${currentUser.id}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) {
+          await fetchPosts();
         }
       }
     } catch (err) {
@@ -2408,25 +2403,31 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             method: 'POST',
             body: {
               userId: currentUser.id,
-              repostId: targetPost.id
+              repostId: targetId
             },
             description: 'リポストの追加'
           });
         } else {
-          const ourRepost = posts.find(p => p.repost_id === targetPost.id && p.user_id === currentUser.id);
-          if (ourRepost) {
-            addToOutbox({
-              url: `/api/timeline?id=${ourRepost.id}&userId=${currentUser.id}`,
-              method: 'DELETE',
-              body: null,
-              description: 'リポストの解除'
-            });
-          }
+          addToOutbox({
+            url: `/api/timeline?repostId=${targetId}&userId=${currentUser.id}`,
+            method: 'DELETE',
+            body: null,
+            description: 'リポストの解除'
+          });
         }
         showToast("オフライン", "オフラインのため、接続が回復したときにリポストが同期されます。", "info");
       } else {
         await fetchPosts();
       }
+    } finally {
+      // 連続タップ防止のため短時間ロックを維持
+      setTimeout(() => {
+        setRepostingIds(prev => {
+          const next = new Set(prev);
+          next.delete(targetId);
+          return next;
+        });
+      }, 400);
     }
   };
 
@@ -4534,6 +4535,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           {/* Repost Action (New Repeat2) */}
                           <button
                             onClick={() => handleRepostToggle(post)}
+                            disabled={repostingIds.has(targetPost.id)}
                             style={{
                               background: 'none',
                               border: 'none',
@@ -4544,8 +4546,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                               gap: '6px',
                               fontSize: '0.85rem',
                               fontWeight: 600,
-                              cursor: 'pointer',
-                              transition: 'color 0.2s',
+                              cursor: repostingIds.has(targetPost.id) ? 'wait' : 'pointer',
+                              opacity: repostingIds.has(targetPost.id) ? 0.6 : 1,
+                              transition: 'color 0.2s, opacity 0.2s',
                             }}
                             onMouseEnter={e => { 
                               if (!isReposted) e.currentTarget.style.color = 'var(--primary)';

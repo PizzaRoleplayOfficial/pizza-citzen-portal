@@ -91,6 +91,21 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       console.error("Auto-mark handled vehicle notifications failed:", cleanErr);
     }
 
+    // Auto-mark DM notifications as read if all DM messages are read
+    try {
+      const unreadDm = await env.D1_DB.prepare(
+        "SELECT COUNT(*) as count FROM dm_messages WHERE recipient_id = ? AND is_read = 0"
+      ).bind(userId).first() as any;
+
+      if (unreadDm && unreadDm.count === 0) {
+        await env.D1_DB.prepare(
+          "UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0 AND type = 'dm_messages_channel'"
+        ).bind(userId).run();
+      }
+    } catch (dmSyncErr) {
+      console.error("Auto-sync DM notifications read state failed:", dmSyncErr);
+    }
+
     // Fetch latest 50 notifications
     const notificationsQuery = `
       SELECT * FROM notifications 

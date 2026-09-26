@@ -150,6 +150,8 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
         // Update local conversation unread count to 0
         setConversations(prev => prev.map(c => c.id === convId ? { ...c, unread_count: 0 } : c));
+        // 通知センターと未読バッジの即時連動
+        window.dispatchEvent(new CustomEvent('gv-notifications-refresh'));
       }
     } catch (err) {
       console.error('Failed to fetch messages:', err);
@@ -192,7 +194,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     }
   }, [initialTargetUserId, initialConversationId, currentUser?.id]);
 
-  // Polling loop for active conversation (every 3s when visible)
+  // 高速メッセージ同期ループ (アクティブな会話中は1秒間隔で同期)
   useEffect(() => {
     if (!activeConversationId) return;
 
@@ -202,13 +204,41 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     pollTimerRef.current = setInterval(() => {
       if (!document.hidden && activeConversationId) {
         fetchMessages(activeConversationId, true);
-        fetchConversations(true);
       }
-    }, 3000);
+    }, 1000);
 
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
+  }, [activeConversationId]);
+
+  // 会話一覧閲覧時の自動ポーリング (2.5秒間隔)
+  useEffect(() => {
+    if (activeConversationId) return;
+
+    fetchConversations(true);
+    const listTimer = setInterval(() => {
+      if (!document.hidden && !activeConversationId) {
+        fetchConversations(true);
+      }
+    }, 2500);
+
+    return () => clearInterval(listTimer);
+  }, [activeConversationId]);
+
+  // タブ復帰時の即時同期
+  useEffect(() => {
+    const handleVis = () => {
+      if (!document.hidden) {
+        if (activeConversationId) {
+          fetchMessages(activeConversationId, true);
+        } else {
+          fetchConversations(true);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVis);
+    return () => document.removeEventListener('visibilitychange', handleVis);
   }, [activeConversationId]);
 
   // Auto-scroll to bottom when messages update

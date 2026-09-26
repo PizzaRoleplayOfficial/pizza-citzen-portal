@@ -184,6 +184,14 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0
       `).bind(conversationId, userId).run();
 
+      // Also mark notifications in notification center as read for this conversation
+      await env.D1_DB.prepare(`
+        UPDATE notifications 
+        SET is_read = 1 
+        WHERE user_id = ? AND is_read = 0 
+          AND (link_action LIKE ? OR type = 'dm_messages_channel')
+      `).bind(userId, `%conversationId=${conversationId}%`).run().catch(() => {});
+
       // Fetch partner profile
       const partner = await env.D1_DB.prepare(
         "SELECT id, username, roblox_username, avatar, role FROM users WHERE id = ?"
@@ -271,6 +279,14 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
         SET is_read = 1, read_at = CURRENT_TIMESTAMP 
         WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0
       `).bind(conversationId, senderId).run();
+
+      // Also mark notifications in notification center as read for this conversation
+      await env.D1_DB.prepare(`
+        UPDATE notifications 
+        SET is_read = 1 
+        WHERE user_id = ? AND is_read = 0 
+          AND (link_action LIKE ? OR type = 'dm_messages_channel')
+      `).bind(senderId, `%conversationId=${conversationId}%`).run().catch(() => {});
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { 'Content-Type': 'application/json' }
