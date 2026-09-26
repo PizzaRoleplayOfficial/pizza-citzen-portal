@@ -90,7 +90,7 @@ const INITIAL_USER: User = {
   role: 'user'
 };
 
-import { StatusBadge, parseImages } from './components/UIBase';
+import { StatusBadge, parseImages, getImageUrl } from './components/UIBase';
 import { compressImage, compressDualImage } from './utils/helpers';
 import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';

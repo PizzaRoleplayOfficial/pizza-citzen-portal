@@ -29,7 +29,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { compressImage, compressVideo, isSlowConnection, compressDualImage } from '../utils/helpers';
-import { parseImages } from '../components/UIBase';
+import { parseImages, getImageUrl } from '../components/UIBase';
 import { ProgressiveImage } from '../components/ProgressiveImage';
 import { triggerHaptic, getLiveProgress, isNative } from '../utils/native';
 import { Capacitor } from '@capacitor/core';
