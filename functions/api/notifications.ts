@@ -50,6 +50,47 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   try {
     await ensureNotificationsTable(env.D1_DB);
 
+    // Auto-mark handled vehicle application notifications as read (対応済み自動既読化)
+    try {
+      const { results: unreadVehicleNotifs } = await env.D1_DB.prepare(`
+        SELECT id, body FROM notifications 
+        WHERE user_id = ? AND is_read = 0 
+          AND (type IN ('admin_notifications_channel', 'admin_edit_notifications_channel') 
+               OR title LIKE '%新規車両登録%' OR title LIKE '%新規トレーラー%' OR title LIKE '%車両編集%' OR title LIKE '%トレーラー編集%')
+      `).bind(userId).all();
+
+      if (unreadVehicleNotifs && unreadVehicleNotifs.length > 0) {
+        const handledIds: string[] = [];
+        for (const row of unreadVehicleNotifs as any[]) {
+          const m = (row.body || '').match(/ナンバー[:：]\s*([^)）]+)[)）]/);
+          if (m) {
+            const cleanPlate = m[1].replace(/[\s\-]/g, '').toLowerCase().trim();
+            // Check if there is still any pending vehicle with this plate
+            const pending = await env.D1_DB.prepare(`
+              SELECT id FROM vehicles 
+              WHERE REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') = ? 
+                AND status = 'pending' 
+              LIMIT 1
+            `).bind(cleanPlate).first();
+
+            if (!pending) {
+              // No pending vehicle with this plate exists -> already approved, rejected, or deleted (対応済み)
+              handledIds.push(row.id);
+            }
+          }
+        }
+
+        if (handledIds.length > 0) {
+          const placeholders = handledIds.map(() => '?').join(',');
+          await env.D1_DB.prepare(
+            `UPDATE notifications SET is_read = 1 WHERE id IN (${placeholders})`
+          ).bind(...handledIds).run();
+        }
+      }
+    } catch (cleanErr) {
+      console.error("Auto-mark handled vehicle notifications failed:", cleanErr);
+    }
+
     // Fetch latest 50 notifications
     const notificationsQuery = `
       SELECT * FROM notifications 

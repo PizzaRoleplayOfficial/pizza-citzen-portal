@@ -5090,9 +5090,16 @@ export default function App() {
                       
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: isUnread ? 800 : 700, color: 'var(--text-main)', lineHeight: 1.3 }}>
-                            {notif.title}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: isUnread ? 800 : 700, color: 'var(--text-main)', lineHeight: 1.3 }}>
+                              {notif.title}
+                            </span>
+                            {notif.is_read === 1 && notif.type && (notif.type.includes('admin') || notif.title.includes('申請')) && (
+                              <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                                対応済み
+                              </span>
+                            )}
+                          </div>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
                             {formatTimeAgo(notif.created_at)}
                           </span>

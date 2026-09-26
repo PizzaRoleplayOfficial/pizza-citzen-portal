@@ -498,7 +498,42 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
 
   try {
     await ensureTable(env.D1_DB);
+    const existingVehicle = await env.D1_DB.prepare("SELECT plate FROM vehicles WHERE id = ?").bind(id).first() as any;
     await env.D1_DB.prepare("DELETE FROM vehicles WHERE id = ?").bind(id).run();
+
+    // Auto-mark admin notifications for deleted vehicle as read (対応済み自動既読化)
+    if (existingVehicle && existingVehicle.plate) {
+      try {
+        const normPlate = existingVehicle.plate.replace(/[\s\-]/g, '').toLowerCase().trim();
+        const { results: adminNotifs } = await env.D1_DB.prepare(`
+          SELECT id, body FROM notifications 
+          WHERE is_read = 0 
+            AND (type IN ('admin_notifications_channel', 'admin_edit_notifications_channel')
+                 OR title LIKE '%新規車両登録%' OR title LIKE '%新規トレーラー%' OR title LIKE '%車両編集%' OR title LIKE '%トレーラー編集%')
+        `).all();
+
+        if (adminNotifs && adminNotifs.length > 0) {
+          const toMarkIds: string[] = [];
+          for (const row of adminNotifs as any[]) {
+            const m = (row.body || '').match(/ナンバー[:：]\s*([^)）]+)[)）]/);
+            if (m) {
+              const rowPlate = m[1].replace(/[\s\-]/g, '').toLowerCase().trim();
+              if (rowPlate === normPlate) {
+                toMarkIds.push(row.id);
+              }
+            }
+          }
+          if (toMarkIds.length > 0) {
+            const placeholders = toMarkIds.map(() => '?').join(',');
+            await env.D1_DB.prepare(
+              `UPDATE notifications SET is_read = 1 WHERE id IN (${placeholders})`
+            ).bind(...toMarkIds).run();
+          }
+        }
+      } catch (err) {
+        console.error("Failed to auto-mark admin notifications on vehicle delete:", err);
+      }
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
@@ -547,6 +582,40 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
 
     // Fetch vehicle info for notification
     const v = await env.D1_DB.prepare("SELECT * FROM vehicles WHERE id = ?").bind(id).first() as any;
+
+    // Auto-mark all admin notifications for this vehicle as read (対応済み自動既読化) across all admins
+    if (v && v.plate) {
+      try {
+        const normPlate = v.plate.replace(/[\s\-]/g, '').toLowerCase().trim();
+        const { results: adminNotifs } = await env.D1_DB.prepare(`
+          SELECT id, body FROM notifications 
+          WHERE is_read = 0 
+            AND (type IN ('admin_notifications_channel', 'admin_edit_notifications_channel')
+                 OR title LIKE '%新規車両登録%' OR title LIKE '%新規トレーラー%' OR title LIKE '%車両編集%' OR title LIKE '%トレーラー編集%')
+        `).all();
+
+        if (adminNotifs && adminNotifs.length > 0) {
+          const toMarkIds: string[] = [];
+          for (const row of adminNotifs as any[]) {
+            const m = (row.body || '').match(/ナンバー[:：]\s*([^)）]+)[)）]/);
+            if (m) {
+              const rowPlate = m[1].replace(/[\s\-]/g, '').toLowerCase().trim();
+              if (rowPlate === normPlate) {
+                toMarkIds.push(row.id);
+              }
+            }
+          }
+          if (toMarkIds.length > 0) {
+            const placeholders = toMarkIds.map(() => '?').join(',');
+            await env.D1_DB.prepare(
+              `UPDATE notifications SET is_read = 1 WHERE id IN (${placeholders})`
+            ).bind(...toMarkIds).run();
+          }
+        }
+      } catch (err) {
+        console.error("Failed to auto-mark admin notifications on vehicle review:", err);
+      }
+    }
     if (v && env.DISCORD_WEBHOOK_RESULTS) {
       const isRc = v.game_type === 'rc';
       const gameLabel = isRc ? "Rensselaer County" : "Greenville";
