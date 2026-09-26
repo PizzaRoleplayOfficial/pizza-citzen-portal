@@ -159,25 +159,43 @@ export const fetchWikiCatalog = async (
         }
 
         // Extract Trims
-        const trimsMatch = content.match(/==[^=]*(?:Trims|Trim Choices|Trim Options)[^=]*==[\s\S]*?(?=\n==|$)/i);
-        if (trimsMatch) {
-          const trimsSection = trimsMatch[0];
-          // 1. Bullet points
-          const bulletTrims = trimsSection.match(/\*\s*\[?\[?([^\]\n|]+)\]?\]?/g);
-          if (bulletTrims) {
-            bulletTrims.forEach((t: string) => {
-              const cleaned = t
-                .replace(/^\*\s*\[?\[?/, "")
-                .replace(/\]?\]?$/, "")
-                .replace(/^[/\+\-]\s*/, "")
-                .trim();
-              if (cleaned && cleaned.length < 30 && !cleaned.includes("$") && !/^(price|trim|buy|sell)/i.test(cleaned)) {
-                trimSet.add(cleaned);
-              }
-            });
+        // 1. Galleries (skip miscellaneous / photo / leak galleries)
+        const galleryRegex = /<gallery[^>]*>([\s\S]*?)<\/gallery>/gi;
+        let gMatch: RegExpExecArray | null;
+        while ((gMatch = galleryRegex.exec(content)) !== null) {
+          const startPos = gMatch.index;
+          const precedingText = content.substring(Math.max(0, startPos - 120), startPos).toLowerCase();
+          if (precedingText.includes('miscellaneous') || precedingText.includes('leak') || precedingText.includes('no longer')) {
+            continue;
           }
-          // 2. Table rows
-          const trimLines = trimsSection.split("\n");
+          const lines = gMatch[1].split('\n');
+          lines.forEach(line => {
+            const parts = line.split('|');
+            if (parts.length > 1) {
+              let trim = parts[parts.length - 1].trim(); 
+              trim = trim.replace(/<\/?[^>]+(>|$)/g, "").trim();
+              trim = trim.replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*$/i, '').trim();
+
+              if (trim && 
+                  trim.length > 1 && 
+                  trim.length < 30 && 
+                  !trim.includes('[[') && 
+                  !trim.startsWith('!') && 
+                  !trim.includes('$') &&
+                  !/(?:^|\s|\()(?:front|rear|side|top|bottom|interior|inside|engine|logo|badge|dashboard|door|wheel|rim|rims|discord|trello|leak|view)\b/i.test(trim) &&
+                  !/design|facelift|vs|old|new|comparison/i.test(trim)
+              ) {
+                trimSet.add(trim);
+              }
+            }
+          });
+        }
+
+        // 2. Trims Section (single-line header match)
+        const trimsMatch = content.match(/(?:^|\n)==+\s*(?:Trims|Trim\s+Choices|Trim\s+Options)\s*==+[\t ]*\n([\s\S]*?)(?=\n==+|$)/i);
+        if (trimsMatch && trimsMatch[1]) {
+          const trimsSection = trimsMatch[1];
+          const trimLines = trimsSection.split('\n');
           trimLines.forEach(line => {
             const trimmed = line.trim();
             if ((trimmed.startsWith("!") || trimmed.startsWith("|")) && 
@@ -186,6 +204,7 @@ export const fetchWikiCatalog = async (
                 !trimmed.startsWith("{|")
             ) {
               const cleanedLine = trimmed
+                .replace(/^[\!\|]/, "")
                 .replace(/\[\[File:[^\]]+\]\]/gi, "")
                 .replace(/\[\[Category:[^\]]+\]\]/gi, "");
 
@@ -197,23 +216,23 @@ export const fetchWikiCatalog = async (
                 .replace(/\[\[|\]\]/g, "")
                 .replace(/<\/?[^>]+(>|$)/g, "")
                 .replace(/^\d+px\]?\]?/g, "")
-                .replace(/^[/\+\-]\s*/, "")
+                .replace(/^[\/\+\-]\s*/, "")
+                .replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*$/i, "")
                 .trim();
-
-              // Remove drivetrain suffix (FWD/AWD/RWD/4WD/4x4)
-              trimName = trimName.replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*$/i, "").trim();
 
               if (trimName && 
                   trimName.length > 1 && 
                   trimName.length < 30 && 
                   !trimName.includes("$") &&
                   !trimName.startsWith("!") &&
-                  !/^(trim|purchase|sell|price|prices|colspan|rowspan|discord|leak|leaks|msrp|n\/a|—|-)$/i.test(trimName) &&
-                  !/(?:price|leak|sell|purchase|\$|discord)/i.test(trimName) &&
+                  !/^(trim|purchase|sell|price|prices|colspan|rowspan|discord|leak|leaks|msrp|n\/a|—|-|default rims|rims)$/i.test(trimName) &&
+                  !/(?:price|leak|sell|purchase|\$|discord|scope=|class=|style=|rowspan|colspan)/i.test(trimName) &&
+                  !/(?:^|\s|\()(?:front|rear|side|top|bottom|interior|inside|engine|logo|badge|dashboard|door|wheel|rim|rims|discord|trello|leak|view)\b/i.test(trimName) &&
                   !/^\d+(?:,\d+)*$/.test(trimName) &&
                   !/^\d+$/.test(trimName) && 
                   !trimName.includes("{") && 
-                  !trimName.includes("}")
+                  !trimName.includes("}") &&
+                  !/file:|image:/i.test(trimName)
               ) {
                 trimSet.add(trimName);
               }
@@ -221,49 +240,53 @@ export const fetchWikiCatalog = async (
           });
         }
 
-        // Extract Colors
-        const colorsMatch = content.match(/==[^=]*(?:Stock\s+Colors|Color Choices|Color Options|Colors)[^=]*==[\s\S]*?(?=\n==|$)/i);
-        if (colorsMatch) {
-          const colorsSection = colorsMatch[0];
+        // Extract Colors (single-line header match)
+        const colorsMatch = content.match(/(?:^|\n)==+\s*(?:Stock\s+Colors|Color\s+Choices|Color\s+Options|Colors)\s*==+[\t ]*\n([\s\S]*?)(?=\n==+|$)/i);
+        if (colorsMatch && colorsMatch[1]) {
+          const colorsSection = colorsMatch[1];
           // 1. Bullet points
           const bulletColors = colorsSection.match(/\*\s*\[?\[?([^\]\n|]+)\]?\]?/g);
           if (bulletColors) {
             bulletColors.forEach((c: string) => {
               const cleaned = c
-                .replace(/^\*\s*\[?\[?|\]?\]?$/, "")
+                .replace(/^\*\s*\[?\[?/, "")
+                .replace(/\]?\]?$/, "")
                 .trim();
-              if (cleaned && cleaned.length < 40 && !cleaned.includes("$") && !/^(color|price|\d+)/i.test(cleaned)) {
+              if (cleaned && cleaned.length > 1 && cleaned.length < 40 && !cleaned.includes("$") && !/^(color|colors|price|\d+)/i.test(cleaned)) {
                 colorSet.add(cleaned);
               }
             });
           }
           // 2. Table rows
-          const colorLines = colorsSection.split("\n");
+          const colorLines = colorsSection.split('\n');
           colorLines.forEach(line => {
             const trimmed = line.trim();
-            if ((trimmed.startsWith("!") || trimmed.startsWith("|")) && 
+            if ((trimmed.startsWith("|") || trimmed.startsWith("!")) && 
                 !trimmed.startsWith("|-") && 
                 !trimmed.startsWith("|}") && 
                 !trimmed.startsWith("{|")
             ) {
-              let colorName = trimmed.replace(/^[!|]+/, "").trim();
-              colorName = colorName
+              const cleaned = trimmed.replace(/^[\!\|]/, "").trim();
+              const parts = cleaned.split("|");
+              let color = parts[parts.length - 1].trim();
+              color = color
                 .replace(/'''+/g, "")
                 .replace(/\[\[|\]\]/g, "")
                 .replace(/<\/?[^>]+(>|$)/g, "")
+                .replace(/^\d+px\]?\]?/g, "")
                 .trim();
 
-              if (colorName && 
-                  colorName.length > 1 && 
-                  colorName.length < 40 && 
-                  !colorName.toLowerCase().includes("color") && 
-                  !colorName.includes("$") &&
-                  !colorName.includes("{") && 
-                  !colorName.includes("}") &&
-                  !/^\d/.test(colorName) &&
-                  !["unknown", "none", "—", "-"].includes(colorName.toLowerCase())
+              if (color && 
+                  color.length > 1 && 
+                  color.length < 40 && 
+                  !color.includes("$") &&
+                  !/^(color|colors|default rims|rims|trim|trims|purchase|sell|price|scope=|class=|style=|rowspan|colspan)/i.test(color) &&
+                  !/(?:purchase|sell|price|\$|scope=|class=|style=|rowspan|colspan)/i.test(color) &&
+                  !/file:|image:/i.test(color) &&
+                  !color.includes("{") && 
+                  !color.includes("}")
               ) {
-                colorSet.add(colorName);
+                colorSet.add(color);
               }
             }
           });

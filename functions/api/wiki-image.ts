@@ -9,32 +9,37 @@ type WikiResult = {
 const extractTrims = (content: string): string[] => {
   const trims = new Set<string>();
   
-  // 1. Look for <gallery> tags which often list trims as labels
-  const galleryMatches = content.match(/<gallery[^>]*>([\s\S]*?)<\/gallery>/gi);
-  if (galleryMatches) {
-    galleryMatches.forEach(gallery => {
-      const lines = gallery.split('\n');
-      lines.forEach(line => {
-        const parts = line.split('|');
-        if (parts.length > 1) {
-          let trim = parts[parts.length - 1].trim(); 
-          // Remove any stray HTML/XML tags
-          trim = trim.replace(/<\/?[^>]+(>|$)/g, "").trim();
-          // 末尾の駆動方式（FWD/AWD/RWD/4WDなど）を除去してゲーム内での重複表示を防止する
-          trim = trim.replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*$/i, '').trim();
+  // 1. Look for <gallery> tags, but skip miscellaneous / photo / leak galleries
+  const galleryRegex = /<gallery[^>]*>([\s\S]*?)<\/gallery>/gi;
+  let gMatch: RegExpExecArray | null;
+  while ((gMatch = galleryRegex.exec(content)) !== null) {
+    const startPos = gMatch.index;
+    const precedingText = content.substring(Math.max(0, startPos - 120), startPos).toLowerCase();
+    if (precedingText.includes('miscellaneous') || precedingText.includes('leak') || precedingText.includes('no longer')) {
+      continue;
+    }
+    const lines = gMatch[1].split('\n');
+    lines.forEach(line => {
+      const parts = line.split('|');
+      if (parts.length > 1) {
+        let trim = parts[parts.length - 1].trim(); 
+        trim = trim.replace(/<\/?[^>]+(>|$)/g, "").trim();
+        // Remove drivetrain suffix (FWD/AWD/RWD/4WD/4x4)
+        trim = trim.replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*$/i, '').trim();
 
-          // Basic filtering to avoid junk/descriptions
-          if (trim && 
-              trim.length > 1 && 
-              trim.length < 30 && 
-              !trim.includes('[[') && 
-              !/^(Front|Rear|Side|Top|Bottom|Interior|Inside|Engine|Logo|Badge|Dashboard|Door|Wheel|Rim|Rim\(s\)|Rim \d+)$/i.test(trim) &&
-              !/design|facelift|vs|old|new|comparison/i.test(trim)
-          ) {
-            trims.add(trim);
-          }
+        // Strict filtering against photo angles, descriptions, and file markup
+        if (trim && 
+            trim.length > 1 && 
+            trim.length < 30 && 
+            !trim.includes('[[') && 
+            !trim.startsWith('!') && 
+            !trim.includes('$') &&
+            !/(?:^|\s|\()(?:front|rear|side|top|bottom|interior|inside|engine|logo|badge|dashboard|door|wheel|rim|rims|discord|trello|leak|view)\b/i.test(trim) &&
+            !/design|facelift|vs|old|new|comparison/i.test(trim)
+        ) {
+          trims.add(trim);
         }
-      });
+      }
     });
   }
 
@@ -44,14 +49,14 @@ const extractTrims = (content: string): string[] => {
     const list = trimParam[1].split(/[,/·]/);
     list.forEach(item => {
       const cleaned = item.replace(/\[\[|\]\]/g, '').trim();
-      if (cleaned && cleaned.length < 30) trims.add(cleaned);
+      if (cleaned && cleaned.length < 30 && !cleaned.includes('$')) trims.add(cleaned);
     });
   }
 
-  // 3. Fallback: Parse table rows in the ==Trims== section (robust for RC wiki)
-  const trimsMatch = content.match(/==[^=]*(?:Trims|Trim Choices|Trim Options)[^=]*==[\s\S]*?(?=\n==|$)/i);
-  if (trimsMatch) {
-    const trimsSection = trimsMatch[0];
+  // 3. Fallback: Parse table rows in the ==Trims== section (must match single-line section header)
+  const trimsMatch = content.match(/(?:^|\n)==+\s*(?:Trims|Trim\s+Choices|Trim\s+Options)\s*==+[\t ]*\n([\s\S]*?)(?=\n==+|$)/i);
+  if (trimsMatch && trimsMatch[1]) {
+    const trimsSection = trimsMatch[1];
     const trimLines = trimsSection.split('\n');
     trimLines.forEach(line => {
       const trimmed = line.trim();
@@ -61,6 +66,7 @@ const extractTrims = (content: string): string[] => {
           !trimmed.startsWith('{|')
       ) {
          let cleanedLine = trimmed
+           .replace(/^[\!\|]/, '')
            .replace(/\[\[File:[^\]]+\]\]/gi, '')
            .replace(/\[\[Category:[^\]]+\]\]/gi, '');
            
@@ -72,22 +78,22 @@ const extractTrims = (content: string): string[] => {
            .replace(/\[\[|\]\]/g, '')
            .replace(/<\/?[^>]+(>|$)/g, "")
            .replace(/^\d+px\]?\]?/g, "")
+           .replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*$/i, '')
            .trim();
-           
-         // 末尾の駆動方式（FWD/AWD/RWD/4WDなど）を除去してゲーム内での重複表示を防止する
-         trimName = trimName.replace(/\s+(?:FWD|AWD|RWD|4WD|4x4)\s*$/i, '').trim();
            
          if (trimName && 
               trimName.length > 1 && 
               trimName.length < 30 && 
               !trimName.includes('$') &&
               !trimName.startsWith('!') &&
-              !/^(trim|purchase|sell|price|prices|colspan|rowspan|discord|leak|leaks|msrp|n\/a|—|-)$/i.test(trimName) &&
-              !/(?:price|leak|sell|purchase|\$|discord)/i.test(trimName) &&
+              !/^(trim|purchase|sell|price|prices|colspan|rowspan|discord|leak|leaks|msrp|n\/a|—|-|default rims|rims)$/i.test(trimName) &&
+              !/(?:price|leak|sell|purchase|\$|discord|scope=|class=|style=|rowspan|colspan)/i.test(trimName) &&
+              !/(?:^|\s|\()(?:front|rear|side|top|bottom|interior|inside|engine|logo|badge|dashboard|door|wheel|rim|rims|discord|trello|leak|view)\b/i.test(trimName) &&
               !/^\d+(?:,\d+)*$/.test(trimName) &&
               !/^\d+$/.test(trimName) && 
               !trimName.includes('{') && 
-              !trimName.includes('}')
+              !trimName.includes('}') &&
+              !/file:|image:/i.test(trimName)
           ) {
             trims.add(trimName);
           }
@@ -101,10 +107,23 @@ const extractTrims = (content: string): string[] => {
 const extractColors = (content: string): string[] => {
   const colors = new Set<string>();
   
-  // Try 1: General match for color section
-  const colorsMatch = content.match(/==[^=]*(?:Colors|Color Choices|Color Options|Stock Colors)[^=]*==[\s\S]*?(?=\n==|$)/i);
-  if (colorsMatch) {
-    const colorsSection = colorsMatch[0];
+  // Section header must match on a single line!
+  const colorsMatch = content.match(/(?:^|\n)==+\s*(?:Stock\s+Colors|Color\s+Choices|Color\s+Options|Colors)\s*==+[\t ]*\n([\s\S]*?)(?=\n==+|$)/i);
+  if (colorsMatch && colorsMatch[1]) {
+    const colorsSection = colorsMatch[1];
+    
+    // 1. Bullet points
+    const bulletColors = colorsSection.match(/\*\s*\[?\[?([^\]\n|]+)\]?\]?/g);
+    if (bulletColors) {
+      bulletColors.forEach((c: string) => {
+        const cleaned = c.replace(/^\*\s*\[?\[?/, '').replace(/\]?\]?$/, '').trim();
+        if (cleaned && cleaned.length > 1 && cleaned.length < 40 && !cleaned.includes('$') && !/^(color|colors|price|\d+)/i.test(cleaned)) {
+          colors.add(cleaned);
+        }
+      });
+    }
+
+    // 2. Table rows
     const colorLines = colorsSection.split('\n');
     colorLines.forEach(line => {
        const trimmed = line.trim();
@@ -113,17 +132,23 @@ const extractColors = (content: string): string[] => {
            !trimmed.startsWith('|}') && 
            !trimmed.startsWith('{|')
        ) {
-           let color = trimmed.substring(1).trim();
+           const cleaned = trimmed.replace(/^[\!\|]/, '').trim();
+           const parts = cleaned.split('|');
+           let color = parts[parts.length - 1].trim();
            color = color
              .replace(/'''+/g, '') 
              .replace(/\[\[|\]\]/g, '') 
              .replace(/<\/?[^>]+(>|$)/g, "") 
+             .replace(/^\d+px\]?\]?/g, "")
              .trim();
              
            if (color && 
                color.length > 1 && 
                color.length < 40 && 
-               !color.toLowerCase().includes('color') && 
+               !color.includes('$') &&
+               !/^(color|colors|default rims|rims|trim|trims|purchase|sell|price|scope=|class=|style=|rowspan|colspan)/i.test(color) &&
+               !/(?:purchase|sell|price|\$|scope=|class=|style=|rowspan|colspan)/i.test(color) &&
+               !/file:|image:/i.test(color) &&
                !color.includes('{') && 
                !color.includes('}')
            ) {

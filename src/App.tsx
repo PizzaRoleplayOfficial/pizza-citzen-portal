@@ -821,8 +821,18 @@ export default function App() {
       .then((data: any) => {
         if (cancelled) return;
         if (data?.imageUrl) setWikiPreviewUrl(data.imageUrl);
-        if (data?.trims && data.trims.length > 0) setWikiTrims(data.trims);
-        if (data?.colors && data.colors.length > 0) setWikiColors(data.colors);
+        if (data?.trims && data.trims.length > 0) {
+          const cleanTrims = data.trims.filter((t: string) => 
+            t && !t.includes('$') && !/rowspan|colspan|file:|scope=|style=|purchase|sell/i.test(t)
+          );
+          setWikiTrims(cleanTrims);
+        }
+        if (data?.colors && data.colors.length > 0) {
+          const cleanColors = data.colors.filter((c: string) => 
+            c && !c.includes('$') && !/rowspan|colspan|file:|scope=|style=|purchase|sell/i.test(c)
+          );
+          setWikiColors(cleanColors);
+        }
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setWikiLoading(false); });
