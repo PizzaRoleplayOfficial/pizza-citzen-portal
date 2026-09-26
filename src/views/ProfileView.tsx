@@ -1,5 +1,5 @@
 import React from 'react';
-import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info, Key } from 'lucide-react';
+import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info, Key, Trash2, RefreshCw } from 'lucide-react';
 import { triggerHaptic, scheduleLocalNotification, isNative, getLiveProgress } from '../utils/native';
 import { CURRENT_VERSION, getLiveUpdate } from '../utils/updater';
 import { startRegistration } from '@simplewebauthn/browser';
@@ -58,6 +58,51 @@ export const ProfileView = ({
   const [passkeyLoading, setPasskeyLoading] = React.useState(false);
   const [passkeyMessage, setPasskeyMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [passkeys, setPasskeys] = React.useState<{ credential_id: string, key_name: string | null, created_at: string }[]>([]);
+  const [devices, setDevices] = React.useState<any[]>([]);
+  const [devicesLoading, setDevicesLoading] = React.useState(false);
+  const currentDeviceId = typeof localStorage !== 'undefined' ? localStorage.getItem('gvvr_device_id') : null;
+
+  const fetchDevices = async () => {
+    if (!currentUser?.id) return;
+    try {
+      setDevicesLoading(true);
+      const res = await fetch(`/api/push-token?userId=${encodeURIComponent(currentUser.id)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDevices(data.devices || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch push devices:', e);
+    } finally {
+      setDevicesLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (currentUser?.id) {
+      fetchDevices();
+    }
+  }, [currentUser?.id]);
+
+  const handleDeleteDevice = async (deviceId: string) => {
+    if (!confirm('このデバイスのプッシュ通知登録を解除しますか？')) return;
+    try {
+      triggerHaptic('light');
+      const res = await fetch('/api/push-token', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          deviceId
+        })
+      });
+      if (res.ok) {
+        fetchDevices();
+      }
+    } catch (e) {
+      console.error('Failed to delete device:', e);
+    }
+  };
   const [isWebAuthnSupported, setIsWebAuthnSupported] = React.useState(true);
 
   const fetchPasskeys = async () => {
@@ -482,6 +527,103 @@ export const ProfileView = ({
                   }} />
                 </span>
               </label>
+            </div>
+
+            {/* 登録中の通知デバイス一覧 */}
+            <div style={{ marginTop: '16px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>登録中の通知デバイス ({devices.length})</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>同じアカウントで複数のAndroid端末から個別に区別して同時に通知を受け取れます。</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchDevices}
+                  disabled={devicesLoading}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '8px',
+                    color: 'var(--primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '6px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: '0.2s'
+                  }}
+                  title="デバイス一覧を再取得"
+                >
+                  <RefreshCw size={13} className={devicesLoading ? 'spin' : ''} /> 更新
+                </button>
+              </div>
+
+              {devices.length === 0 ? (
+                <div style={{ padding: '12px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>
+                  登録されているデバイスはありません（アプリ起動時に自動登録されます）
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {devices.map((dev) => {
+                    const isCurrent = currentDeviceId && dev.device_id === currentDeviceId;
+                    return (
+                      <div
+                        key={dev.device_id || dev.token_preview}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '12px 14px',
+                          background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+                          borderRadius: '10px',
+                          border: isCurrent ? '1px solid rgba(0,193,102,0.35)' : '1px solid var(--glass-border)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(0,193,102,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Smartphone size={18} style={{ color: 'var(--primary)' }} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span>{dev.device_name || (dev.platform === 'android' ? 'Android端末' : '端末')}</span>
+                              {isCurrent && (
+                                <span style={{ fontSize: '0.72rem', padding: '2px 8px', background: 'rgba(0,193,102,0.15)', color: 'var(--primary)', borderRadius: '6px', fontWeight: 700 }}>
+                                  この端末
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                              プラットフォーム: {dev.platform?.toUpperCase()} • 最終同期: {new Date(dev.updated_at).toLocaleString('ja-JP')}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDevice(dev.device_id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderRadius: '8px',
+                            transition: '0.2s'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = '#ff6b6b'; e.currentTarget.style.background = 'rgba(255,107,107,0.1)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
+                          title="この端末の登録を解除"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

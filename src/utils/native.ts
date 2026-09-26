@@ -374,7 +374,7 @@ export const updateBackgroundPollCache = async (vehicles: any[]) => {
 };
 
 /**
- * 端末固有の永続化デバイスIDを取得または作成します。
+ * 端末固有の永続化デバイスIDを取得または作成します
  */
 export const getOrCreateDeviceId = (): string => {
   let id = localStorage.getItem('gvvr_device_id');
@@ -389,6 +389,26 @@ export const getOrCreateDeviceId = (): string => {
   return id;
 };
 
+/**
+ * 端末の機種名・モデル名を判別して人間が認識しやすい名称を返します
+ */
+export const getDeviceFriendlyName = (): string => {
+  if (typeof navigator === 'undefined') return 'Android端末';
+  const ua = navigator.userAgent || '';
+  const match = ua.match(/Android[^;)]*;\s*([^;)]+?)\s*(?:Build|\))/i);
+  if (match && match[1]) {
+    const raw = match[1].trim();
+    if (raw && !raw.toLowerCase().includes('k')) {
+      return raw;
+    }
+  }
+  if (/Android/i.test(ua)) return 'Android端末';
+  if (/iPad/i.test(ua)) return 'iPad';
+  if (/iPhone/i.test(ua)) return 'iPhone';
+  if (/Windows/i.test(ua)) return 'Windows PC';
+  if (/Macintosh/i.test(ua)) return 'Mac';
+  return 'Webブラウザ';
+};
 /**
  * FCMプッシュ通知の登録を行い、トークンを取得してサーバーへ登録します。
  */
@@ -423,6 +443,7 @@ export const registerPushNotifications = async (
       try {
         const platform = Capacitor.getPlatform();
         const deviceId = getOrCreateDeviceId();
+        const deviceName = getDeviceFriendlyName();
         const resultsEnabled = localStorage.getItem('gvvr_push_results') !== 'false';
         const adminEnabled = localStorage.getItem('gvvr_push_admin') !== 'false';
         const adminEditEnabled = localStorage.getItem('gvvr_push_admin_edit') !== 'false';
@@ -438,6 +459,7 @@ export const registerPushNotifications = async (
             token: token.value,
             platform,
             deviceId,
+            deviceName,
             resultsEnabled,
             adminEnabled,
             adminEditEnabled,
@@ -514,14 +536,16 @@ export const unregisterPushNotifications = async (userId: string) => {
 
   try {
     const token = localStorage.getItem('fcm_token');
-    if (token) {
+    const deviceId = localStorage.getItem('gvvr_device_id');
+    if (token || deviceId) {
       console.log('Unregistering push token from server...');
       await fetch('/api/push-token', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          token
+          token,
+          deviceId
         })
       }).catch(err => console.error('Failed to call delete token API:', err));
 

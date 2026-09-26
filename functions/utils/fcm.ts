@@ -55,16 +55,21 @@ async function getAccessToken(serviceAccountJson: string): Promise<string> {
 /**
  * 指定したトークン宛てにFCMプッシュ通知を送信します。
  */
+export interface FcmSendResult {
+  success: boolean;
+  expired?: boolean;
+}
+
 export async function sendFcmNotification(
   env: any,
   token: string,
   payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
-): Promise<boolean> {
+): Promise<FcmSendResult> {
   try {
     const serviceAccountJson = env.FIREBASE_SERVICE_ACCOUNT;
     if (!serviceAccountJson) {
       console.warn('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Skipping FCM push notification.');
-      return false;
+      return { success: false, expired: false };
     }
 
     const sa: ServiceAccount = JSON.parse(serviceAccountJson);
@@ -106,19 +111,20 @@ export async function sendFcmNotification(
       const errText = await res.text();
       console.error(`FCM send failed: ${errText}`);
       
-      // トークンが失効している（UNREGISTEREDなど）場合は、呼び出し元でDBから削除できるように通知
-      if (res.status === 404 || res.status === 410) {
-        return false;
-      }
-      return false;
+      // トークンが失効している（404, 410, UNREGISTEREDなど）場合のみ expired: true を返して安全にDBクリーンアップ
+      const isExpired = res.status === 404 || res.status === 410 || 
+                        errText.includes('UNREGISTERED') || 
+                        errText.includes('NOT_FOUND') ||
+                        errText.includes('registration-token-not-registered');
+      return { success: false, expired: isExpired };
     }
 
     const resData = await res.json();
     console.log(`FCM send success:`, resData);
-    return true;
+    return { success: true, expired: false };
   } catch (err) {
     console.error('Failed to send FCM notification:', err);
-    return false;
+    return { success: false, expired: false };
   }
 }
 
@@ -204,19 +210,21 @@ export async function sendFcmNotificationToUser(
 
     let successCount = 0;
     
-    // 全トークンに並列で通知を送信
+    // 全トークンに並列で通知を送信（複数端末すべてに一斉配信）
     const promises = results.map(async (row: any) => {
-      const success = await sendFcmNotification(env, row.token, payload);
-      if (success) {
+      const sendRes = await sendFcmNotification(env, row.token, payload);
+      if (sendRes.success) {
         successCount++;
-      } else {
-        // トークンが無効な場合（FCMからアンレジスターされたなど）、クリーンアップ処理を行う
+      } else if (sendRes.expired) {
+        // トークンが失効している（アプリ削除・再インストール等）場合のみ安全にDBからクリーンアップ
         console.log(`FCM token expired or invalid. Removing from DB: ${row.token}`);
         await env.D1_DB.prepare(
           "DELETE FROM user_push_tokens WHERE user_id = ? AND token = ?"
         ).bind(userId, row.token).run().catch((e: any) => {
           console.error('Failed to delete invalid token from DB:', e);
         });
+      } else {
+        console.warn(`FCM temporary error for token ${row.token}. Retaining token in DB.`);
       }
     });
 
