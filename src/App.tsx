@@ -814,6 +814,9 @@ export default function App() {
       if (!res.ok) {
         const err = await res.json() as any;
         alert(err.error || '登録に失敗しました。');
+        window.dispatchEvent(new CustomEvent('gv-toast', {
+          detail: { title: '登録エラー', desc: err.error || '登録に失敗しました。', type: 'error' }
+        }));
         triggerHaptic('error');
         return;
       }
@@ -2414,6 +2417,9 @@ export default function App() {
       } else {
         const err = await res.json() as any;
         alert(err.error || '車両登録に失敗しました。');
+        window.dispatchEvent(new CustomEvent('gv-toast', {
+          detail: { title: '登録エラー', desc: err.error || '車両登録に失敗しました。', type: 'error' }
+        }));
         triggerHaptic('error');
       }
     } catch (e) {

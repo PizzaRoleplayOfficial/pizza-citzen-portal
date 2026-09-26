@@ -168,6 +168,66 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
   try {
     console.log("POST Request Body:", body);
     await ensureTable(env.D1_DB);
+
+    // Duplicate check: Verify if vehicle with same plate or same content already exists
+    const cleanGame = (game_type || 'gv').trim().toLowerCase();
+    const cleanPlate = (plate || '').replace(/[\s\-]/g, '').trim().toLowerCase();
+    const cleanMaker = (maker || '').trim().toLowerCase();
+    const cleanModel = (model || '').trim().toLowerCase();
+    const cleanColor = (color || '').trim().toLowerCase();
+    const cleanTrim = (trim || '').trim().toLowerCase();
+    const cleanType = (vehicle_type || 'car').trim().toLowerCase();
+    const cleanTrailerType = (trailer_type || '').trim().toLowerCase();
+    const numYear = Number(year) || 2024;
+    const cleanOwnerId = (owner_id || '').trim();
+
+    const dupCheckSql = `
+      SELECT id FROM vehicles 
+      WHERE status != 'rejected'
+        AND (
+          (? != '' AND COALESCE(game_type, 'gv') = ? AND REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') = ?)
+          OR
+          (
+            ? != '' AND owner_id = ?
+            AND COALESCE(game_type, 'gv') = ?
+            AND COALESCE(vehicle_type, 'car') = ?
+            AND LOWER(TRIM(COALESCE(maker, ''))) = ?
+            AND LOWER(TRIM(COALESCE(model, ''))) = ?
+            AND LOWER(TRIM(COALESCE(color, ''))) = ?
+            AND (
+              (? = 'trailer' AND LOWER(TRIM(COALESCE(trailer_type, ''))) = ?)
+              OR
+              (? != 'trailer' AND year = ? AND LOWER(TRIM(COALESCE(trim, ''))) = ?)
+            )
+          )
+        )
+      LIMIT 1
+    `;
+
+    const duplicate = await env.D1_DB.prepare(dupCheckSql).bind(
+      cleanPlate,
+      cleanGame,
+      cleanPlate,
+      cleanOwnerId,
+      cleanOwnerId,
+      cleanGame,
+      cleanType,
+      cleanMaker,
+      cleanModel,
+      cleanColor,
+      cleanType,
+      cleanTrailerType,
+      cleanType,
+      numYear,
+      cleanTrim
+    ).first();
+
+    if (duplicate) {
+      return new Response(
+        JSON.stringify({ error: '既にこの車両は登録されています！' }),
+        { status: 409, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
+      );
+    }
     
     await env.D1_DB.prepare(
       "INSERT INTO vehicles (id, owner_id, maker, model, year, trim, color, plate, plate_region, roblox_username, image_data, vehicle_type, trailer_type, is_temp_registration, game_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -270,6 +330,71 @@ export const onRequestPut = async ({ env, request }: { env: any, request: Reques
   try {
     await ensureTable(env.D1_DB);
     const existing = await env.D1_DB.prepare("SELECT * FROM vehicles WHERE id = ?").bind(id).first() as any;
+    if (!existing) {
+      return new Response(JSON.stringify({ error: '車両が見つかりませんでした。' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // Duplicate check on edit (excluding the current vehicle itself)
+    const cleanGame = (game_type || existing.game_type || 'gv').trim().toLowerCase();
+    const cleanPlate = (plate || existing.plate || '').replace(/[\s\-]/g, '').trim().toLowerCase();
+    const cleanMaker = (maker ?? existing.maker ?? '').trim().toLowerCase();
+    const cleanModel = (model ?? existing.model ?? '').trim().toLowerCase();
+    const cleanColor = (color ?? existing.color ?? '').trim().toLowerCase();
+    const cleanTrim = (trim ?? existing.trim ?? '').trim().toLowerCase();
+    const cleanType = (existing.vehicle_type || 'car').trim().toLowerCase();
+    const cleanTrailerType = (existing.trailer_type || '').trim().toLowerCase();
+    const numYear = Number(year ?? existing.year) || 2024;
+    const cleanOwnerId = (existing.owner_id || '').trim();
+
+    const dupCheckSql = `
+      SELECT id FROM vehicles 
+      WHERE id != ?
+        AND status != 'rejected'
+        AND (
+          (? != '' AND COALESCE(game_type, 'gv') = ? AND REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') = ?)
+          OR
+          (
+            ? != '' AND owner_id = ?
+            AND COALESCE(game_type, 'gv') = ?
+            AND COALESCE(vehicle_type, 'car') = ?
+            AND LOWER(TRIM(COALESCE(maker, ''))) = ?
+            AND LOWER(TRIM(COALESCE(model, ''))) = ?
+            AND LOWER(TRIM(COALESCE(color, ''))) = ?
+            AND (
+              (? = 'trailer' AND LOWER(TRIM(COALESCE(trailer_type, ''))) = ?)
+              OR
+              (? != 'trailer' AND year = ? AND LOWER(TRIM(COALESCE(trim, ''))) = ?)
+            )
+          )
+        )
+      LIMIT 1
+    `;
+
+    const duplicate = await env.D1_DB.prepare(dupCheckSql).bind(
+      id,
+      cleanPlate,
+      cleanGame,
+      cleanPlate,
+      cleanOwnerId,
+      cleanOwnerId,
+      cleanGame,
+      cleanType,
+      cleanMaker,
+      cleanModel,
+      cleanColor,
+      cleanType,
+      cleanTrailerType,
+      cleanType,
+      numYear,
+      cleanTrim
+    ).first();
+
+    if (duplicate) {
+      return new Response(
+        JSON.stringify({ error: '既にこの車両は登録されています！' }),
+        { status: 409, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
+      );
+    }
  
     await env.D1_DB.prepare(
       "UPDATE vehicles SET maker = ?, model = ?, year = ?, trim = ?, color = ?, plate = ?, plate_region = ?, image_data = ?, game_type = ?, status = 'pending' WHERE id = ?"
