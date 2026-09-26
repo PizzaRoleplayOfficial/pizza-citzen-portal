@@ -7,6 +7,7 @@ import { MyGarageView } from './views/MyGarageView';
 import { ProfileView } from './views/ProfileView';
 import { AdminDashboardView } from './views/AdminDashboardView';
 import { TimelineView } from './views/TimelineView';
+import { DirectMessagesView } from './views/DirectMessagesView';
 import { 
   Car, 
   Plus, 
@@ -246,19 +247,61 @@ export default function App() {
     const parts = hash.split('/');
     const mainView = parts[0];
     const subTab = parts[1];
-    const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply', 'timeline'];
+    const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply', 'timeline', 'messages'];
     const validSubTabs = ['dashboard', 'vehicles', 'users', 'lookup', 'applications', 'questions', 'catalog'];
     
     return {
-      view: (validViews.includes(mainView) ? mainView : 'home') as 'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline',
+      view: (validViews.includes(mainView) ? mainView : 'home') as 'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline' | 'messages',
       adminTab: (mainView === 'admin' && subTab && validSubTabs.includes(subTab) ? subTab : null) as any
     };
   };
 
   const initialParsed = getInitialHashState();
-  const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline'>(initialParsed.view);
+  const [view, setView] = useState<'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline' | 'messages'>(initialParsed.view);
+  const [dmTargetConversationId, setDmTargetConversationId] = useState<string | null>(null);
+  const [dmTargetUserId, setDmTargetUserId] = useState<string | null>(null);
+  const [unreadDmCount, setUnreadDmCount] = useState<number>(0);
   const [isNavigatingBack, setIsNavigatingBack] = useState<boolean>(false);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState<boolean>(false);
+  // Poll unread DM count
+  const fetchUnreadDmCount = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const res = await fetch(`/api/dm?action=unread_total&userId=${currentUser.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadDmCount(data.unread_total || 0);
+      }
+    } catch (e) {
+      // silent
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadDmCount();
+    const interval = setInterval(() => {
+      if (!document.hidden && currentUser?.id) {
+        fetchUnreadDmCount();
+      }
+    }, 15000);
+
+    const handleOpenDmEvent = (e: any) => {
+      if (e.detail?.targetUserId) {
+        setDmTargetUserId(e.detail.targetUserId);
+        setView('messages');
+      } else if (e.detail?.conversationId) {
+        setDmTargetConversationId(e.detail.conversationId);
+        setView('messages');
+      }
+    };
+    window.addEventListener('gv-open-dm', handleOpenDmEvent);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('gv-open-dm', handleOpenDmEvent);
+    };
+  }, [currentUser?.id]);
+
 
   const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog'>(
     initialParsed.adminTab || (sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard'
@@ -299,6 +342,12 @@ export default function App() {
       setView('home');
     } else if (data.action === 'timeline') {
       setView('timeline');
+    } else if (data.action && data.action.startsWith('dm')) {
+      setView('messages');
+      const convMatch = data.action.match(/conversationId=([^&]+)/);
+      const partnerMatch = data.action.match(/partnerId=([^&]+)/);
+      if (convMatch) setDmTargetConversationId(convMatch[1]);
+      if (partnerMatch) setDmTargetUserId(partnerMatch[1]);
     }
   };
 
@@ -464,7 +513,13 @@ export default function App() {
       }
     }
 
-    if (notif.link_action && notif.link_action.startsWith('timeline')) {
+    if (notif.link_action && notif.link_action.startsWith('dm')) {
+      setView('messages');
+      const convMatch = notif.link_action.match(/conversationId=([^&]+)/);
+      const partnerMatch = notif.link_action.match(/partnerId=([^&]+)/);
+      if (convMatch) setDmTargetConversationId(convMatch[1]);
+      if (partnerMatch) setDmTargetUserId(partnerMatch[1]);
+    } else if (notif.link_action && notif.link_action.startsWith('timeline')) {
       setView('timeline');
       const match = notif.link_action.match(/postId=([^&]+)/);
       if (match && match[1]) {
@@ -2743,6 +2798,33 @@ export default function App() {
               <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
                 <MessageSquare size={18} /> {!sidebarCollapsed && <span>タイムライン</span>}
               </button>
+              <button className={`btn-sidebar ${view === 'messages' ? 'active' : ''}`} onClick={() => setView('messages')} style={{ position: 'relative', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <MessageSquare size={18} />
+                  {unreadDmCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-8px',
+                      background: 'var(--primary)',
+                      color: theme === 'light' ? '#fff' : '#000',
+                      borderRadius: '10px',
+                      fontSize: '0.65rem',
+                      fontWeight: 900,
+                      minWidth: '16px',
+                      height: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 3px',
+                      boxShadow: '0 2px 6px rgba(0, 193, 102, 0.4)'
+                    }}>
+                      {unreadDmCount > 9 ? '9+' : unreadDmCount}
+                    </span>
+                  )}
+                </div>
+                {!sidebarCollapsed && <span style={{ marginLeft: '8px' }}>メッセージ</span>}
+              </button>
               {currentUser.role === 'admin' && (
                 <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
                   <ShieldCheck size={18} /> {!sidebarCollapsed && <span>管理パネル</span>}
@@ -2927,6 +3009,50 @@ export default function App() {
                   }}
                 >
                   {unreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => { triggerHaptic('light'); setView('messages'); }}
+              className="btn glass"
+              title="メッセージ"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: view === 'messages' ? 'var(--primary)' : 'var(--text-main)',
+                cursor: 'pointer',
+                position: 'relative',
+                border: '1px solid var(--glass-border)',
+                background: view === 'messages' ? 'rgba(0,193,102,0.12)' : 'rgba(255,255,255,0.03)',
+                padding: 0
+              }}
+            >
+              <MessageSquare size={16} style={{ color: view === 'messages' ? 'var(--primary)' : 'var(--text-main)' }} />
+              {unreadDmCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    background: 'var(--primary)',
+                    color: theme === 'light' ? '#fff' : '#000',
+                    borderRadius: '50%',
+                    fontSize: '9px',
+                    fontWeight: 'bold',
+                    minWidth: '15px',
+                    height: '15px',
+                    padding: '0 3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 6px rgba(0, 193, 102, 0.4)'
+                  }}
+                >
+                  {unreadDmCount > 9 ? '9+' : unreadDmCount}
                 </span>
               )}
             </button>
@@ -3673,6 +3799,20 @@ export default function App() {
             dataSaverEnabled={dataSaverEnabled}
             triggerComposer={triggerTimelineComposer}
             onComposerTriggered={() => setTriggerTimelineComposer(false)}
+          />
+        ) : view === 'messages' ? (
+          <DirectMessagesView
+            currentUser={currentUser}
+            isMobile={isMobile}
+            theme={theme}
+            initialConversationId={dmTargetConversationId}
+            initialTargetUserId={dmTargetUserId}
+            onClearInitialIds={() => {
+              setDmTargetConversationId(null);
+              setDmTargetUserId(null);
+            }}
+            onUnreadCountChange={(cnt) => setUnreadDmCount(cnt)}
+            onClose={() => setView('home')}
           />
         ) : (
           <AdminDashboardView

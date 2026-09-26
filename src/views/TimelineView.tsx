@@ -5739,6 +5739,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
 
                 {selectedUserProfile.userId !== currentUser.id && (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                   <button
                     onClick={async () => {
                       triggerHaptic('medium');
@@ -5809,6 +5810,31 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   >
                     {isFollowing ? '✓ フォロー中' : '+ フォロー'}
                   </button>
+
+                  <button
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setSelectedUserProfile(null);
+                      window.dispatchEvent(new CustomEvent('gv-open-dm', { detail: { targetUserId: selectedUserProfile.userId } }));
+                    }}
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(0, 193, 102, 0.1)',
+                      color: 'var(--primary)',
+                      border: '1px solid rgba(0, 193, 102, 0.3)'
+                    }}
+                  >
+                    <MessageSquare size={14} /> メッセージ
+                  </button>
+                  </div>
                 )}
               </div>
 

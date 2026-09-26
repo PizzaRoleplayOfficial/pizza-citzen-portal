@@ -507,6 +507,29 @@ export const registerPushNotifications = async (
       (notification: ActionPerformed) => {
         console.log('Push notification action performed:', notification);
         try {
+          // Direct inline reply from push notification
+          if (notification.actionId === 'reply' && (notification as any).inputValue) {
+            const replyText = (notification as any).inputValue;
+            const data = notification.notification?.data;
+            if (data && data.conversationId) {
+              const currentUserId = localStorage.getItem('gvvr_user_id');
+              if (currentUserId) {
+                fetch('/api/dm', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'send',
+                    senderId: currentUserId,
+                    conversationId: data.conversationId,
+                    recipientId: data.senderId,
+                    content: replyText
+                  })
+                }).catch(err => console.error('Failed to post direct reply from notification:', err));
+                return;
+              }
+            }
+          }
+
           const data = notification.notification?.data;
           if (data && data.action && onAction) {
             console.log('Push Action Hook: Routing to page...', data);
@@ -522,6 +545,28 @@ export const registerPushNotifications = async (
     );
 
     // 3. FCMへ登録（これによって registration リスナーがトリガーされる）
+        // Register DM inline reply action for native notifications
+    try {
+      await PushNotifications.registerActionTypes({
+        types: [
+          {
+            id: 'DM_REPLY_ACTION',
+            actions: [
+              {
+                id: 'reply',
+                title: '返信',
+                input: true,
+                inputButtonTitle: '送信',
+                inputPlaceholder: 'メッセージを入力...'
+              }
+            ]
+          }
+        ]
+      });
+    } catch (e) {
+      console.warn('registerActionTypes error or not supported:', e);
+    }
+
     await PushNotifications.register();
   } catch (err) {
     console.error('Failed to register push notifications:', err);

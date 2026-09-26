@@ -91,7 +91,8 @@ export async function sendFcmNotification(
         android: {
           notification: {
             channel_id: payload.channelId || 'application_results_channel',
-            sound: 'default'
+            sound: 'default',
+            click_action: payload.channelId === 'dm_messages_channel' ? 'DM_REPLY_ACTION' : undefined
           }
         }
       }
@@ -202,6 +203,7 @@ export async function sendFcmNotificationToUser(
     const isTimelineLike = payload.channelId === 'timeline_likes_channel';
     const isTimelineComment = payload.channelId === 'timeline_comments_channel';
     const isTimelineNewPost = payload.channelId === 'timeline_new_posts_channel';
+    const isDmMessage = payload.channelId === 'dm_messages_channel';
     
     let query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND results_enabled = 1";
     if (isChannelAdmin) {
@@ -214,6 +216,8 @@ export async function sendFcmNotificationToUser(
       query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND timeline_comment_enabled = 1";
     } else if (isTimelineNewPost) {
       query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND timeline_new_post_enabled = 1";
+    } else if (isDmMessage) {
+      query = "SELECT token FROM user_push_tokens WHERE user_id = ?";
     }
 
     // 1. D1からユーザーのトークンリストを取得
