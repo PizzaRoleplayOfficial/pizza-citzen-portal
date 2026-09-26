@@ -2274,7 +2274,52 @@ export default function App() {
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [showBetaAutoFillModal]);  const handleSubmitVehicle = async (e: React.FormEvent) => {
+  }, [showBetaAutoFillModal]);
+
+  const handleOpenVehicleModal = (defaultGame: 'gv' | 'rc' = 'gv') => {
+    triggerHaptic('medium');
+    if (myApplication?.status !== 'approved') {
+      alert("車両登録には市民申請の承認が必要です。");
+      setView('apply');
+      return;
+    }
+    if (!currentUser?.roblox_username) {
+      alert("ユーザー名を設定してください");
+      setView('profile');
+      return;
+    }
+    setFormData({
+      game_type: defaultGame,
+      maker: '',
+      model: '',
+      year: 2024,
+      trim: '',
+      color: '',
+      plate: '',
+      plate_region: 'WISCONSIN',
+      roblox_username: currentUser.roblox_username,
+      image_data: ''
+    });
+    setEditingVehicleId(null);
+    setRegistrationMode('normal');
+    loadCatalog(defaultGame);
+    setShowAddModal(true);
+  };
+
+  useEffect(() => {
+    if (isMobile) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Alt+N to quickly open vehicle registration on PC
+      if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        handleOpenVehicleModal('gv');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobile, myApplication?.status, currentUser?.roblox_username]);
+
+  const handleSubmitVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingVehicleId ? 'PUT' : 'POST';
     try {
@@ -2695,6 +2740,43 @@ export default function App() {
               )}
               <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
                 <UserIcon size={18} /> {!sidebarCollapsed && <span>設定</span>}
+              </button>
+            </div>
+
+            {/* PC: 車両登録ボタン（どの画面からでもワンクリックで登録モーダルを開く） */}
+            <div style={{ marginTop: '16px' }}>
+              <button
+                onClick={() => handleOpenVehicleModal('gv')}
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  padding: sidebarCollapsed ? '12px 0' : '12px 18px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: sidebarCollapsed ? 'center' : 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+                  color: '#000',
+                  fontWeight: 700,
+                  fontSize: '0.92rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(0, 209, 110, 0.25)',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 209, 110, 0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 209, 110, 0.25)';
+                }}
+                title="車両登録 (Alt+N)"
+              >
+                <Plus size={18} strokeWidth={2.6} />
+                {!sidebarCollapsed && <span>車両を登録</span>}
               </button>
             </div>
           </div>
@@ -3208,14 +3290,25 @@ export default function App() {
                     <Car size={20} style={{ color: 'var(--primary)' }} />
                     登録車両の状況
                   </h3>
-                  <button 
-                    onClick={() => { triggerHaptic('light'); setView('garage'); }} 
-                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                  >
-                    詳細 <ChevronRight size={14} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button 
+                      onClick={() => handleOpenVehicleModal('gv')}
+                      style={{ background: 'rgba(0, 193, 102, 0.12)', border: '1px solid rgba(0, 193, 102, 0.25)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 193, 102, 0.22)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0, 193, 102, 0.12)'}
+                      title="車両登録"
+                    >
+                      <Plus size={14} strokeWidth={2.5} /> 車両登録
+                    </button>
+                    <button 
+                      onClick={() => { triggerHaptic('light'); setView('garage'); }} 
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'var(--text-main)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                    >
+                      詳細 <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Status counts pills */}
@@ -3669,8 +3762,37 @@ export default function App() {
             }}
           >
 
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>{editingVehicleId ? '車両情報の修正' : '新規車両の登録'}</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>必要な情報を入力してください。</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0 }}>{editingVehicleId ? '車両情報の修正' : '新規車両の登録'}</h2>
+                <p style={{ color: 'var(--text-muted)', margin: '4px 0 0', fontSize: '0.9rem' }}>必要な情報を入力してください。</p>
+              </div>
+              {!editingVehicleId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setShowBetaAutoFillModal(true);
+                  }}
+                  className="btn btn-secondary"
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: '1px dashed var(--primary)',
+                    color: 'var(--primary)',
+                    background: 'rgba(0,193,102,0.08)',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  ✨ 画像から自動入力 (Beta)
+                </button>
+              )}
+            </div>
             <div style={{ padding: '16px', background: 'rgba(255,177,66,0.1)', borderRadius: '12px', borderLeft: '4px solid #ffb142', marginBottom: isMobile ? '16px' : '32px' }}>
 
               <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#ffb142', fontSize: '0.95rem' }}>
