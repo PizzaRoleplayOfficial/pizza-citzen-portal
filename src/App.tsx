@@ -3866,7 +3866,7 @@ export default function App() {
                  <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', alignItems: 'center' }}>
                    {parseImages(formData.image_data).map((imgUrl, i) => (
                      <div key={i} style={{ width: '120px', height: '120px', flexShrink: 0, borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
-                       <img src={imgUrl} alt={`preview ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                       <img src={getImageUrl(imgUrl)} alt={`preview ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                        <button type="button" onClick={() => handleRemoveImage(i)} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', color: 'var(--text-main)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>&times;</button>
                      </div>
                    ))}

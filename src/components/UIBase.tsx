@@ -66,7 +66,7 @@ export const StatusBadge = ({
   );
 };
 
-export const parseImages = (data?: string | null): string[] => {
+export const parseImages = (data?: string | null): any[] => {
   if (!data) return [];
   if (data.startsWith("[")) {
     try {
@@ -76,6 +76,12 @@ export const parseImages = (data?: string | null): string[] => {
     }
   }
   return [data];
+};
+
+export const getImageUrl = (img: any): string => {
+  if (!img) return '';
+  if (typeof img === 'string') return img;
+  return img.high || img.low || img.highUrl || '';
 };
 
 export const CustomSortDropdown = ({

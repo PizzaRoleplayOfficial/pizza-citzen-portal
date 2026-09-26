@@ -6176,7 +6176,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                       {parseImages(targetPost.image_data).map((url, index) => (
                                         <img 
                                           key={index} 
-                                          src={url} 
+                                          src={getImageUrl(url)} 
                                           alt="attachment" 
                                           style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', border: '1px solid var(--glass-border)' }} 
                                         />
