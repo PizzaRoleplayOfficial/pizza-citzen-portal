@@ -1354,6 +1354,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [likeAnimatingPostId, setLikeAnimatingPostId] = useState<string | null>(null);
   const pendingLikesRef = useRef<Set<string>>(new Set());
   const pendingCommentLikesRef = useRef<Set<string>>(new Set());
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Comments related states
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
@@ -2061,6 +2062,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
+      if (e.nativeEvent.isComposing) return;
       const hasPoll = showPollComposer && pollOptions.filter(o => o.trim()).length >= 2;
       const canSubmit = newPostContent.trim() || newPostImages.length > 0 || selectedVideoFile || hasPoll;
       
@@ -2666,6 +2668,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           setReplyingToComment(null);
           setNewCommentImages([]);
           setSelectedCommentVideoFile(null);
+          if (commentTextareaRef.current) {
+            commentTextareaRef.current.style.height = 'auto';
+          }
           // Refresh replies list
           await fetchComments(postId);
           // Increment reply count in posts list
@@ -5195,11 +5200,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                   onClick={() => {
                                     triggerHaptic('light');
                                     setReplyingToComment(comment);
-                                    // Autofocus the reply input field
-                                    const inputEl = document.querySelector('input[placeholder*="返信"]') as HTMLInputElement;
-                                    if (inputEl) {
-                                      inputEl.focus();
-                                    }
+                                    // Autofocus the reply textarea
+                                    commentTextareaRef.current?.focus();
                                   }}
                                   style={{
                                     background: 'none',
@@ -5361,10 +5363,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                             triggerHaptic('light');
                                             setReplyingToComment(comment);
                                             setNewCommentText(`@${sub.author_username} `);
-                                            const inputEl = document.querySelector('input[placeholder*="返信"]') as HTMLInputElement;
-                                            if (inputEl) {
-                                              inputEl.focus();
-                                            }
+                                            commentTextareaRef.current?.focus();
                                           }}
                                           style={{
                                             background: 'none',
@@ -5571,7 +5570,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             </div>
           )}
 
-          <form onSubmit={(e) => handleCreateComment(activePost.id, e)} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <form onSubmit={(e) => handleCreateComment(activePost.id, e)} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
             <img
               src={currentUser.avatar}
               alt="My Avatar"
@@ -5610,12 +5609,41 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               style={{ display: 'none' }} 
             />
 
-            <input
-              type="text"
+                        <textarea
+              ref={commentTextareaRef}
+              rows={1}
               value={newCommentText}
-              onChange={(e) => setNewCommentText(e.target.value)}
-              placeholder={replyingToComment ? `${replyingToComment.author_username}さんへ返信...` : "返信をポスト..."}
-              maxLength={200}
+              onChange={(e) => {
+                setNewCommentText(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (e.nativeEvent.isComposing) return;
+                  if (isMobile) {
+                    return; // Mobile keyboards use Enter for line breaks
+                  }
+                  const canSubmit = !isSubmittingComment && (newCommentText.trim().length > 0 || newCommentImages.length > 0 || !!selectedCommentVideoFile);
+                  if (enterKeyBehavior === 'enter') {
+                    if (!e.shiftKey) {
+                      e.preventDefault();
+                      if (canSubmit) {
+                        e.currentTarget.form?.requestSubmit();
+                      }
+                    }
+                  } else {
+                    if (e.shiftKey) {
+                      e.preventDefault();
+                      if (canSubmit) {
+                        e.currentTarget.form?.requestSubmit();
+                      }
+                    }
+                  }
+                }
+              }}
+              placeholder={replyingToComment ? `${replyingToComment.author_username}さんへ返信...` : "返信ポスト..."}
+              maxLength={500}
               style={{
                 flex: 1,
                 padding: '10px 14px',
@@ -5625,6 +5653,12 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 color: 'var(--input-text)',
                 fontSize: '0.9rem',
                 outline: 'none',
+                resize: 'none',
+                minHeight: '42px',
+                maxHeight: '120px',
+                lineHeight: 1.4,
+                fontFamily: 'inherit',
+                boxSizing: 'border-box'
               }}
             />
             

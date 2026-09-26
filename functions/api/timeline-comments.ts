@@ -165,8 +165,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       });
     }
 
-    if (content && content.length > 200) {
-      return new Response(JSON.stringify({ error: 'コメントは最大200文字までです。' }), {
+    if (content && content.length > 500) {
+      return new Response(JSON.stringify({ error: 'コメントは最大500文字までです。' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -184,17 +184,22 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       const commenter = await env.D1_DB.prepare("SELECT username FROM users WHERE id = ?").bind(userId).first() as any;
       if (commenter) {
         let notifiedUser = null;
-        let notificationTitle = '💬 タイムライン投稿への返信';
+        let notificationTitle = '💬 投稿への新たな返信';
         let notificationBody = '';
+
+        const replyText = (content || "").trim();
+        const replyPreview = replyText.length > 40 ? replyText.substring(0, 40) + '...' : replyText;
+        const attachmentNote = !replyPreview && image_data ? '📷 [画像]' : (!replyPreview && video_path ? '🎬 [動画]' : '');
+        const displayedReply = replyPreview || attachmentNote || '返信';
 
         if (parentId) {
           // If replying to a comment, notify the parent comment owner
           const parentComment = await env.D1_DB.prepare("SELECT user_id, content FROM timeline_comments WHERE id = ?").bind(parentId).first() as any;
           if (parentComment && parentComment.user_id !== userId) {
             notifiedUser = parentComment.user_id;
-            notificationTitle = '💬 返信への新たな返信';
-            const preview = parentComment.content.length > 20 ? parentComment.content.substring(0, 20) + '...' : parentComment.content;
-            notificationBody = `${commenter.username}さんがあなたの返信「${preview}」に返信しました。`;
+            notificationTitle = '💭 返信への新たな返信';
+            const targetPreview = parentComment.content.length > 18 ? parentComment.content.substring(0, 18) + '...' : parentComment.content;
+            notificationBody = `${commenter.username}さん: 「${displayedReply}」\n(あなたの返信「${targetPreview}」宛て)`;
           }
         }
 
@@ -203,8 +208,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
           const post = await env.D1_DB.prepare("SELECT user_id, content FROM timeline_posts WHERE id = ?").bind(postId).first() as any;
           if (post && post.user_id !== userId) {
             notifiedUser = post.user_id;
-            const preview = post.content.length > 20 ? post.content.substring(0, 20) + '...' : post.content;
-            notificationBody = `${commenter.username}さんがあなたの投稿「${preview}」に返信しました。`;
+            const targetPreview = post.content.length > 18 ? post.content.substring(0, 18) + '...' : post.content;
+            notificationBody = `${commenter.username}さん: 「${displayedReply}」\n(あなたの投稿「${targetPreview}」宛て)`;
           }
         }
 

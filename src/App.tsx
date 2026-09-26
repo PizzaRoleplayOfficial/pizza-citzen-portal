@@ -4951,7 +4951,7 @@ export default function App() {
                             {formatTimeAgo(notif.created_at)}
                           </span>
                         </div>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                           {notif.body}
                         </p>
                       </div>
