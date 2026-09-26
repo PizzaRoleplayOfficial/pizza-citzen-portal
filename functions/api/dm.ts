@@ -72,7 +72,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   }
 
   try {
-    await ensureDmTables(env.D1_DB);
+    // ensureDmTables skipped on GET for performance
 
     // 1. Get total unread count for badge
     if (action === 'unread_total') {
@@ -177,20 +177,25 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
       const partnerId = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
 
-      // Mark unread messages sent to current user as read
-      await env.D1_DB.prepare(`
-        UPDATE dm_messages 
-        SET is_read = 1, read_at = CURRENT_TIMESTAMP 
-        WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0
-      `).bind(conversationId, userId).run();
+      // Check if unread messages exist before running UPDATE queries
+      const unreadRow = await env.D1_DB.prepare(
+        "SELECT 1 FROM dm_messages WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0 LIMIT 1"
+      ).bind(conversationId, userId).first();
 
-      // Also mark notifications in notification center as read for this conversation
-      await env.D1_DB.prepare(`
-        UPDATE notifications 
-        SET is_read = 1 
-        WHERE user_id = ? AND is_read = 0 
-          AND (link_action LIKE ? OR type = 'dm_messages_channel')
-      `).bind(userId, `%conversationId=${conversationId}%`).run().catch(() => {});
+      if (unreadRow) {
+        await env.D1_DB.prepare(`
+          UPDATE dm_messages 
+          SET is_read = 1, read_at = CURRENT_TIMESTAMP 
+          WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0
+        `).bind(conversationId, userId).run();
+
+        await env.D1_DB.prepare(`
+          UPDATE notifications 
+          SET is_read = 1 
+          WHERE user_id = ? AND is_read = 0 
+            AND (link_action LIKE ? OR type = 'dm_messages_channel')
+        `).bind(userId, `%conversationId=${conversationId}%`).run().catch(() => {});
+      }
 
       // Fetch partner profile
       const partner = await env.D1_DB.prepare(
@@ -255,7 +260,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
-    await ensureDmTables(env.D1_DB);
+    // ensureDmTables skipped on GET for performance
 
     const body = await request.json() as any;
     const { action = 'send', senderId, recipientId, content, imageData } = body;

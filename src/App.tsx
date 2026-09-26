@@ -284,7 +284,7 @@ export default function App() {
       if (!document.hidden && currentUser?.id) {
         fetchUnreadDmCount();
       }
-    }, 4000);
+    }, 8000);
 
     const handleOpenDmEvent = (e: any) => {
       if (e.detail?.targetUserId) {
@@ -330,7 +330,7 @@ export default function App() {
     pingPresence('online');
     const presenceTimer = setInterval(() => {
       pingPresence('online');
-    }, 20000);
+    }, 35000);
 
     const handleVis = () => {
       if (!document.hidden) pingPresence('online');
@@ -2089,7 +2089,7 @@ export default function App() {
         // Close after 4 seconds automatically
         setTimeout(() => {
           setUpdateState(prev => ({ ...prev, isOpen: false }));
-        }, 4000);
+        }, 8000);
       } else {
         setUpdateState(prev => ({
           ...prev,

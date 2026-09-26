@@ -48,33 +48,31 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   }
 
   try {
-    await ensureNotificationsTable(env.D1_DB);
+    // ensureNotificationsTable skipped on GET for performance
 
-    // Auto-mark handled vehicle application notifications as read (対応済み自動既読化)
+    // Auto-mark handled vehicle application notifications as read (最適化済み: 全件スキャン排除)
     try {
       const { results: unreadVehicleNotifs } = await env.D1_DB.prepare(`
         SELECT id, body FROM notifications 
         WHERE user_id = ? AND is_read = 0 
           AND (type IN ('admin_notifications_channel', 'admin_edit_notifications_channel') 
                OR title LIKE '%新規車両登録%' OR title LIKE '%新規トレーラー%' OR title LIKE '%車両編集%' OR title LIKE '%トレーラー編集%')
+        LIMIT 20
       `).bind(userId).all();
 
       if (unreadVehicleNotifs && unreadVehicleNotifs.length > 0) {
+        // Query pending plates in 1 single fast query instead of looping table scans
+        const { results: pendingRows } = await env.D1_DB.prepare(
+          "SELECT REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') as p FROM vehicles WHERE status = 'pending'"
+        ).all();
+        const pendingSet = new Set((pendingRows || []).map((r: any) => r.p));
+
         const handledIds: string[] = [];
         for (const row of unreadVehicleNotifs as any[]) {
           const m = (row.body || '').match(/ナンバー[:：]\s*([^)）]+)[)）]/);
           if (m) {
             const cleanPlate = m[1].replace(/[\s\-]/g, '').toLowerCase().trim();
-            // Check if there is still any pending vehicle with this plate
-            const pending = await env.D1_DB.prepare(`
-              SELECT id FROM vehicles 
-              WHERE REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') = ? 
-                AND status = 'pending' 
-              LIMIT 1
-            `).bind(cleanPlate).first();
-
-            if (!pending) {
-              // No pending vehicle with this plate exists -> already approved, rejected, or deleted (対応済み)
+            if (!pendingSet.has(cleanPlate)) {
               handledIds.push(row.id);
             }
           }
@@ -145,7 +143,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       return new Response(JSON.stringify({ error: "Missing user ID or unauthorized" }), { status: 401, headers: NO_CACHE });
     }
 
-    await ensureNotificationsTable(env.D1_DB);
+    // ensureNotificationsTable skipped on GET for performance
 
     if (markAll) {
       // Mark all notifications as read for this user

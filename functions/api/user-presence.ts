@@ -26,7 +26,7 @@ export const onRequestPost = async ({ env, request }: { env: any; request: Reque
       return new Response(JSON.stringify({ error: 'Missing userId' }), { status: 400, headers: NO_CACHE });
     }
 
-    await ensurePresenceTable(env.D1_DB);
+    // ensurePresenceTable skipped on ping for performance
 
     if (status === 'offline') {
       // Mark as inactive immediately

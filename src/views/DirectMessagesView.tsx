@@ -219,7 +219,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       if (!document.hidden && activeConversationId) {
         fetchMessages(activeConversationId, true);
       }
-    }, 1000);
+    }, 5000);
 
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
@@ -235,7 +235,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       if (!document.hidden && !activeConversationId) {
         fetchConversations(true);
       }
-    }, 2500);
+    }, 5000);
 
     return () => clearInterval(listTimer);
   }, [activeConversationId]);
