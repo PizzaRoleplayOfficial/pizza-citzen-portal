@@ -63,7 +63,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   }
 
   try {
-    await ensureCommentsTable(env.D1_DB);
+    // ensureCommentsTable skipped on GET for performance
 
     const query = `
       SELECT 
@@ -172,7 +172,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       });
     }
 
-    await ensureCommentsTable(env.D1_DB);
+    // ensureCommentsTable skipped on GET for performance
 
     const id = crypto.randomUUID();
     
@@ -247,7 +247,7 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
-    await ensureCommentsTable(env.D1_DB);
+    // ensureCommentsTable skipped on GET for performance
 
     if (action === 'like') {
       const insertRes = await env.D1_DB.prepare(
@@ -321,7 +321,7 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
   }
 
   try {
-    await ensureCommentsTable(env.D1_DB);
+    // ensureCommentsTable skipped on GET for performance
 
     const comment = await env.D1_DB.prepare("SELECT * FROM timeline_comments WHERE id = ?").bind(id).first() as any;
     if (!comment) {

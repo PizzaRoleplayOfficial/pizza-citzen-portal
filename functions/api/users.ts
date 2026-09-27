@@ -39,7 +39,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   }
 
   try {
-    await ensureUserTable(env.D1_DB);
+    // ensureUserTable skipped on GET for performance
     const { results } = await env.D1_DB.prepare("SELECT * FROM users ORDER BY created_at DESC").all();
     return new Response(JSON.stringify(results), {
       headers: { 
@@ -76,7 +76,7 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
   if (!id) return new Response("Missing id", { status: 400 });
 
   try {
-    await ensureUserTable(env.D1_DB);
+    // ensureUserTable skipped on GET for performance
 
     if (role !== undefined) {
       if (!isAdmin) return new Response("Forbidden", { status: 403 });

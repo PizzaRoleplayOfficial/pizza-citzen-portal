@@ -59,7 +59,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
 
-    await ensurePushTokenTable(env.D1_DB);
+    // ensurePushTokenTable skipped on GET for performance
 
     if (userId) {
       const { results } = await env.D1_DB.prepare(`
@@ -123,7 +123,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       });
     }
 
-    await ensurePushTokenTable(env.D1_DB);
+    // ensurePushTokenTable skipped on GET for performance
 
     const rEnabled = resultsEnabled === undefined || resultsEnabled === null ? 1 : (resultsEnabled ? 1 : 0);
     const aEnabled = adminEnabled === undefined || adminEnabled === null ? 1 : (adminEnabled ? 1 : 0);
@@ -178,7 +178,7 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
       });
     }
 
-    await ensurePushTokenTable(env.D1_DB);
+    // ensurePushTokenTable skipped on GET for performance
 
     if (deviceId) {
       await env.D1_DB.prepare(

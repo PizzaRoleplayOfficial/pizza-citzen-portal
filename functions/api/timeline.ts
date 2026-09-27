@@ -144,7 +144,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   const lowConnection = url.searchParams.get('lowConnection') === 'true';
 
   try {
-    await ensureTimelineTables(env.D1_DB);
+    // ensureTimelineTables skipped on GET for performance
 
     const postId = url.searchParams.get('postId') || '';
     
@@ -371,7 +371,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       });
     }
 
-    await ensureTimelineTables(env.D1_DB);
+    // ensureTimelineTables skipped on GET for performance
 
     const id = crypto.randomUUID();
     const initialViews = 0; // Starts with 0 views
@@ -433,7 +433,7 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
 
   const repostId = url.searchParams.get('repostId');
   if (repostId && userId) {
-    await ensureTimelineTables(env.D1_DB);
+    // ensureTimelineTables skipped on GET for performance
     await env.D1_DB.prepare(
       "DELETE FROM timeline_posts WHERE user_id = ? AND repost_id = ?"
     ).bind(userId, repostId).run();
@@ -447,7 +447,7 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
   }
 
   try {
-    await ensureTimelineTables(env.D1_DB);
+    // ensureTimelineTables skipped on GET for performance
 
     // Authorization check: Must be the post author or an administrator
     const post = await env.D1_DB.prepare("SELECT user_id FROM timeline_posts WHERE id = ?").bind(id).first() as any;
@@ -496,7 +496,7 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
       });
     }
 
-    await ensureTimelineTables(env.D1_DB);
+    // ensureTimelineTables skipped on GET for performance
 
     if (action === 'like') {
       const insertRes = await env.D1_DB.prepare(
