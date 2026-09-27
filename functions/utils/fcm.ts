@@ -6,20 +6,41 @@ interface ServiceAccount {
   private_key: string;
 }
 
+// Global in-memory cache for Google OAuth 2.0 access token and imported private key
+interface CachedToken {
+  accessToken: string;
+  expiresAtMs: number;
+}
+
+let cachedToken: CachedToken | null = null;
+let cachedPrivateKey: { rawKey: string; keyObj: any } | null = null;
+
 /**
  * Service AccountのJSONをもとにGoogle OAuth 2.0アクセストークンを取得します。
+ * グローバルメモリキャッシュを活用し、CPU負荷の高いRSA暗号署名とGoogle API通信を最小化します。
  */
 async function getAccessToken(serviceAccountJson: string): Promise<string> {
+  const nowMs = Date.now();
+
+  // 1. 有効期限内のキャッシュトークンが存在する場合は即時返却 (CPU 0ms)
+  if (cachedToken && nowMs < cachedToken.expiresAtMs - 300000) {
+    return cachedToken.accessToken;
+  }
+
   const sa: ServiceAccount = JSON.parse(serviceAccountJson);
-
-  // private_keyの改行文字を適切にパース
   const privateKey = sa.private_key.replace(/\\n/g, '\n');
-
-  // PKCS8形式の秘密鍵をjoseにロード
   const alg = 'RS256';
-  const privateKeyObj = await jose.importPKCS8(privateKey, alg);
 
-  const now = Math.floor(Date.now() / 1000);
+  // 2. PKCS8秘密鍵のインポート結果をキャッシュ (CPU負荷の高いRSAパースを再利用)
+  let privateKeyObj: any;
+  if (cachedPrivateKey && cachedPrivateKey.rawKey === privateKey) {
+    privateKeyObj = cachedPrivateKey.keyObj;
+  } else {
+    privateKeyObj = await jose.importPKCS8(privateKey, alg);
+    cachedPrivateKey = { rawKey: privateKey, keyObj: privateKeyObj };
+  }
+
+  const nowSec = Math.floor(nowMs / 1000);
   const jwt = await new jose.SignJWT({
     scope: 'https://www.googleapis.com/auth/firebase.messaging'
   })
@@ -27,8 +48,8 @@ async function getAccessToken(serviceAccountJson: string): Promise<string> {
     .setIssuer(sa.client_email)
     .setSubject(sa.client_email)
     .setAudience('https://oauth2.googleapis.com/token')
-    .setExpirationTime(now + 3600)
-    .setIssuedAt(now)
+    .setExpirationTime(nowSec + 3600)
+    .setIssuedAt(nowSec)
     .sign(privateKeyObj);
 
   // トークンエンドポイントへリクエスト
@@ -45,11 +66,20 @@ async function getAccessToken(serviceAccountJson: string): Promise<string> {
 
   if (!tokenRes.ok) {
     const errText = await tokenRes.text();
+    cachedToken = null;
     throw new Error(`Failed to get OAuth token from Google: ${errText}`);
   }
 
-  const tokenData = await tokenRes.json() as { access_token: string };
-  return tokenData.access_token;
+  const tokenData = await tokenRes.json() as { access_token: string; expires_in?: number };
+  const expiresInSec = tokenData.expires_in || 3600;
+
+  // キャッシュに保存 (1時間有効、有効期限5分前まで利用)
+  cachedToken = {
+    accessToken: tokenData.access_token,
+    expiresAtMs: nowMs + (expiresInSec * 1000)
+  };
+
+  return cachedToken.accessToken;
 }
 
 /**
@@ -124,6 +154,9 @@ export async function sendFcmNotification(
       console.error(`FCM send failed: ${errText}`);
       
       // トークンが失効している（404, 410, UNREGISTEREDなど）場合のみ expired: true を返して安全にDBクリーンアップ
+      if (res.status === 401) {
+        cachedToken = null; // Token rejected or invalidated, force re-auth
+      }
       const isExpired = res.status === 404 || res.status === 410 || 
                         errText.includes('UNREGISTERED') || 
                         errText.includes('NOT_FOUND') ||

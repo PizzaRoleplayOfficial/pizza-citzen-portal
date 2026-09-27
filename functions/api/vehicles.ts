@@ -41,7 +41,10 @@ const fetchWikiImageUrl = async (title: string, gameType: string = 'gv'): Promis
   }
 };
 
-const ensureTable = async (db: any) => {
+let isVehicleSchemaEnsured = false;
+
+const ensureTable = async (db: any, force: boolean = false) => {
+  if (isVehicleSchemaEnsured && !force) return;
   console.log("Ensuring database schema is up-to-date...");
   
   // 1. Create table if not exists
@@ -93,13 +96,36 @@ const ensureTable = async (db: any) => {
     console.error("Migration check failed:", e.message);
   }
 
+  isVehicleSchemaEnsured = true;
   console.log("Database schema check complete.");
 };
+
+// Automated fallback wrapper: executes operation directly; if missing table/column is encountered during upgrade, runs ensureTable and retries
+async function withSchemaFallback<T>(db: any, operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (err: any) {
+    if (err && err.message && (err.message.includes('no such column') || err.message.includes('no such table'))) {
+      console.warn('Schema mismatch detected during operation, executing automated migration...', err.message);
+      await ensureTable(db, true);
+      return await operation();
+    }
+    throw err;
+  }
+}
 
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const url = new URL(request.url);
   const userId = url.searchParams.get('userId') || '12345';
   const isAdmin = url.searchParams.get('admin') === 'true';
+
+  // Support explicit on-demand schema migration trigger for upgrades
+  if (isAdmin && url.searchParams.get('migrate') === 'true') {
+    await ensureTable(env.D1_DB, true);
+    return new Response(JSON.stringify({ success: true, message: "Database schema migration executed successfully." }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
   // Fast pre-flight check for duplicate plate (real-time validation)
   const checkPlate = url.searchParams.get('checkPlate');
@@ -204,7 +230,6 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 
   try {
     console.log("POST Request Body:", body);
-    await ensureTable(env.D1_DB);
 
     // Duplicate check: Verify if vehicle with same plate or same content already exists
     const cleanGame = (game_type || 'gv').trim().toLowerCase();
@@ -365,7 +390,6 @@ export const onRequestPut = async ({ env, request }: { env: any, request: Reques
   const { id, maker, model, year, trim, color, plate, plate_region, image_data, game_type } = body;
  
   try {
-    await ensureTable(env.D1_DB);
     const existing = await env.D1_DB.prepare("SELECT * FROM vehicles WHERE id = ?").bind(id).first() as any;
     if (!existing) {
       return new Response(JSON.stringify({ error: '車両が見つかりませんでした。' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
@@ -433,9 +457,11 @@ export const onRequestPut = async ({ env, request }: { env: any, request: Reques
       );
     }
  
-    await env.D1_DB.prepare(
-      "UPDATE vehicles SET maker = ?, model = ?, year = ?, trim = ?, color = ?, plate = ?, plate_region = ?, image_data = ?, game_type = ?, status = 'pending' WHERE id = ?"
-    ).bind(maker, model, year, trim, color, plate, plate_region, image_data || null, game_type || 'gv', id).run();
+    await withSchemaFallback(env.D1_DB, async () => {
+      await env.D1_DB.prepare(
+        "UPDATE vehicles SET maker = ?, model = ?, year = ?, trim = ?, color = ?, plate = ?, plate_region = ?, image_data = ?, game_type = ?, status = 'pending' WHERE id = ?"
+      ).bind(maker, model, year, trim, color, plate, plate_region, image_data || null, game_type || 'gv', id).run();
+    });
 
     if (existing && env.DISCORD_WEBHOOK_APPLICATIONS) {
       const activeGame = game_type || existing.game_type || 'gv';
@@ -534,7 +560,6 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
   }
 
   try {
-    await ensureTable(env.D1_DB);
     const existingVehicle = await env.D1_DB.prepare("SELECT plate FROM vehicles WHERE id = ?").bind(id).first() as any;
     await env.D1_DB.prepare("DELETE FROM vehicles WHERE id = ?").bind(id).run();
 
@@ -592,8 +617,6 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
   }
 
   try {
-    await ensureTable(env.D1_DB);
-    
     let result;
     if (status === 'temp_approved') {
       const days = Number(body.days) || 15;
@@ -604,13 +627,17 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
       const existing = await env.D1_DB.prepare("SELECT plate FROM vehicles WHERE id = ?").bind(id).first() as any;
       const currentPlate = existing ? existing.plate : "";
       
-      result = await env.D1_DB.prepare(
-        "UPDATE vehicles SET status = ?, reject_reason = ?, temp_plate = ?, temp_expires_at = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?"
-      ).bind(status, reject_reason || null, currentPlate, expiresAt, id, expected_status).run();
+      result = await withSchemaFallback(env.D1_DB, async () => {
+        return await env.D1_DB.prepare(
+          "UPDATE vehicles SET status = ?, reject_reason = ?, temp_plate = ?, temp_expires_at = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?"
+        ).bind(status, reject_reason || null, currentPlate, expiresAt, id, expected_status).run();
+      });
     } else {
-      result = await env.D1_DB.prepare(
-        "UPDATE vehicles SET status = ?, reject_reason = ?, temp_plate = NULL, temp_expires_at = NULL, reviewed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?"
-      ).bind(status, reject_reason || null, id, expected_status).run();
+      result = await withSchemaFallback(env.D1_DB, async () => {
+        return await env.D1_DB.prepare(
+          "UPDATE vehicles SET status = ?, reject_reason = ?, temp_plate = NULL, temp_expires_at = NULL, reviewed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?"
+        ).bind(status, reject_reason || null, id, expected_status).run();
+      });
     }
 
     if (result.meta && result.meta.changes === 0) {
