@@ -12,7 +12,8 @@ import {
   User as UserIcon, 
   MessageSquare,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  Upload
 } from 'lucide-react';
 import { compressImage } from '../utils/helpers';
 import { triggerHaptic } from '../utils/native';
@@ -88,6 +89,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
   // State: Image Zoom
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -342,22 +344,76 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     }
   };
 
-  // Handle image attachment
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // Process image file (from clipboard paste, file picker, or drag & drop)
+  const processImageFile = async (file: File) => {
+    if (!file || !file.type.startsWith('image/')) return;
     try {
       triggerHaptic('light');
-      const base64 = await compressImage(file);
+      const base64 = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
       setSelectedImage(base64);
+      setTimeout(() => textareaRef.current?.focus(), 50);
     } catch (err) {
       console.error('Image compression failed:', err);
       alert('画像の処理に失敗しました');
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
+  // Handle image attachment from file input
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await processImageFile(file);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Handle image paste from clipboard (Ctrl+V)
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement> | ClipboardEvent) => {
+    const clipboardData = (e as any).clipboardData;
+    if (!clipboardData) return;
+
+    const files = clipboardData.files;
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].type.startsWith('image/')) {
+          e.preventDefault();
+          await processImageFile(files[i]);
+          return;
+        }
+      }
+    }
+
+    const items = clipboardData.items;
+    if (items && items.length > 0) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type && item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            await processImageFile(file);
+            return;
+          }
+        }
+      }
+    }
+  };
+
+  // Window-level paste listener for active conversation
+  useEffect(() => {
+    if (!activeConversationId) return;
+
+    const handleWindowPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.tagName === 'INPUT' && target !== fileInputRef.current) {
+        return;
+      }
+      handlePaste(e);
+    };
+
+    window.addEventListener('paste', handleWindowPaste);
+    return () => window.removeEventListener('paste', handleWindowPaste);
+  }, [activeConversationId]);
 
   // Search users for new DM
   const handleSearchUsers = async (query: string) => {
@@ -569,13 +625,59 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
           RIGHT COLUMN: Chat Room (トークルーム)
           ────────────────────────────────────────────────────────── */}
       {(!isMobile || !!activeConversationId) && (
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          background: theme === 'light' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(10, 15, 25, 0.2)',
-          minWidth: 0
-        }}>
+        <div 
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isDraggingOver) setIsDraggingOver(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingOver(false);
+          }}
+          onDrop={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingOver(false);
+            const files = e.dataTransfer?.files;
+            if (files && files.length > 0) {
+              const file = files[0];
+              if (file.type.startsWith('image/')) {
+                await processImageFile(file);
+              }
+            }
+          }}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            background: theme === 'light' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(10, 15, 25, 0.2)',
+            minWidth: 0,
+            position: 'relative'
+          }}
+        >
+          {/* Drag & Drop Visual Overlay */}
+          {isDraggingOver && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(0, 193, 102, 0.15)',
+              backdropFilter: 'blur(8px)',
+              border: '2px dashed var(--primary)',
+              zIndex: 50,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              color: 'var(--primary)',
+              pointerEvents: 'none'
+            }}>
+              <Upload size={48} className="animate-bounce" />
+              <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>画像をドロップして添付</span>
+            </div>
+          )}
           {activePartner ? (
             <>
               {/* Partner Header */}
@@ -826,6 +928,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       e.target.style.height = 'auto';
                       e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                     }}
+                    onPaste={handlePaste}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         if (e.nativeEvent.isComposing) return;
@@ -835,7 +938,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                         }
                       }
                     }}
-                    placeholder={`${activePartner.username}さんにメッセージ...`}
+                    placeholder={`${activePartner.username}さんにメッセージ... (Ctrl+Vで画像貼付可)`}
                     maxLength={1000}
                     style={{
                       flex: 1,
