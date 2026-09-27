@@ -361,17 +361,43 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       WHERE id = ?
     `).bind(previewText, conversationId).run();
 
-    // Send FCM push notification with direct reply metadata
+    // Send FCM push notification with direct reply metadata & stacked message bundling
     try {
       const sender = await env.D1_DB.prepare(
         "SELECT username, avatar FROM users WHERE id = ?"
       ).bind(senderId).first() as any;
 
       if (sender && actualRecipientId) {
+        // Query unread messages from this conversation for recipient to bundle
+        const { results: unreadRows } = await env.D1_DB.prepare(`
+          SELECT content, image_data FROM dm_messages 
+          WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0 
+          ORDER BY created_at ASC
+        `).bind(conversationId, actualRecipientId).all();
+
+        const unreadCount = (unreadRows || []).length || 1;
+        let notifTitle = `📩 ${sender.username}さんからのメッセージ`;
+        let notifBody = previewText;
+
+        if (unreadCount > 1 && unreadRows && unreadRows.length > 0) {
+          notifTitle = `📩 ${sender.username}さんからのメッセージ (${unreadCount}件)`;
+          const formatted = (unreadRows as any[]).map(r => {
+            const txt = (r.content || '').trim();
+            return txt ? (txt.length > 40 ? txt.substring(0, 40) + '...' : txt) : '📷 [画像]';
+          });
+          const slice = formatted.slice(-4);
+          notifBody = slice.join('\n');
+          if (formatted.length > 4) {
+            notifBody = `...他${formatted.length - 4}件\n` + notifBody;
+          }
+        }
+
         await sendFcmNotificationToUser(env, actualRecipientId, {
-          title: `📩 ${sender.username}さんからのメッセージ`,
-          body: previewText,
+          title: notifTitle,
+          body: notifBody,
           channelId: 'dm_messages_channel',
+          tag: `dm_${conversationId}`,
+          notificationCount: unreadCount,
           data: {
             action: `dm?conversationId=${conversationId}&partnerId=${senderId}`,
             conversationId,

@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.4.12'; // 2.3.4 (Fix app wide body height scaling to resolve bottom layout gap on mobile)
+export const CURRENT_VERSION = '2.4.13'; // 2.3.4 (Fix app wide body height scaling to resolve bottom layout gap on mobile)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';

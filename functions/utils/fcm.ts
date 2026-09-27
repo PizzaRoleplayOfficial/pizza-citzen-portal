@@ -55,6 +55,15 @@ async function getAccessToken(serviceAccountJson: string): Promise<string> {
 /**
  * 指定したトークン宛てにFCMプッシュ通知を送信します。
  */
+export interface FcmNotificationPayload {
+  title: string;
+  body: string;
+  channelId?: string;
+  tag?: string;
+  notificationCount?: number;
+  data?: Record<string, string>;
+}
+
 export interface FcmSendResult {
   success: boolean;
   expired?: boolean;
@@ -63,7 +72,7 @@ export interface FcmSendResult {
 export async function sendFcmNotification(
   env: any,
   token: string,
-  payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
+  payload: FcmNotificationPayload
 ): Promise<FcmSendResult> {
   try {
     const serviceAccountJson = env.FIREBASE_SERVICE_ACCOUNT;
@@ -92,6 +101,8 @@ export async function sendFcmNotification(
           notification: {
             channel_id: payload.channelId || 'application_results_channel',
             sound: 'default',
+            tag: payload.tag || (payload.channelId === 'dm_messages_channel' && payload.data?.conversationId ? `dm_${payload.data.conversationId}` : undefined),
+            notification_count: payload.notificationCount || undefined,
             click_action: payload.channelId === 'dm_messages_channel' ? 'DM_REPLY_ACTION' : undefined
           }
         }
@@ -132,7 +143,7 @@ export async function sendFcmNotification(
 async function saveInAppNotification(
   db: any,
   userId: string,
-  payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
+  payload: FcmNotificationPayload
 ): Promise<boolean> {
   try {
     await db.prepare(`
@@ -148,7 +159,28 @@ async function saveInAppNotification(
       );
     `).run();
 
-    // Deduplication check: drop duplicate identical notification if created within last 5 minutes
+    // 1. DM Notifications Bundling: If an unread DM notification for this conversation already exists, update & bundle it
+    if (payload.channelId === 'dm_messages_channel' && payload.data?.conversationId) {
+      const convId = payload.data.conversationId;
+      const existingUnread = await db.prepare(`
+        SELECT id FROM notifications 
+        WHERE user_id = ? AND type = 'dm_messages_channel' 
+          AND link_action LIKE ? AND is_read = 0 
+        ORDER BY created_at DESC LIMIT 1
+      `).bind(userId, `%conversationId=${convId}%`).first();
+
+      if (existingUnread) {
+        console.log(`[DM Bundling] Updating existing unread notification ${existingUnread.id} for user ${userId}: ${payload.title}`);
+        await db.prepare(`
+          UPDATE notifications 
+          SET title = ?, body = ?, created_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind(payload.title, payload.body, existingUnread.id).run();
+        return true;
+      }
+    }
+
+    // 2. Deduplication check: drop duplicate identical notification if created within last 5 minutes
     const recent = await db.prepare(`
       SELECT id FROM notifications 
       WHERE user_id = ? AND title = ? AND body = ? AND created_at > datetime('now', '-5 minutes')
@@ -182,7 +214,7 @@ async function saveInAppNotification(
 export async function sendFcmNotificationToUser(
   env: any,
   userId: string,
-  payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
+  payload: FcmNotificationPayload
 ): Promise<number> {
   try {
     if (!env.D1_DB) {
@@ -281,7 +313,7 @@ export async function sendFcmNotificationToUser(
  */
 export async function sendFcmNotificationToAdmins(
   env: any,
-  payload: { title: string; body: string; channelId?: string; data?: Record<string, string> }
+  payload: FcmNotificationPayload
 ): Promise<number> {
   try {
     if (!env.D1_DB) {
