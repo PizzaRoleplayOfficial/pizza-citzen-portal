@@ -903,7 +903,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   const [isNewLoading, setIsNewLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const [newPostContent, setNewPostContent] = useState('');
+  const [newPostContent, setNewPostContent] = useState(() => localStorage.getItem('gvvr_timeline_post_draft') || '');
   const [newPostImages, setNewPostImages] = useState<{ high: string; low: string }[]>([]);
   const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [showComposerModal, setShowComposerModal] = useState(false);
@@ -1023,7 +1023,34 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             );
           } else {
             if (!highlight.trim()) {
-              return <span key={`text-${i}`}>{part}</span>;
+              const urlRegex = /(https?:\/\/[^\s]+)/g;
+              const subparts = part.split(urlRegex);
+              return (
+                <span key={`text-${i}`}>
+                  {subparts.map((sp, idx) => {
+                    if (sp.match(urlRegex)) {
+                      return (
+                        <a
+                          key={`url-${idx}`}
+                          href={sp}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            color: 'var(--primary)',
+                            textDecoration: 'underline',
+                            wordBreak: 'break-all',
+                            fontWeight: 600
+                          }}
+                        >
+                          {sp}
+                        </a>
+                      );
+                    }
+                    return sp;
+                  })}
+                </span>
+              );
             }
 
             const searchRegex = new RegExp(`(${highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
@@ -2197,6 +2224,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
         if (res.ok) {
           setNewPostContent('');
+          localStorage.removeItem('gvvr_timeline_post_draft');
+          triggerHaptic('success');
           setNewPostImages([]);
           setSelectedVideoFile(null);
           setShowPollComposer(false);
@@ -3665,7 +3694,11 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <textarea
                     value={newPostContent}
-                    onChange={(e) => setNewPostContent(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewPostContent(val);
+                      localStorage.setItem('gvvr_timeline_post_draft', val);
+                    }}
                     onPaste={handlePaste}
                     onKeyDown={handleKeyDown}
                     placeholder="いまどうしてる？（コピペでの画像追加もOK）"

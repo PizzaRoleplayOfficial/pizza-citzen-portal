@@ -4893,33 +4893,60 @@ export default function App() {
             className="glass card animate-fade" 
             style={{ 
               width: '100%', 
-              maxWidth: '500px', 
-              padding: '40px', 
-              borderRadius: '24px', 
+              maxWidth: isMobile ? 'calc(100% - 32px)' : '480px', 
+              padding: isMobile ? '24px 20px' : '36px', 
+              borderRadius: isMobile ? '20px' : '24px', 
               textAlign: 'center',
+              position: 'relative',
+              margin: 'auto 16px',
               transform: isBackSwiping ? `scale(${1 - backProgress * 0.08}) translate3d(0, ${backProgress * 20}px, 0)` : 'none',
               opacity: isBackSwiping ? 1 - backProgress : 1,
               transition: isBackSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease'
             }}
           >
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '8px' }}>✨ 自動入力 (Beta)</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+            {/* Top Close (X) button for easy one-tap dismissal on mobile */}
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setShowBetaAutoFillModal(false);
+              }}
+              style={{
+                position: 'absolute',
+                top: isMobile ? '16px' : '20px',
+                right: isMobile ? '16px' : '20px',
+                background: 'rgba(255,255,255,0.06)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            <h2 style={{ fontSize: isMobile ? '1.35rem' : '1.7rem', fontWeight: 800, marginBottom: '6px' }}>✨ 自動入力 (Beta)</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: isMobile ? '20px' : '28px', fontSize: isMobile ? '0.82rem' : '0.9rem', lineHeight: 1.5 }}>
               {formData.game_type === 'rc' 
-                ? 'Rensselaer County内のスマホ詳細画面スクリーンショットから、' 
-                : 'Greenville内のスマホ車両画面スクリーンショットから、'}
+                ? 'Rensselaer County内のスマホ詳細画面スクショから、' 
+                : 'Greenville内のスマホ車両画面スクショから、'}
               <br />
               情報を読み取って自動入力します。
             </p>
 
             {ocrLoading ? (
-              <div style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-                <div style={{ position: 'relative', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ position: 'relative', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <div style={{ position: 'absolute', inset: 0, border: '4px solid rgba(255,255,255,0.05)', borderRadius: '50%' }} />
                   <div style={{ position: 'absolute', inset: 0, border: '4px solid transparent', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1.5s linear infinite' }} />
-                  <RefreshCw size={28} className="animate-spin" style={{ color: 'var(--primary)', opacity: 0.8 }} />
+                  <RefreshCw size={26} className="animate-spin" style={{ color: 'var(--primary)', opacity: 0.8 }} />
                 </div>
                 <div style={{ width: '100%', textAlign: 'left' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '0.9rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '0.85rem' }}>
                     <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{ocrStatus || '処理を開始しています...'}</span>
                     <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{Math.round(ocrProgress * 100)}%</span>
                   </div>
@@ -4927,17 +4954,44 @@ export default function App() {
                     <div className="ocr-progress-bar" style={{ width: `${ocrProgress * 100}%` }} />
                   </div>
                 </div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>解析には数秒から数十秒かかる場合があります。しばらくお待ちください。</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>解析には数秒から数十秒かかる場合があります。しばらくお待ちください。</p>
               </div>
             ) : (
-              <div style={{ border: '2px dashed rgba(255,255,255,0.2)', borderRadius: '16px', padding: '40px', position: 'relative', background: 'var(--input-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                <ImageIcon size={48} style={{ color: 'var(--text-muted)' }} />
-                <div style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>ここをクリックして画像を選択</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>または、スクショ画像をペースト (Ctrl+V) も可能です。</div>
+              <div style={{ 
+                border: '2px dashed var(--primary)', 
+                borderRadius: '16px', 
+                padding: isMobile ? '28px 16px' : '36px 20px', 
+                position: 'relative', 
+                background: isMobile ? 'rgba(0, 193, 102, 0.04)' : 'var(--input-bg)', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: '10px',
+                cursor: 'pointer'
+              }}>
+                <div style={{
+                  width: isMobile ? '52px' : '60px',
+                  height: isMobile ? '52px' : '60px',
+                  borderRadius: '50%',
+                  background: 'rgba(0, 193, 102, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--primary)'
+                }}>
+                  <ImageIcon size={isMobile ? 28 : 34} />
+                </div>
+                <div style={{ color: 'var(--text-main)', fontWeight: 800, fontSize: isMobile ? '1.02rem' : '1.12rem' }}>
+                  {isMobile ? 'ここをタップして画像を選択' : 'ここをクリックして画像を選択'}
+                </div>
+                <div style={{ fontSize: isMobile ? '0.8rem' : '0.84rem', color: 'var(--text-muted)' }}>
+                  {isMobile ? '📸 カメラ撮影 または アルバムから選択' : 'または、スクショ画像をペースト (Ctrl+V) も可能です。'}
+                </div>
                 {isNative ? (
                   <button
                     type="button"
                     onClick={async () => {
+                      triggerHaptic('medium');
                       try {
                         const files = await pickImageFilesNative(1);
                         if (files.length > 0) {
@@ -4952,20 +5006,26 @@ export default function App() {
                 ) : (
                   <input 
                     type="file" 
-                    accept="image/jpeg, image/png" 
-                    onChange={handleOCRFileSelect} 
+                    accept="image/jpeg, image/png, image/webp, image/*" 
+                    onChange={(e) => {
+                      triggerHaptic('medium');
+                      handleOCRFileSelect(e);
+                    }} 
                     style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
                   />
                 )}
               </div>
             )}
 
-            <div style={{ marginTop: '32px' }}>
+            <div style={{ marginTop: isMobile ? '20px' : '28px' }}>
               <button 
                 className="btn btn-secondary" 
-                onClick={() => setShowBetaAutoFillModal(false)} 
+                onClick={() => {
+                  triggerHaptic('light');
+                  setShowBetaAutoFillModal(false);
+                }} 
                 disabled={ocrLoading}
-                style={{ width: '100%', padding: '16px', fontSize: '1rem', borderRadius: '12px' }}
+                style={{ width: '100%', padding: isMobile ? '13px' : '15px', fontSize: '0.95rem', borderRadius: '12px' }}
               >
                 キャンセル
               </button>

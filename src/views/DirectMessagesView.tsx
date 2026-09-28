@@ -13,7 +13,8 @@ import {
   MessageSquare,
   ShieldCheck,
   RefreshCw,
-  Upload
+  Upload,
+  Download
 } from 'lucide-react';
 import { compressImage } from '../utils/helpers';
 import { triggerHaptic } from '../utils/native';
@@ -55,6 +56,45 @@ interface Message {
   read_at: string | null;
   created_at: string;
 }
+
+// Utility: Render formatted message with clickable hyperlinks
+const renderFormattedMessageText = (text: string) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            color: 'var(--primary)',
+            textDecoration: 'underline',
+            wordBreak: 'break-all',
+            fontWeight: 600
+          }}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
+// Utility: Download image to device
+const downloadImageFile = (urlOrBase64: string, filename: string) => {
+  const link = document.createElement('a');
+  link.href = urlOrBase64;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
   currentUser,
@@ -214,6 +254,10 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
   useEffect(() => {
     if (!activeConversationId) return;
 
+    // Restore draft text for this conversation
+    const savedDraft = localStorage.getItem(`gvvr_dm_draft_${activeConversationId}`) || '';
+    setInputText(savedDraft);
+
     fetchMessages(activeConversationId);
 
     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
@@ -325,6 +369,10 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
       if (res.ok) {
         const data = await res.json();
+        triggerHaptic('success');
+        if (activeConversationId) {
+          localStorage.removeItem(`gvvr_dm_draft_${activeConversationId}`);
+        }
         // Replace tempId with actual message ID
         setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.messageId } : m));
         fetchConversations(true);
@@ -818,7 +866,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                                 }}
                               />
                             )}
-                            {msg.content}
+                            {renderFormattedMessageText(msg.content)}
                           </div>
 
                           {/* Time & Read status */}
@@ -924,7 +972,11 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     rows={1}
                     value={inputText}
                     onChange={(e) => {
-                      setInputText(e.target.value);
+                      const val = e.target.value;
+                      setInputText(val);
+                      if (activeConversationId) {
+                        localStorage.setItem(`gvvr_dm_draft_${activeConversationId}`, val);
+                      }
                       e.target.style.height = 'auto';
                       e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                     }}
@@ -1125,7 +1177,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       )}
 
       {/* ──────────────────────────────────────────────────────────
-          MODAL: Zoom Image
+          MODAL: Zoom Image with Download Option
           ────────────────────────────────────────────────────────── */}
       {zoomedImage && (
         <div
@@ -1146,15 +1198,62 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
             cursor: 'zoom-out'
           }}
         >
+          {/* Top Action Bar */}
+          <div style={{ position: 'absolute', top: '24px', right: '24px', display: 'flex', gap: '12px', zIndex: 100000 }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                triggerHaptic('medium');
+                downloadImageFile(zoomedImage, `gv-chat-image-${Date.now()}.jpg`);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#fff',
+                padding: '8px 18px',
+                borderRadius: '30px',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: '0.2s'
+              }}
+            >
+              <Download size={16} /> 保存
+            </button>
+            <button
+              onClick={() => setZoomedImage(null)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#fff',
+                padding: '8px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+
           <img
             src={zoomedImage}
             alt="Zoomed"
+            onClick={(e) => e.stopPropagation()}
             style={{
               maxWidth: '90vw',
-              maxHeight: '90vh',
+              maxHeight: '82vh',
               objectFit: 'contain',
               borderRadius: '16px',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)'
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+              cursor: 'default'
             }}
           />
         </div>

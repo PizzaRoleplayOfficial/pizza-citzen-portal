@@ -27,7 +27,36 @@ export const isNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() 
 export const triggerHaptic = async (
   type: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'segment_tick' | 'segment_frequent' | 'drag_start' | 'gesture_start' | 'gesture_end'
 ) => {
-  if (!isNative) return;
+  if (!isNative) {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        switch (type) {
+          case 'light':
+          case 'segment_tick':
+            navigator.vibrate(8);
+            break;
+          case 'medium':
+          case 'drag_start':
+            navigator.vibrate(18);
+            break;
+          case 'heavy':
+            navigator.vibrate(30);
+            break;
+          case 'success':
+            navigator.vibrate([12, 40, 18]);
+            break;
+          case 'warning':
+          case 'error':
+            navigator.vibrate([25, 50, 25]);
+            break;
+          default:
+            navigator.vibrate(10);
+            break;
+        }
+      } catch {}
+    }
+    return;
+  }
   
   try {
     const platform = Capacitor.getPlatform();
