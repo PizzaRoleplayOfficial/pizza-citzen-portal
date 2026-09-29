@@ -57,6 +57,15 @@ interface AdminDashboardViewProps {
   handleToggleQuestion: (id: string, active: number) => void;
   currentUser: any;
   setView: (view: string) => void;
+  maintenance?: {
+    enabled: boolean;
+    title: string;
+    message: string;
+    estimatedEnd?: string;
+    discordUrl?: string;
+    updatedAt?: string | null;
+  } | null;
+  onUpdateMaintenance?: (info: any) => Promise<boolean>;
   // Local states for sub-tabs if needed
   selectedUserForVehicles: any;
   setSelectedUserForVehicles: (user: any) => void;
@@ -96,6 +105,8 @@ export const AdminDashboardView = ({
   handleToggleQuestion,
   currentUser,
   setView,
+  maintenance,
+  onUpdateMaintenance,
   selectedUserForVehicles,
   setSelectedUserForVehicles,
   adminSearchTerm,
@@ -114,6 +125,46 @@ export const AdminDashboardView = ({
   const [adminGameFilter, setAdminGameFilter] = useState<'all' | 'gv' | 'rc'>('all');
   const [lookupTypeFilter, setLookupTypeFilter] = useState<'all' | 'car' | 'trailer'>('all');
   const [showAllActivities, setShowAllActivities] = useState(false);
+
+  // Maintenance mode local state
+  const [maintEnabled, setMaintEnabled] = useState(maintenance?.enabled || false);
+  const [maintTitle, setMaintTitle] = useState(maintenance?.title || '大規模システムメンテナンス実施中');
+  const [maintMessage, setMaintMessage] = useState(maintenance?.message || '現在、新機能追加およびシステム最適化の作業を行っております。完了まで今しばらくお待ちください。');
+  const [maintEnd, setMaintEnd] = useState(maintenance?.estimatedEnd || '');
+  const [maintDiscord, setMaintDiscord] = useState(maintenance?.discordUrl || 'https://discord.gg/RruM8Gqc4m');
+  const [isSavingMaint, setIsSavingMaint] = useState(false);
+  const [maintSuccessToast, setMaintSuccessToast] = useState(false);
+
+  React.useEffect(() => {
+    if (maintenance) {
+      setMaintEnabled(maintenance.enabled);
+      setMaintTitle(maintenance.title || '大規模システムメンテナンス実施中');
+      setMaintMessage(maintenance.message || '現在、新機能追加およびシステム最適化の作業を行っております。完了まで今しばらくお待ちください。');
+      setMaintEnd(maintenance.estimatedEnd || '');
+      setMaintDiscord(maintenance.discordUrl || 'https://discord.gg/RruM8Gqc4m');
+    }
+  }, [maintenance]);
+
+  const handleSaveMaintenance = async () => {
+    if (!onUpdateMaintenance) return;
+    triggerHaptic('medium');
+    setIsSavingMaint(true);
+    try {
+      const ok = await onUpdateMaintenance({
+        enabled: maintEnabled,
+        title: maintTitle,
+        message: maintMessage,
+        estimatedEnd: maintEnd,
+        discordUrl: maintDiscord
+      });
+      if (ok) {
+        setMaintSuccessToast(true);
+        setTimeout(() => setMaintSuccessToast(false), 3000);
+      }
+    } finally {
+      setIsSavingMaint(false);
+    }
+  };
 
   const contentRef = React.useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -368,7 +419,8 @@ export const AdminDashboardView = ({
               { id: 'lookup', label: '車両検索', icon: SearchIcon },
               { id: 'users', label: 'ユーザー管理', icon: UserIcon },
               { id: 'catalog', label: 'カタログ管理', icon: BookOpen },
-              { id: 'questions', label: '問題管理', icon: ClipboardList }
+              { id: 'questions', label: '問題管理', icon: ClipboardList },
+              { id: 'maintenance', label: 'メンテナンス設定', icon: AlertTriangle }
             ].map(item => {
               const isActive = adminTab === item.id;
               return (
@@ -456,7 +508,9 @@ export const AdminDashboardView = ({
                 adminTab === 'applications' ? '市民申請' : 
                 adminTab === 'lookup' ? '車両検索' : 
                 adminTab === 'users' ? 'ユーザー管理' : 
-                adminTab === 'catalog' ? 'カタログ管理' : '問題管理'}
+                adminTab === 'catalog' ? 'カタログ管理' :
+                adminTab === 'questions' ? '問題管理' :
+                adminTab === 'maintenance' ? 'メンテナンス設定' : '管理'}
               </h2>
               <p style={{ color: 'var(--text-muted)', fontSize: isMobile ? '0.82rem' : '0.95rem' }}>ぴっざぁポータル</p>
             </div>
@@ -531,6 +585,62 @@ export const AdminDashboardView = ({
 
         {adminTab === 'dashboard' && (
           <div className="animate-fade">
+            {/* Quick Maintenance Status Banner Widget */}
+            <div 
+              className="glass card" 
+              onClick={() => setAdminTabPersist('maintenance')} 
+              style={{
+                padding: isMobile ? '14px 16px' : '20px 28px',
+                borderRadius: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                cursor: 'pointer',
+                background: maintEnabled ? 'rgba(239, 68, 68, 0.08)' : 'var(--panel-bg)',
+                border: maintEnabled ? '1.5px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--glass-border)',
+                marginBottom: isMobile ? '16px' : '24px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: maintEnabled ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                  color: maintEnabled ? 'var(--error)' : 'var(--success)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>SYSTEM STATUS</div>
+                  <div style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 800, color: maintEnabled ? 'var(--error)' : 'var(--success)' }}>
+                    {maintEnabled ? '🔴 メンテナンスモード稼働中（一般アクセス遮断中）' : '🟢 通常稼働中（市民アクセス可能）'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '12px',
+                  background: 'var(--subtle-bg)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-main)',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                設定変更 →
+              </button>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '12px' : '24px' }}>
               {isLoading && allUsers.length === 0 && allSearchVehicles.length === 0 ? (
                 [1, 2, 3].map(i => (
@@ -1510,6 +1620,237 @@ export const AdminDashboardView = ({
                  <RefreshCw size={18} /> WikiからRCカタログを同期
                </button>
              </div>
+          </div>
+        )}
+
+        {adminTab === 'maintenance' && (
+          <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px' }}>
+            {/* Header info card */}
+            <div className="glass card" style={{
+              padding: isMobile ? '20px' : '28px',
+              borderRadius: '24px',
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--glass-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '16px',
+                    background: maintEnabled ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                    color: maintEnabled ? 'var(--error)' : 'var(--success)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <AlertTriangle size={24} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      大規模更新用 メンテナンスモード
+                    </h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      有効化すると一般市民のアクセスを即座に遮断し、メンテナンス画面を表示します。
+                    </p>
+                  </div>
+                </div>
+
+                {/* Big ON/OFF Switch */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('medium');
+                    setMaintEnabled(!maintEnabled);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px 20px',
+                    borderRadius: '24px',
+                    background: maintEnabled ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                    border: maintEnabled ? '1.5px solid var(--error)' : '1.5px solid var(--success)',
+                    color: maintEnabled ? 'var(--error)' : 'var(--success)',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    background: maintEnabled ? 'var(--error)' : 'var(--success)',
+                    boxShadow: maintEnabled ? '0 0 10px var(--error)' : '0 0 10px var(--success)'
+                  }} />
+                  <span>{maintEnabled ? 'メンテナンス中（遮断中）' : '通常稼働中（アクセス可能）'}</span>
+                </button>
+              </div>
+
+              <div style={{
+                marginTop: '12px',
+                padding: '12px 16px',
+                borderRadius: '14px',
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                fontSize: '0.85rem',
+                color: 'var(--text-main)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <ShieldCheck size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                <span>
+                  <strong>管理者バイパス有効:</strong> 管理者（Admin）アカウントはメンテナンス中も通常通りログイン・車両審査・全画面の確認が可能です。
+                </span>
+              </div>
+            </div>
+
+            {/* Settings Form */}
+            <div className="glass card" style={{
+              padding: isMobile ? '20px' : '28px',
+              borderRadius: '24px',
+              background: 'var(--panel-bg)',
+              border: '1px solid var(--glass-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                メンテナンス画面の表示設定
+              </h4>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                  告知タイトル
+                </label>
+                <input
+                  type="text"
+                  value={maintTitle}
+                  onChange={e => setMaintTitle(e.target.value)}
+                  placeholder="例: 大規模システムメンテナンス実施中"
+                  className="glass"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '14px',
+                    border: '1px solid var(--glass-border)',
+                    background: 'var(--subtle-bg)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.95rem'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                  作業概要・告知メッセージ
+                </label>
+                <textarea
+                  value={maintMessage}
+                  onChange={e => setMaintMessage(e.target.value)}
+                  placeholder="メンテナンスの理由や進捗を記入してください"
+                  rows={4}
+                  className="glass"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '14px',
+                    border: '1px solid var(--glass-border)',
+                    background: 'var(--subtle-bg)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.95rem',
+                    resize: 'vertical',
+                    lineHeight: 1.6
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                    終了予定日時（任意）
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={maintEnd}
+                    onChange={e => setMaintEnd(e.target.value)}
+                    className="glass"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: '14px',
+                      border: '1px solid var(--glass-border)',
+                      background: 'var(--subtle-bg)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.95rem'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    設定するとカウントダウンが自動表示されます
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                    公式Discord URL
+                  </label>
+                  <input
+                    type="text"
+                    value={maintDiscord}
+                    onChange={e => setMaintDiscord(e.target.value)}
+                    placeholder="https://discord.gg/..."
+                    className="glass"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: '14px',
+                      border: '1px solid var(--glass-border)',
+                      background: 'var(--subtle-bg)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.95rem'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    市民が最新進捗を確認するためのリンクです
+                  </span>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                {maintSuccessToast && (
+                  <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle2 size={18} />
+                    設定を即時反映しました！
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSaveMaintenance}
+                  disabled={isSavingMaint}
+                  className="btn btn-primary"
+                  style={{
+                    padding: '12px 32px',
+                    borderRadius: '16px',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
+                  }}
+                >
+                  {isSavingMaint ? (
+                    <><RefreshCw size={18} className="animate-spin" /> 保存中...</>
+                  ) : (
+                    maintEnabled ? '🔴 メンテナンスモードを反映する' : '設定を保存する'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

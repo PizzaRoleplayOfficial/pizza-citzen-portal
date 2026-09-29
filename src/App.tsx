@@ -8,6 +8,7 @@ import { ProfileView } from './views/ProfileView';
 import { AdminDashboardView } from './views/AdminDashboardView';
 import { TimelineView } from './views/TimelineView';
 import { DirectMessagesView } from './views/DirectMessagesView';
+import { MaintenanceView } from './views/MaintenanceView';
 import { 
   Car, 
   Plus, 
@@ -164,6 +165,61 @@ export default function App() {
     }
   };
   const [currentUser, setCurrentUser] = useState<User>(INITIAL_USER);
+  const [maintenanceInfo, setMaintenanceInfo] = useState<{
+    enabled: boolean;
+    title: string;
+    message: string;
+    estimatedEnd?: string;
+    discordUrl?: string;
+    updatedAt?: string | null;
+  } | null>(null);
+  const [isCheckingMaintenance, setIsCheckingMaintenance] = useState(false);
+
+  const fetchSystemStatus = async () => {
+    try {
+      setIsCheckingMaintenance(true);
+      const res = await fetch('/api/system-status', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json() as any;
+        if (data && data.maintenance) {
+          setMaintenanceInfo(data.maintenance);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch system status:', e);
+    } finally {
+      setIsCheckingMaintenance(false);
+    }
+  };
+
+  const handleUpdateMaintenance = async (info: any) => {
+    try {
+      const res = await fetch('/api/system-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maintenance: info })
+      });
+      if (res.ok) {
+        const data = await res.json() as any;
+        if (data && data.maintenance) {
+          setMaintenanceInfo(data.maintenance);
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Failed to update maintenance mode:', e);
+      return false;
+    }
+  };
+
+  const handleAdminLogin = async () => {
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url: 'https://pizza-citzen-portal.pages.dev/api/auth/login?source=app' });
+    } else {
+      window.location.href = '/api/auth/login';
+    }
+  };
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [pushSettings, setPushSettings] = useState({
     resultsEnabled: localStorage.getItem('gvvr_push_results') !== 'false',
@@ -249,7 +305,7 @@ export default function App() {
     const mainView = parts[0];
     const subTab = parts[1];
     const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply', 'timeline', 'messages'];
-    const validSubTabs = ['dashboard', 'vehicles', 'users', 'lookup', 'applications', 'questions', 'catalog'];
+    const validSubTabs = ['dashboard', 'vehicles', 'users', 'lookup', 'applications', 'questions', 'catalog', 'maintenance'];
     
     return {
       view: (validViews.includes(mainView) ? mainView : 'home') as 'home' | 'intro' | 'garage' | 'admin' | 'profile' | 'apply' | 'timeline' | 'messages',
@@ -1356,6 +1412,8 @@ export default function App() {
       }
     };
     checkLogin();
+    fetchSystemStatus();
+    const maintInterval = setInterval(fetchSystemStatus, 30000);
 
     // アプリ初回起動時に通知などの必要な権限をリクエスト
     requestNotificationPermission();
@@ -2942,6 +3000,20 @@ export default function App() {
   }
 
 
+  const isAdmin = currentUser?.role === 'admin';
+  const isMaintenanceActive = maintenanceInfo?.enabled === true;
+
+  if (isMaintenanceActive && !isAdmin) {
+    return (
+      <MaintenanceView
+        maintenance={maintenanceInfo!}
+        onRefresh={fetchSystemStatus}
+        isChecking={isCheckingMaintenance}
+        onAdminLogin={handleAdminLogin}
+      />
+    );
+  }
+
   if (!isLoggedIn) return <LandingView onLoginSuccess={(user) => { setCurrentUser(user); setIsLoggedIn(true); }} />;
 
   const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
@@ -2954,6 +3026,46 @@ export default function App() {
       minHeight: '100vh',
       position: 'relative'
     }}>
+      {isMaintenanceActive && isAdmin && (
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 9999,
+          background: 'linear-gradient(90deg, #dc2626, #ea580c)',
+          color: '#ffffff',
+          padding: '10px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '0.88rem',
+          fontWeight: 700,
+          boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertTriangle size={18} />
+            <span>⚠️ メンテナンスモード稼働中（一般市民のアクセスは遮断されています）</span>
+          </div>
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setView('admin');
+              setAdminTabPersist('maintenance');
+            }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              color: '#ffffff',
+              borderRadius: '8px',
+              padding: '4px 12px',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            設定変更 →
+          </button>
+        </div>
+      )}
       <div className="app-layout" style={{
         minHeight: '100vh',
         display: 'flex',
@@ -4056,6 +4168,8 @@ export default function App() {
           <AdminDashboardView
             adminTab={adminTab}
             setAdminTabPersist={setAdminTabPersist}
+            maintenance={maintenanceInfo}
+            onUpdateMaintenance={handleUpdateMaintenance}
             vehicles={vehicles}
             allSearchVehicles={allSearchVehicles}
             allUsers={allUsers}
