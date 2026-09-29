@@ -413,10 +413,10 @@ export default function App() {
   }, [currentUser?.id, isNative]);
 
 
-  const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog'>(
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog' | 'maintenance'>(
     initialParsed.adminTab || (sessionStorage.getItem('gvvr_adminTab') as any) || 'dashboard'
   );
-  const setAdminTabPersist = (tab: 'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog') => {
+  const setAdminTabPersist = (tab: 'dashboard' | 'vehicles' | 'users' | 'lookup' | 'applications' | 'questions' | 'catalog' | 'maintenance') => {
     sessionStorage.setItem('gvvr_adminTab', tab);
     setAdminTab(tab);
     triggerHaptic('light');
@@ -908,8 +908,8 @@ export default function App() {
       const parts = hash.split('/');
       const mainView = parts[0];
       const subTab = parts[1];
-      const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply'];
-      const validSubTabs = ['dashboard', 'vehicles', 'users', 'lookup', 'applications', 'questions', 'catalog'];
+      const validViews = ['home', 'intro', 'garage', 'admin', 'profile', 'apply', 'timeline', 'messages'];
+      const validSubTabs = ['dashboard', 'vehicles', 'users', 'lookup', 'applications', 'questions', 'catalog', 'maintenance'];
       
       if (validViews.includes(mainView)) {
         setView(mainView as any);
