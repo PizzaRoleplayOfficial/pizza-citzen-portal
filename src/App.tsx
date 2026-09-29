@@ -231,7 +231,9 @@ export default function App() {
     timelineCommentEnabled: localStorage.getItem('gvvr_push_timeline_comment') !== 'false',
     timelineNewPostEnabled: localStorage.getItem('gvvr_push_timeline_new_post') !== 'false'
   });
-  const [theme, setTheme] = useState<'light'>('light');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('gvvr_theme') as 'dark' | 'light') || 'light';
+  });
   const [enterKeyBehavior, setEnterKeyBehavior] = useState<'enter' | 'shiftEnter'>(
     (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
   );
@@ -1120,8 +1122,16 @@ export default function App() {
 
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('gvvr_theme', 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('gvvr_theme', theme);
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setStyle({
+        style: theme === 'dark' ? Style.Dark : Style.Light
+      }).catch(err => console.warn('Capacitor StatusBar action failed:', err));
+    }
+  }, [theme]);
+
+  useEffect(() => {
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -4213,7 +4223,7 @@ export default function App() {
           bottom: 0, 
           left: 0, 
           right: 0, 
-          background: 'rgba(255, 255, 255, 0.75)', 
+          background: theme === 'dark' ? 'rgba(18, 19, 24, 0.85)' : 'rgba(255, 255, 255, 0.75)', 
           backdropFilter: 'blur(20px) saturate(180%)', 
           WebkitBackdropFilter: 'blur(20px) saturate(180%)', 
           borderTop: '1px solid var(--border)', 

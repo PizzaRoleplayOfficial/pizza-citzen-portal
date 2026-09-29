@@ -4,7 +4,7 @@
    ライトテーマ厳守 (ウォームグレー / ピュアホワイト)
    ======================================================== */
 
-:root, :root[data-theme='light'], :root[data-theme='dark'] {
+:root, :root[data-theme='light'] {
   color-scheme: light;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -18,7 +18,7 @@
   --secondary: #2563eb;
   --secondary-hover: #1d4ed8;
 
-  /* Backgrounds: Warm Off-White / Warm Gray (ダークテーマへの逆行禁止) */
+  /* Backgrounds: Warm Off-White / Warm Gray */
   --bg-dark: #f4f5f7;
   --bg-grad-1: #ffffff;
   --bg-grad-2: #f4f5f7;
@@ -42,7 +42,7 @@
   --input-text: #1f2937;
   --input-border: #e2e8f0;
 
-  /* Status Colors: Official DMV Stamps (落ち着いた彩度) */
+  /* Status Colors: Official DMV Stamps */
   --success: #2d6a4f;
   --success-bg: rgba(45, 106, 79, 0.1);
   --pending: #b45309;
@@ -61,11 +61,64 @@
   --font-heading: 'Montserrat', 'Noto Sans JP', sans-serif;
   --font-plate: 'Bebas Neue', 'Montserrat', sans-serif;
 
-  /* Elevation Shadows (極めて薄く拡散したシャドウ) */
+  /* Elevation Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.07);
   --image-bg: #f1f5f9;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --primary: #0a84ff;
+  --primary-hover: #409cff;
+  --primary-glow: rgba(10, 132, 255, 0.25);
+  --secondary: #3b82f6;
+  --secondary-hover: #60a5fa;
+
+  /* Backgrounds: Apple Clean Charcoal / Dark Zinc */
+  --bg-dark: #121316;
+  --bg-grad-1: #1a1b20;
+  --bg-grad-2: #121316;
+  --bg-card: #1c1d22;
+
+  /* Typography */
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-light: #71717a;
+
+  /* Borders & Thin Material Glassmorphism */
+  --border: rgba(255, 255, 255, 0.09);
+  --glass-bg: rgba(28, 29, 34, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --nav-bg: rgba(18, 19, 22, 0.85);
+  --panel-bg: #1c1d22;
+  --admin-content-bg: #121316;
+
+  /* Form Controls */
+  --input-bg: #16171b;
+  --input-text: #f4f4f5;
+  --input-border: rgba(255, 255, 255, 0.12);
+
+  /* Status Colors */
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.12);
+  --pending: #fbbf24;
+  --pending-bg: rgba(251, 191, 36, 0.12);
+  --error: #f87171;
+  --error-bg: rgba(248, 113, 113, 0.12);
+
+  /* Buttons */
+  --btn-secondary-bg: rgba(255, 255, 255, 0.08);
+  --btn-secondary-hover: rgba(255, 255, 255, 0.14);
+  --btn-secondary-text: #f4f4f5;
+  --modal-overlay: rgba(0, 0, 0, 0.65);
+
+  /* Elevation Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --image-bg: #18191d;
 }
 
 * {
@@ -2276,4 +2329,40 @@ img[src*="ui-avatars"],
   font-weight: 700 !important;
   font-size: 1.05rem !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+}
+
+:root[data-theme='dark'] .thin-material {
+  background: rgba(24, 25, 30, 0.8) !important;
+}
+
+:root[data-theme='dark'] .segmented-control {
+  background: #27272a !important;
+}
+
+:root[data-theme='dark'] .segmented-control-btn.active {
+  background: #3f3f46 !important;
+  color: #f4f4f5 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-theme='dark'] .bubble-other {
+  background: #27272a !important;
+  color: #f4f4f5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+:root[data-theme='dark'] .chat-input-pill {
+  background: #222328 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+:root[data-theme='dark'] .mobile-action-group {
+  background: rgba(30, 32, 38, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+:root[data-theme='dark'] .mobile-action-cancel-card {
+  background: rgba(30, 32, 38, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #0a84ff !important;
 }
