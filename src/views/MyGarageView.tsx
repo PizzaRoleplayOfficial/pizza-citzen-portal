@@ -588,8 +588,50 @@ export const MyGarageView = ({
             )}
           </div>
           {!isLoading && vehicles.filter(v => (v as any).vehicle_type === garageTab || (!(v as any).vehicle_type && garageTab === 'car')).length === 0 && (
-            <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', background: 'var(--panel-bg)', borderRadius: '16px', border: '1px dashed var(--glass-border)' }}>
-              {garageTab === 'car' ? 'ガレージに車両がありません。「車両を追加」ボタンから登録してください。' : '登録済みのトレーラーがありません。「トレーラーを追加」ボタンから登録してください。'}
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 24px',
+              color: 'var(--text-muted)',
+              background: '#ffffff',
+              borderRadius: '20px',
+              border: '1px dashed var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+            }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(30, 58, 138, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Car size={28} style={{ color: 'var(--primary)' }} />
+              </div>
+              <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                {garageTab === 'car' ? 'ガレージに登録された車両がありません' : '登録されたトレーラーがありません'}
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.85rem', maxWidth: '360px', lineHeight: 1.5 }}>
+                {garageTab === 'car'
+                  ? 'Greenviewの街で運転するあなたの愛車を登録して、公認の市民ナンバープレートを取得しましょう。'
+                  : '運搬や業務で使用するトレーラーを登録して、正式な許可番号を取得しましょう。'}
+              </p>
+              {myApplication?.status === 'approved' && (
+                <button
+                  onClick={() => {
+                    triggerHaptic('medium');
+                    if (garageTab === 'car') {
+                      setFormData({ game_type: activeGame, maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setEditingVehicleId(null);
+                      setShowAddModal(true);
+                    } else {
+                      setTrailerFormData({ game_type: activeGame, model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setShowTrailerModal(true);
+                    }
+                  }}
+                  className="btn btn-primary"
+                  style={{ marginTop: '8px', padding: '10px 24px', borderRadius: '12px' }}
+                >
+                  <Plus size={16} strokeWidth={2.5} />
+                  {garageTab === 'car' ? '車両の登録申請をする' : 'トレーラーの登録申請をする'}
+                </button>
+              )}
             </div>
           )}
         </>
@@ -668,10 +710,10 @@ export const MyGarageView = ({
                   }}
                   style={{
                     width: '48px', height: '48px', borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+                    background: 'var(--primary)',
                     color: '#000', border: 'none', display: 'flex', alignItems: 'center',
                     justifyContent: 'center', cursor: 'pointer',
-                    boxShadow: '0 2px 12px rgba(0,255,136,0.3)', flexShrink: 0,
+                    boxShadow: '0 2px 12px rgba(30,58,138,0.3)', flexShrink: 0,
                     fontSize: '1.3rem',
                   }}
                   aria-label={garageTab === 'car' ? '車両を手動登録' : 'トレーラーを手動登録'}
@@ -693,12 +735,12 @@ export const MyGarageView = ({
               borderRadius: '50%',
               background: fabOpen
                 ? 'rgba(255,255,255,0.12)'
-                : 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+                : 'var(--primary)',
               color: fabOpen ? 'var(--text-main)' : '#000',
               border: fabOpen ? '1.5px solid var(--glass-border)' : 'none',
               boxShadow: fabOpen
                 ? '0 2px 16px rgba(0,0,0,0.4)'
-                : '0 4px 20px rgba(0,255,136,0.45), 0 2px 8px rgba(0,0,0,0.3)',
+                : '0 4px 16px rgba(30,58,138,0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

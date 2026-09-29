@@ -3,64 +3,122 @@
    ========================================== */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  --primary: #00ff88;
-  --primary-glow: rgba(0, 255, 136, 0.4);
-  --secondary: #00d4ff;
-  --bg-dark: #0a0c10;
-  --bg-grad-1: #1a2a3a;
-  --bg-grad-2: #0d1520;
-  --bg-card: rgba(25, 30, 40, 0.7);
-  --text-main: #f0f2f5;
-  --text-muted: #94a3b8;
-  --border: rgba(255, 255, 255, 0.1);
-  --glass-bg: rgba(15, 20, 30, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --nav-bg: #12161f;
-  --panel-bg: rgba(20,25,35,0.6);
-  --admin-content-bg: transparent;
-  --input-bg: rgba(0,0,0,0.2);
-  --input-text: #fff;
-  --error: #ff4757;
-  --success: #2ed573;
-  --btn-secondary-bg: rgba(255, 255, 255, 0.05);
-  --btn-secondary-hover: rgba(255, 255, 255, 0.1);
-  --btn-secondary-text: #fff;
-  --modal-overlay: rgba(10,12,16,0.85);
-  --font-sans: 'Nunito Sans', 'Noto Sans JP', 'Noto Sans CJK JP', system-ui, -apple-system, sans-serif;
-  --image-bg: rgba(0, 0, 0, 0.25);
+
+  /* Primary Accent: Classic Navy / Indigo */
+  --primary: #1e3a8a;
+  --primary-hover: #1e40af;
+  --primary-glow: rgba(30, 58, 138, 0.15);
+  --secondary: #2563eb;
+  --secondary-hover: #1d4ed8;
+
+  /* Backgrounds: Warm Off-White / Warm Gray */
+  --bg-dark: #fbfbfa;
+  --bg-grad-1: #ffffff;
+  --bg-grad-2: #f4f4f2;
+  --bg-card: #ffffff;
+
+  /* Typography */
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --text-light: #9ca3af;
+
+  /* Borders & Glass */
+  --border: rgba(0, 0, 0, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(0, 0, 0, 0.07);
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --panel-bg: #ffffff;
+  --admin-content-bg: #f8fafc;
+
+  /* Form Controls */
+  --input-bg: #ffffff;
+  --input-text: #1f2937;
+  --input-border: #e2e8f0;
+
+  /* Status Colors: Official Registry Tone */
+  --success: #2d6a4f;
+  --success-bg: rgba(45, 106, 79, 0.1);
+  --pending: #b45309;
+  --pending-bg: rgba(180, 83, 9, 0.1);
+  --error: #b91c1c;
+  --error-bg: rgba(185, 28, 28, 0.1);
+
+  /* Buttons */
+  --btn-secondary-bg: #f3f4f6;
+  --btn-secondary-hover: #e5e7eb;
+  --btn-secondary-text: #374151;
+  --modal-overlay: rgba(15, 23, 42, 0.45);
+
+  /* Fonts */
+  --font-sans: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Montserrat', 'Noto Sans JP', sans-serif;
+  --font-plate: 'Bebas Neue', 'Montserrat', sans-serif;
+
+  /* Elevation Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --image-bg: #f1f5f9;
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --primary: #00c166;
-  --primary-glow: rgba(0, 193, 102, 0.3);
-  --secondary: #00a0cc;
-  --bg-dark: #f0f4f8;
+  --primary: #1e3a8a;
+  --primary-hover: #1e40af;
+  --primary-glow: rgba(30, 58, 138, 0.15);
+  --secondary: #2563eb;
+  --bg-dark: #fbfbfa;
   --bg-grad-1: #ffffff;
-  --bg-grad-2: #e0e7ee;
+  --bg-grad-2: #f4f4f2;
   --bg-card: #ffffff;
-  --text-main: #2b3a4a;
-  --text-muted: #64748b;
-  --border: rgba(0, 0, 0, 0.1);
-  --glass-bg: rgba(255, 255, 255, 0.95);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --nav-bg: #ffffff;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --border: rgba(0, 0, 0, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.07);
+  --nav-bg: rgba(255, 255, 255, 0.9);
   --panel-bg: #ffffff;
   --admin-content-bg: #f8fafc;
   --input-bg: #ffffff;
-  --input-text: #2b3a4a;
-  --btn-secondary-bg: #ffffff;
-  --btn-secondary-hover: #f1f5f9;
-  --btn-secondary-text: #2b3a4a;
-  --modal-overlay: rgba(100,116,139,0.5);
+  --input-text: #1f2937;
+  --btn-secondary-bg: #f3f4f6;
+  --btn-secondary-hover: #e5e7eb;
+  --btn-secondary-text: #374151;
+  --modal-overlay: rgba(15, 23, 42, 0.45);
   --image-bg: #f1f5f9;
 }
 
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-glow: rgba(59, 130, 246, 0.2);
+  --secondary: #60a5fa;
+  --bg-dark: #0f172a;
+  --bg-grad-1: #1e293b;
+  --bg-grad-2: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(30, 41, 59, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --nav-bg: rgba(15, 23, 42, 0.9);
+  --panel-bg: #1e293b;
+  --admin-content-bg: #0f172a;
+  --input-bg: #0f172a;
+  --input-text: #f8fafc;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.08);
+  --btn-secondary-hover: rgba(255, 255, 255, 0.14);
+  --btn-secondary-text: #f8fafc;
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+  --image-bg: rgba(0, 0, 0, 0.3);
+}
 
 * {
   margin: 0;
@@ -139,13 +197,16 @@ body {
 
 /* Typography */
 h1 {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
+  font-family: var(--font-heading);
   font-weight: 800;
   letter-spacing: -0.02em;
-  background: linear-gradient(to right, var(--text-main), var(--primary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-main);
+}
+
+h2, h3, h4 {
+  font-family: var(--font-heading);
+  color: var(--text-main);
 }
 
 /* Buttons */
@@ -169,12 +230,14 @@ h1 {
 
 .btn-primary {
   background: var(--primary);
-  color: #000;
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--primary-glow);
 }
 
 .btn-primary:hover {
+  background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px var(--primary-glow);
+  box-shadow: 0 4px 16px var(--primary-glow);
 }
 
 .btn-secondary {
@@ -1118,14 +1181,41 @@ h1 {
   align-items: center;
 }
 
-.garage-card-plate-number {
-  background: #fff;
-  color: #000;
-  padding: 10px 20px;
-  font-size: 1.3rem;
+.garage-card-plate {
+  display: inline-flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+  background: #ffffff;
+}
+
+.garage-card-plate-region {
+  background: var(--plate-region-bg, #1e3a8a);
+  color: #ffffff;
+  padding: 8px 14px;
+  font-size: 0.75rem;
   font-weight: 700;
-  font-family: monospace, sans-serif;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  text-transform: uppercase;
+  font-family: var(--font-heading);
+}
+
+.garage-card-plate-number {
+  background: #ffffff;
+  color: #1e293b;
+  padding: 6px 16px;
+  font-size: 1.45rem;
+  font-weight: 700;
+  font-family: var(--font-plate);
+  letter-spacing: 0.12em;
   white-space: nowrap !important;
+  text-transform: uppercase;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
 }
 
 .garage-card-actions {
@@ -1885,20 +1975,20 @@ body.lite-mode .wiki-fallback-badge {
 }
 
 .mobile-nav-plus-btn {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: var(--primary, #00c166); /* Green pizza color */
-  color: #000000 !important; /* Black icon for contrast */
+  background: var(--primary);
+  color: #ffffff !important;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   position: absolute;
-  top: -16px; /* Jump slightly above the tab bar */
+  top: -14px;
   left: 50%;
   transform: translateX(-50%);
-  box-shadow: 0 6px 16px rgba(0, 193, 102, 0.45);
+  box-shadow: 0 4px 14px rgba(30, 58, 138, 0.35);
   cursor: pointer;
   z-index: 1005;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
@@ -1906,8 +1996,8 @@ body.lite-mode .wiki-fallback-badge {
 }
 
 .mobile-nav-plus-btn:active {
-  transform: translateX(-50%) scale(0.9);
-  background: #00a859;
+  transform: translateX(-50%) scale(0.92);
+  background: var(--primary-hover);
 }
 
 .mobile-action-menu-overlay {
@@ -1988,3 +2078,132 @@ body.lite-mode .wiki-fallback-badge {
 
 
 
+
+/* ===================================================
+   Apple-Style iOS Action Sheet (Bottom Sheet)
+   =================================================== */
+.mobile-action-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justifyContent: center;
+  animation: fadeIn 0.2s ease-out;
+  padding: 0 16px calc(16px + var(--safe-bottom));
+}
+
+.mobile-action-sheet-container {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: slideUp 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.mobile-action-group {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme='dark'] .mobile-action-group {
+  background: rgba(30, 41, 59, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-action-header {
+  padding: 16px 20px 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme='dark'] .mobile-action-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobile-action-header h4 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.mobile-action-header p {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.mobile-action-button {
+  width: 100%;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justifyContent: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+:root[data-theme='dark'] .mobile-action-button {
+  color: #60a5fa;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobile-action-button:last-child {
+  border-bottom: none;
+}
+
+.mobile-action-button:active {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme='dark'] .mobile-action-button:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mobile-action-cancel-card {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #dc2626;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transition: background-color 0.15s;
+}
+
+:root[data-theme='dark'] .mobile-action-cancel-card {
+  background: rgba(30, 41, 59, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ef4444;
+}
+
+.mobile-action-cancel-card:active {
+  background: rgba(240, 240, 240, 0.98);
+}
+
+:root[data-theme='dark'] .mobile-action-cancel-card:active {
+  background: rgba(45, 55, 75, 0.98);
+}

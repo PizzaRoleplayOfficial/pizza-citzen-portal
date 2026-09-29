@@ -963,7 +963,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         x: clientX,
         y: clientY,
         char: type === 'like' ? '❤️' : '✨',
-        color: type === 'like' ? '#ff5252' : '#00c166',
+        color: type === 'like' ? '#ef4444' : '#2d6a4f',
         angle,
         velocity
       };
@@ -4148,7 +4148,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             width: '64px',
             height: '64px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary) 0%, #00c166 100%)',
+            background: 'var(--primary)',
             color: '#000',
             border: 'none',
             boxShadow: '0 4px 20px rgba(0,255,136,0.45), 0 2px 8px rgba(0,0,0,0.3)',
@@ -5640,7 +5640,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             <div style={{
               height: '110px',
               background: theme === 'light' 
-                ? 'linear-gradient(135deg, #00c166 0%, #00d2fc 100%)' 
+                ? 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)' 
                 : 'linear-gradient(135deg, #0a2115 0%, #0d1520 100%)',
               position: 'relative'
             }}>
