@@ -324,6 +324,38 @@ export const requestNotificationPermission = async () => {
     // Create utility notification channels (Notification Categories in Android settings)
     const channels = [
       {
+        id: 'dm_messages_channel',
+        name: 'ダイレクトメッセージ',
+        description: 'DMや個別メッセージの受信を通知します。',
+        importance: 5, // MAX importance (heads-up banner, sound, vibration)
+        visibility: 1, // PUBLIC
+        sound: 'default'
+      },
+      {
+        id: 'timeline_likes_channel',
+        name: 'タイムライン いいね',
+        description: '投稿へのいいねを通知します。',
+        importance: 3,
+        visibility: 1,
+        sound: 'default'
+      },
+      {
+        id: 'timeline_comments_channel',
+        name: 'タイムライン 返信・コメント',
+        description: '投稿への返信・コメントを通知します。',
+        importance: 4,
+        visibility: 1,
+        sound: 'default'
+      },
+      {
+        id: 'timeline_new_posts_channel',
+        name: 'タイムライン 新着投稿',
+        description: '新しい投稿を通知します。',
+        importance: 3,
+        visibility: 1,
+        sound: 'default'
+      },
+      {
         id: 'application_results_channel',
         name: '申請結果通知',
         description: '市民申請や車両登録申請の審査結果を通知します。',

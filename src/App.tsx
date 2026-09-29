@@ -39,6 +39,7 @@ import {
   Menu,
   Info,
   MessageSquare,
+  Mail,
   Bell,
   Heart,
   AlertTriangle
@@ -630,6 +631,8 @@ export default function App() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'dm_messages_channel':
+        return <Mail size={16} />;
       case 'timeline_likes_channel':
         return <Heart size={16} />;
       case 'timeline_comments_channel':
@@ -648,6 +651,8 @@ export default function App() {
 
   const getNotificationIconBg = (type: string) => {
     switch (type) {
+      case 'dm_messages_channel':
+        return 'var(--primary)';
       case 'timeline_likes_channel':
         return 'var(--error)';
       case 'timeline_comments_channel':

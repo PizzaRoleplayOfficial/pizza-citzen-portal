@@ -198,9 +198,9 @@ async function saveInAppNotification(
       const existingUnread = await db.prepare(`
         SELECT id FROM notifications 
         WHERE user_id = ? AND type = 'dm_messages_channel' 
-          AND link_action LIKE ? AND is_read = 0 
+          AND instr(link_action, ?) > 0 AND is_read = 0 
         ORDER BY created_at DESC LIMIT 1
-      `).bind(userId, `%conversationId=${convId}%`).first();
+      `).bind(userId, convId).first();
 
       if (existingUnread) {
         console.log(`[DM Bundling] Updating existing unread notification ${existingUnread.id} for user ${userId}: ${payload.title}`);
@@ -213,16 +213,18 @@ async function saveInAppNotification(
       }
     }
 
-    // 2. Deduplication check: drop duplicate identical notification if created within last 5 minutes
-    const recent = await db.prepare(`
-      SELECT id FROM notifications 
-      WHERE user_id = ? AND title = ? AND body = ? AND created_at > datetime('now', '-5 minutes')
-      LIMIT 1
-    `).bind(userId, payload.title, payload.body).first();
+    // 2. Deduplication check: drop duplicate identical notification if created within last 5 minutes (exempting DM messages)
+    if (payload.channelId !== 'dm_messages_channel') {
+      const recent = await db.prepare(`
+        SELECT id FROM notifications 
+        WHERE user_id = ? AND title = ? AND body = ? AND created_at > datetime('now', '-5 minutes')
+        LIMIT 1
+      `).bind(userId, payload.title, payload.body).first();
 
-    if (recent) {
-      console.log(`[Deduplication] Dropping duplicate in-app notification for user ${userId}: ${payload.title}`);
-      return false;
+      if (recent) {
+        console.log(`[Deduplication] Dropping duplicate in-app notification for user ${userId}: ${payload.title}`);
+        return false;
+      }
     }
 
     const id = crypto.randomUUID();
@@ -255,29 +257,37 @@ export async function sendFcmNotificationToUser(
       return 0;
     }
 
-    // Automatically record in-app notification (with 5-minute deduplication)
-    const saved = await saveInAppNotification(env.D1_DB, userId, payload);
-    if (!saved) {
-      console.log(`[Deduplication] Dropping FCM push notification because it is a duplicate: ${payload.title}`);
-      return 0;
+    // Automatically record in-app notification
+    try {
+      const saved = await saveInAppNotification(env.D1_DB, userId, payload);
+      if (saved === false && payload.channelId !== 'dm_messages_channel') {
+        console.log(`[Deduplication] Dropping FCM push notification because it is a duplicate: ${payload.title}`);
+        return 0;
+      }
+    } catch (saveErr) {
+      console.error('Failed to save in-app notification, but proceeding to FCM send:', saveErr);
     }
 
     // PC/Web active check: If recipient is actively using PC/Web (active within last 45s), suppress mobile push
-    try {
-      const webActive = await env.D1_DB.prepare(`
-        SELECT 1 FROM user_presence 
-        WHERE user_id = ? 
-          AND platform = 'web' 
-          AND last_active_at > datetime('now', '-45 seconds')
-        LIMIT 1
-      `).bind(userId).first();
+    // NOTE: Direct Messages (DM) are NEVER suppressed by web presence (direct messages should always reach the user's mobile device)
+    const isDmMessage = payload.channelId === 'dm_messages_channel';
+    if (!isDmMessage) {
+      try {
+        const webActive = await env.D1_DB.prepare(`
+          SELECT 1 FROM user_presence 
+          WHERE user_id = ? 
+            AND platform = 'web' 
+            AND last_active_at > datetime('now', '-45 seconds')
+          LIMIT 1
+        `).bind(userId).first();
 
-      if (webActive) {
-        console.log(`[FCM] Suppressed mobile push notification for user ${userId} because user is actively using PC/Web.`);
-        return 0;
+        if (webActive) {
+          console.log(`[FCM] Suppressed mobile push notification for user ${userId} because user is actively using PC/Web.`);
+          return 0;
+        }
+      } catch (presenceErr) {
+        // Table might not exist yet or minor error, proceed normally
       }
-    } catch (presenceErr) {
-      // Table might not exist yet or minor error, proceed normally
     }
 
     // チャンネル種別に応じて購読トグルのフィルタリングを変更 (v2.2.2)
@@ -286,7 +296,6 @@ export async function sendFcmNotificationToUser(
     const isTimelineLike = payload.channelId === 'timeline_likes_channel';
     const isTimelineComment = payload.channelId === 'timeline_comments_channel';
     const isTimelineNewPost = payload.channelId === 'timeline_new_posts_channel';
-    const isDmMessage = payload.channelId === 'dm_messages_channel';
     
     let query = "SELECT token FROM user_push_tokens WHERE user_id = ? AND results_enabled = 1";
     if (isChannelAdmin) {

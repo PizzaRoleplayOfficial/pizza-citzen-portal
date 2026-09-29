@@ -193,8 +193,8 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
           UPDATE notifications 
           SET is_read = 1 
           WHERE user_id = ? AND is_read = 0 
-            AND (link_action LIKE ? OR type = 'dm_messages_channel')
-        `).bind(userId, `%conversationId=${conversationId}%`).run().catch(() => {});
+            AND instr(link_action, ?) > 0
+        `).bind(userId, conversationId).run().catch(() => {});
       }
 
       // Fetch partner profile
@@ -290,8 +290,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
         UPDATE notifications 
         SET is_read = 1 
         WHERE user_id = ? AND is_read = 0 
-          AND (link_action LIKE ? OR type = 'dm_messages_channel')
-      `).bind(senderId, `%conversationId=${conversationId}%`).run().catch(() => {});
+          AND instr(link_action, ?) > 0
+      `).bind(senderId, conversationId).run().catch(() => {});
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { 'Content-Type': 'application/json' }

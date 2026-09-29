@@ -21,6 +21,23 @@ public class MainActivity extends BridgeActivity {
 
         super.onCreate(savedInstanceState);
 
+        // Register Android Notification Channels
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.app.NotificationManager notificationManager = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                // DM Messages Channel (HIGH importance for popup banner and sound)
+                android.app.NotificationChannel dmChannel = new android.app.NotificationChannel(
+                    "dm_messages_channel",
+                    "ダイレクトメッセージ",
+                    android.app.NotificationManager.IMPORTANCE_HIGH
+                );
+                dmChannel.setDescription("DMや個別メッセージの受信を通知します。");
+                dmChannel.enableVibration(true);
+                dmChannel.enableLights(true);
+                notificationManager.createNotificationChannel(dmChannel);
+            }
+        }
+
         // Native offline check at startup to bypass cheap system error screens instantly
         if (!isNetworkAvailable()) {
             WebView webView = this.bridge.getWebView();
