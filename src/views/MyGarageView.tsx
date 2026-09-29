@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon, Loader2 } from 'lucide-react';
+import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon, Loader2, SlidersHorizontal, Filter, X, Car } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
 import { formatDate, parseUTCDate } from '../utils/helpers';
@@ -143,6 +143,7 @@ export const MyGarageView = ({
   const [garageSearchTerm, setGarageSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'temp'>('all');
   const [fabOpen, setFabOpen] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
   const fabRef = useRef<HTMLDivElement>(null);
 
   // Pull-to-refresh swipe gesture states
@@ -289,142 +290,262 @@ export const MyGarageView = ({
             </div>
           </div>
 
-          {/* Search Bar - Mirrored from Vehicle Lookup for consistency */}
-          <div style={{ marginBottom: '24px', display: 'flex', gap: '12px' }}>
+          {/* Search Bar + Filter Button (Clean Apple DMV Header) */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px' }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <SearchIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <SearchIcon size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
-                placeholder="車名、メーカー、ナンバープレートで検索..."
+                placeholder="車名、メーカー、ナンバーで検索..."
                 value={garageSearchTerm}
                 onChange={(e: any) => setGarageSearchTerm(e.target.value)}
-                className="glass"
-                style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: 'none', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.95rem', outline: 'none' }}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px 11px 40px',
+                  borderRadius: '14px',
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  background: '#ffffff',
+                  color: 'var(--text-main)',
+                  fontSize: '0.92rem',
+                  outline: 'none',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+                }}
               />
             </div>
+
+            {/* Filter Action Sheet Trigger Button */}
+            <button
+              type="button"
+              onClick={() => { triggerHaptic('light'); setShowFilterSheet(true); }}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '14px',
+                background: (statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') ? 'var(--primary)' : '#ffffff',
+                color: (statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') ? '#ffffff' : 'var(--text-main)',
+                border: '1px solid rgba(0, 0, 0, 0.08)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0,
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <SlidersHorizontal size={17} />
+              <span>フィルター</span>
+              {(statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') && (
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: (statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') ? '#ffffff' : 'var(--primary)'
+                }} />
+              )}
+            </button>
           </div>
 
-          {/* ゲーム専用セグメントタブ (Gv / RC) (v1.8.0) */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.02)', padding: '5px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+          {/* Segmented Control for Greenville / Rensselaer (iOS Capsule Style) */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="segmented-control">
               <button
+                type="button"
                 onClick={() => { triggerHaptic('light'); setActiveGame('gv'); }}
-                style={{
-                  flex: 1,
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  background: activeGame === 'gv' ? 'rgba(0, 193, 102, 0.15)' : 'transparent',
-                  color: activeGame === 'gv' ? 'var(--primary)' : 'var(--text-muted)',
-                  fontSize: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  borderBottom: activeGame === 'gv' ? '2px solid var(--primary)' : '2px solid transparent'
-                }}
+                className={`segmented-control-btn ${activeGame === 'gv' ? 'active' : ''}`}
               >
-                🎮 Greenville (Gv)
+                <span>🎮 Greenville (Gv)</span>
               </button>
               <button
+                type="button"
                 onClick={() => { triggerHaptic('light'); setActiveGame('rc'); }}
-                style={{
-                  flex: 1,
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  background: activeGame === 'rc' ? 'rgba(0, 160, 204, 0.15)' : 'transparent',
-                  color: activeGame === 'rc' ? 'var(--secondary)' : 'var(--text-muted)',
-                  fontSize: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  borderBottom: activeGame === 'rc' ? '2px solid var(--secondary)' : '2px solid transparent'
-                }}
+                className={`segmented-control-btn ${activeGame === 'rc' ? 'active' : ''}`}
               >
-                🎮 Rensselaer County (RC)
+                <span>🎮 Rensselaer (RC)</span>
               </button>
             </div>
-          </div>
 
-          {/* Filter Tags */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700, minWidth: '80px' }}>ステータス:</span>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  { id: 'all', label: 'すべて', className: '' },
-                  { id: 'approved', label: '承認済み', className: 'success' },
-                  { id: 'pending', label: '審査中', className: 'warning' },
-                  { id: 'rejected', label: '却下', className: 'error' },
-                  { id: 'temp', label: '仮承認', className: 'info' }
-                ].map(tag => {
-                  const active = statusFilter === tag.id;
-                  return (
-                    <button
-                      key={tag.id}
-                      onClick={() => { triggerHaptic('light'); setStatusFilter(tag.id as any); }}
-                      className={`filter-tag-btn ${active ? `active ${tag.className}` : ''}`}
-                    >
-                      {tag.label}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Quick Active Filter Badges */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: '0.78rem',
+                padding: '4px 10px',
+                borderRadius: '999px',
+                background: '#ffffff',
+                border: '1px solid rgba(0, 0, 0, 0.08)',
+                color: 'var(--text-muted)',
+                fontWeight: 600
+              }}>
+                {garageTab === 'car' ? '🚗 マイカー' : '🚛 トレーラー'}
+              </span>
+              {statusFilter !== 'all' && (
+                <span style={{
+                  fontSize: '0.78rem',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  background: 'rgba(0, 122, 255, 0.1)',
+                  color: 'var(--primary)',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  {statusFilter === 'approved' ? '承認済み' : statusFilter === 'pending' ? '審査中' : statusFilter === 'rejected' ? '却下' : '仮承認'}
+                  <X size={12} style={{ cursor: 'pointer' }} onClick={() => setStatusFilter('all')} />
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Tab switcher and Controls */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '24px', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '8px', background: 'var(--panel-bg)', padding: '6px', borderRadius: '14px', width: 'fit-content', border: '1px solid var(--glass-border)' }}>
-              {([['car', '🚗 マイカー'], ['trailer', '🚛 トレーラー']] as const).map(([tab, label]) => (
+          {/* Garage Filter Action Sheet Modal (Apple iOS Bottom Sheet Style) */}
+          {showFilterSheet && (
+            <div className="mobile-action-menu-overlay" onClick={() => setShowFilterSheet(false)}>
+              <div className="mobile-action-sheet-container" onClick={(e: any) => e.stopPropagation()}>
+                <div className="mobile-action-group" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  <div className="mobile-action-header" style={{ padding: '0 0 12px 0' }}>
+                    <h4>車両の絞り込み・表示設定</h4>
+                    <p>表示したい車両の種類やステータスを選択してください</p>
+                  </div>
+
+                  {/* 1. 車種切り替え */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                      車両カテゴリ
+                    </label>
+                    <div className="segmented-control" style={{ width: '100%', display: 'flex' }}>
+                      <button
+                        type="button"
+                        onClick={() => { triggerHaptic('light'); setGarageTab('car'); }}
+                        className={`segmented-control-btn ${garageTab === 'car' ? 'active' : ''}`}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                      >
+                        🚗 マイカー
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { triggerHaptic('light'); setGarageTab('trailer'); }}
+                        className={`segmented-control-btn ${garageTab === 'trailer' ? 'active' : ''}`}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                      >
+                        🚛 トレーラー
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. ステータス絞り込み */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                      申請ステータス
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {[
+                        { id: 'all', label: 'すべて' },
+                        { id: 'approved', label: '承認済み' },
+                        { id: 'pending', label: '審査中' },
+                        { id: 'rejected', label: '却下' },
+                        { id: 'temp', label: '仮承認' }
+                      ].map(tag => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => { triggerHaptic('light'); setStatusFilter(tag.id as any); }}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '999px',
+                            border: statusFilter === tag.id ? '1.5px solid var(--primary)' : '1px solid rgba(0, 0, 0, 0.08)',
+                            background: statusFilter === tag.id ? 'rgba(0, 122, 255, 0.1)' : '#ffffff',
+                            color: statusFilter === tag.id ? 'var(--primary)' : 'var(--text-main)',
+                            fontSize: '0.82rem',
+                            fontWeight: statusFilter === tag.id ? 700 : 500,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {tag.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. ソート順 */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                      並び替え順
+                    </label>
+                    <CustomSortDropdown
+                      value={garageSortOrder}
+                      onChange={(val) => { triggerHaptic('light'); setGarageSortOrder(val); }}
+                      options={[
+                        { id: 'newest', label: '登録順 (新しい順)' },
+                        { id: 'oldest', label: '登録順 (古い順)' },
+                        { id: 'maker', label: 'メーカー順 (A-Z)' }
+                      ]}
+                    />
+                  </div>
+
+                  {/* 4. 表示形式 */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      レイアウト表示
+                    </span>
+                    <div style={{ display: 'flex', background: '#e5e7eb', padding: '3px', borderRadius: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => { triggerHaptic('light'); setGarageViewMode('grid'); }}
+                        style={{
+                          padding: '6px 12px',
+                          background: garageViewMode === 'grid' ? '#ffffff' : 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: garageViewMode === 'grid' ? 'var(--text-main)' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          boxShadow: garageViewMode === 'grid' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none'
+                        }}
+                      >
+                        <LayoutGrid size={16} /> グリッド
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { triggerHaptic('light'); setGarageViewMode('list'); }}
+                        style={{
+                          padding: '6px 12px',
+                          background: garageViewMode === 'list' ? '#ffffff' : 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: garageViewMode === 'list' ? 'var(--text-main)' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          boxShadow: garageViewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none'
+                        }}
+                      >
+                        <List size={16} /> リスト
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 独立したキャンセル/完了ボタン */}
                 <button
-                  key={tab}
-                  onClick={() => { triggerHaptic('light'); setGarageTab(tab); }}
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: '0.2s',
-                    background: garageTab === tab ? 'var(--primary)' : 'transparent',
-                    color: garageTab === tab ? '#000' : 'var(--text-muted)',
-                    fontSize: '0.95rem'
-                  }}
-                >{label}</button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{ display: 'flex', background: 'var(--panel-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--glass-border)', height: '42px' }}>
-                 <button onClick={() => { triggerHaptic('light'); setGarageViewMode('grid'); }} className="btn" style={{ padding: '8px', background: garageViewMode === 'grid' ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: '8px', color: garageViewMode === 'grid' ? 'var(--text-main)' : 'var(--text-muted)' }} title="グリッド表示">
-                   <LayoutGrid size={20} />
-                 </button>
-                 <button onClick={() => { triggerHaptic('light'); setGarageViewMode('list'); }} className="btn" style={{ padding: '8px', background: garageViewMode === 'list' ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: '8px', color: garageViewMode === 'list' ? 'var(--text-main)' : 'var(--text-muted)' }} title="リスト表示">
-                   <List size={20} />
-                 </button>
+                  type="button"
+                  className="mobile-action-cancel-card"
+                  onClick={() => { triggerHaptic('light'); setShowFilterSheet(false); }}
+                >
+                  完了
+                </button>
               </div>
-              <CustomSortDropdown 
-                value={garageSortOrder}
-                onChange={(val) => { triggerHaptic('light'); setGarageSortOrder(val); }}
-                options={[
-                  { id: 'newest', label: '登録順 (新しい順)' },
-                  { id: 'oldest', label: '登録順 (古い順)' },
-                  { id: 'maker', label: 'メーカー順 (A-Z)' }
-                ]}
-              />
             </div>
-          </div>
-          
+          )}
 
-          <div className={garageViewMode === 'grid' ? "card-grid" : "list-view"}>
+                    <div className={garageViewMode === 'grid' ? "card-grid" : "list-view"}>
             {isLoading && vehicles.length === 0 ? (
               [1, 2, 3].map((i) => (
                 garageViewMode === 'grid' ? (

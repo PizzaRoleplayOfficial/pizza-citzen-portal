@@ -43,7 +43,9 @@ import {
   Mail,
   Bell,
   Heart,
-  AlertTriangle
+  AlertTriangle,
+  Flame,
+  MessageCircle
 } from 'lucide-react';
 import { isNative, pickImagesNative, pickImageFilesNative } from './utils/native';
 import { 
@@ -229,9 +231,7 @@ export default function App() {
     timelineCommentEnabled: localStorage.getItem('gvvr_push_timeline_comment') !== 'false',
     timelineNewPostEnabled: localStorage.getItem('gvvr_push_timeline_new_post') !== 'false'
   });
-  const [theme, setTheme] = useState<'dark'|'light'>(
-    (localStorage.getItem('gvvr_theme') as 'dark'|'light') || 'dark'
-  );
+  const [theme, setTheme] = useState<'light'>('light');
   const [enterKeyBehavior, setEnterKeyBehavior] = useState<'enter' | 'shiftEnter'>(
     (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
   );
@@ -1120,8 +1120,8 @@ export default function App() {
 
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('gvvr_theme', theme);
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('gvvr_theme', 'light');
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -3523,74 +3523,6 @@ export default function App() {
         {view === 'home' ? (
           <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
             
-            {/* ぴっざぁ公式Discord バナー */}
-            <div 
-              style={{
-                borderRadius: '20px',
-                padding: isMobile ? '16px 20px' : '20px 28px',
-                background: 'linear-gradient(135deg, rgba(88, 101, 242, 0.08) 0%, rgba(88, 101, 242, 0.02) 100%)',
-                border: '1px solid rgba(88, 101, 242, 0.2)',
-                boxShadow: '0 4px 20px rgba(88, 101, 242, 0.06)',
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '16px',
-                width: '100%'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, textAlign: isMobile ? 'center' : 'left', flexDirection: isMobile ? 'column' : 'row' }}>
-                <div style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '14px', 
-                  background: 'rgba(88, 101, 242, 0.15)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <svg width="24" height="24" viewBox="0 0 127.14 96.36" fill="#5865F2">
-                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
-                  </svg>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    ぴっざぁ公式 Discord コミュニティ
-                  </h3>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
-                    市民の交流、公式告知、ロールプレイのサポートチケット窓口はこちらから。
-                  </p>
-                </div>
-              </div>
-
-              <a 
-                href="https://discord.gg/RruM8Gqc4m" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn"
-                style={{
-                  padding: '10px 22px',
-                  borderRadius: '12px',
-                  background: '#5865F2',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  border: 'none',
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 12px rgba(88, 101, 242, 0.3)',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  flexShrink: 0
-                }}
-              >
-                参加する
-              </a>
-            </div>
-            
             {/* Top row: Official State ID Card + Garage Registry Summary */}
             <div style={{
               display: 'flex',
@@ -3845,6 +3777,74 @@ export default function App() {
                   )}
                 </div>
               </div>
+            </div>
+
+{/* ぴっざぁ公式Discord バナー */}
+            <div 
+              style={{
+                borderRadius: '20px',
+                padding: isMobile ? '16px 20px' : '20px 28px',
+                background: 'linear-gradient(135deg, rgba(88, 101, 242, 0.08) 0%, rgba(88, 101, 242, 0.02) 100%)',
+                border: '1px solid rgba(88, 101, 242, 0.2)',
+                boxShadow: '0 4px 20px rgba(88, 101, 242, 0.06)',
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, textAlign: isMobile ? 'center' : 'left', flexDirection: isMobile ? 'column' : 'row' }}>
+                <div style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '14px', 
+                  background: 'rgba(88, 101, 242, 0.15)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 127.14 96.36" fill="#5865F2">
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
+                  </svg>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    ぴっざぁ公式 Discord コミュニティ
+                  </h3>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                    市民の交流、公式告知、ロールプレイのサポートチケット窓口はこちらから。
+                  </p>
+                </div>
+              </div>
+
+              <a 
+                href="https://discord.gg/RruM8Gqc4m" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn"
+                style={{
+                  padding: '10px 22px',
+                  borderRadius: '12px',
+                  background: '#5865F2',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(88, 101, 242, 0.3)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                参加する
+              </a>
             </div>
 
             {/* 下段: 街の動向・タイムライン最新アクティビティ (重複メニューグリッドを排除し生きたコミュニティを表示) */}
@@ -4213,7 +4213,7 @@ export default function App() {
           bottom: 0, 
           left: 0, 
           right: 0, 
-          background: theme === 'dark' ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.88)', 
+          background: 'rgba(255, 255, 255, 0.75)', 
           backdropFilter: 'blur(20px) saturate(180%)', 
           WebkitBackdropFilter: 'blur(20px) saturate(180%)', 
           borderTop: '1px solid var(--border)', 
@@ -4226,33 +4226,33 @@ export default function App() {
         }}>
           {/* Tab 1: Home */}
           <button onClick={() => { triggerHaptic('light'); setView('home'); }} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
-            <Home size={22} strokeWidth={(view === 'home' || view === 'intro') ? 2.4 : 1.8} />
+            <Home size={22} fill={(view === 'home' || view === 'intro') ? 'currentColor' : 'none'} strokeWidth={(view === 'home' || view === 'intro') ? 2.4 : 1.8} />
             <span style={{ fontSize: '0.65rem', fontWeight: (view === 'home' || view === 'intro') ? 700 : 500, whiteSpace: 'nowrap' }}>ホーム</span>
           </button>
           
           {/* Tab 2: Garage */}
           <button onClick={() => { triggerHaptic('light'); setView('garage'); }} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
-            <LayoutDashboard size={22} strokeWidth={view === 'garage' ? 2.4 : 1.8} />
+            <Car size={22} fill={view === 'garage' ? 'currentColor' : 'none'} strokeWidth={view === 'garage' ? 2.4 : 1.8} />
             <span style={{ fontSize: '0.65rem', fontWeight: view === 'garage' ? 700 : 500, whiteSpace: 'nowrap' }}>ガレージ</span>
           </button>
           
           {/* Tab 3: Center Plus Action Button */}
           <div className="mobile-nav-plus-wrapper" style={{ flex: 1 }}>
             <button className="mobile-nav-plus-btn" onClick={handleMobilePlusClick} aria-label="新規アクション">
-              <Plus size={26} strokeWidth={2.6} />
+              <Plus size={28} strokeWidth={2.8} />
             </button>
           </div>
           
           {/* Tab 4: Timeline */}
           <button onClick={() => { triggerHaptic('light'); setView('timeline'); }} style={{ background: 'none', border: 'none', color: view === 'timeline' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
-            <MessageSquare size={22} strokeWidth={view === 'timeline' ? 2.4 : 1.8} />
+            <Flame size={22} fill={view === 'timeline' ? 'currentColor' : 'none'} strokeWidth={view === 'timeline' ? 2.4 : 1.8} />
             <span style={{ fontSize: '0.65rem', fontWeight: view === 'timeline' ? 700 : 500, whiteSpace: 'nowrap' }}>タイムライン</span>
           </button>
 
           {/* Tab 5: Messages */}
           <button onClick={() => { triggerHaptic('light'); setView('messages'); }} style={{ background: 'none', border: 'none', color: view === 'messages' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer', position: 'relative' }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MessageSquare size={22} strokeWidth={view === 'messages' ? 2.4 : 1.8} />
+              <MessageCircle size={22} fill={view === 'messages' ? 'currentColor' : 'none'} strokeWidth={view === 'messages' ? 2.4 : 1.8} />
               {unreadDmCount > 0 && (
                 <span style={{
                   position: 'absolute',

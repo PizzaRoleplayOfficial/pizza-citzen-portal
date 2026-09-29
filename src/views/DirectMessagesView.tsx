@@ -602,7 +602,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                         src={conv.partner_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.partner_username)}&background=00c166&color=fff`}
                         alt={conv.partner_username}
                         onError={(e) => handleAvatarError(e, conv.partner_username)}
-                        style={{ width: '46px', height: '46px', borderRadius: '14px', objectFit: 'cover' }}
+                        style={{ width: '46px', height: '46px', borderRadius: '50%', objectFit: 'cover' }}
                       />
                       {conv.unread_count > 0 && (
                         <div style={{
@@ -751,7 +751,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=00c166&color=fff`}
                     alt={activePartner.username}
                     onError={(e) => handleAvatarError(e, activePartner.username)}
-                    style={{ width: '40px', height: '40px', borderRadius: '12px', objectFit: 'cover' }}
+                    style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
                   />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -823,7 +823,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                             src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=00c166&color=fff`}
                             alt="avatar"
                             onError={(e) => handleAvatarError(e, activePartner.username)}
-                            style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                            style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                           />
                         )}
 
@@ -833,22 +833,18 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                           flexDirection: 'column',
                           alignItems: isMine ? 'flex-end' : 'flex-start'
                         }}>
-                          {/* Chat Bubble */}
+                          {/* Chat Bubble (Apple iOS Asymmetrical Squircle) */}
                           <div style={{
-                            padding: '10px 14px',
-                            borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                            background: isMine
-                              ? (theme === 'light' ? 'rgba(0, 193, 102, 0.18)' : 'rgba(0, 193, 102, 0.22)')
-                              : (theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.07)'),
-                            border: isMine
-                              ? '1px solid rgba(0, 193, 102, 0.35)'
-                              : '1px solid var(--glass-border)',
-                            color: 'var(--text-main)',
-                            fontSize: '0.92rem',
+                            padding: '10px 16px',
+                            borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                            background: isMine ? '#007aff' : '#e9ecef',
+                            border: isMine ? 'none' : '1px solid rgba(0, 0, 0, 0.04)',
+                            color: isMine ? '#ffffff' : '#1f2937',
+                            fontSize: '0.94rem',
                             lineHeight: 1.45,
                             wordBreak: 'break-word',
                             whiteSpace: 'pre-wrap',
-                            boxShadow: isMine ? '0 4px 16px rgba(0, 193, 102, 0.1)' : 'none'
+                            boxShadow: isMine ? '0 2px 10px rgba(0, 122, 255, 0.28)' : '0 1px 2px rgba(0, 0, 0, 0.03)'
                           }}>
                             {msg.image_data && (
                               <img
@@ -935,7 +931,16 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
                 <form
                   onSubmit={handleSendMessage}
-                  style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: '#f1f3f5',
+                    borderRadius: '999px',
+                    padding: '4px 6px 4px 14px',
+                    border: '1px solid rgba(0, 0, 0, 0.08)',
+                    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)'
+                  }}
                 >
                   <input
                     type="file"
@@ -950,23 +955,24 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '10px',
-                      background: 'rgba(0, 193, 102, 0.1)',
-                      border: '1px solid rgba(0, 193, 102, 0.25)',
-                      color: 'var(--primary)',
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '50%',
+                      background: 'rgba(0, 122, 255, 0.1)',
+                      border: 'none',
+                      color: '#007aff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      transition: 'all 0.2s'
                     }}
                   >
-                    <ImageIcon size={20} />
+                    <ImageIcon size={18} />
                   </button>
 
-                  {/* Auto-growing Textarea */}
+                  {/* Auto-growing Textarea in Pill Form */}
                   <textarea
                     ref={textareaRef}
                     rows={1}
@@ -990,19 +996,19 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                         }
                       }
                     }}
-                    placeholder={`${activePartner.username}さんにメッセージ... (Ctrl+Vで画像貼付可)`}
+                    placeholder={`${activePartner.username}さんにメッセージ...`}
                     maxLength={1000}
                     style={{
                       flex: 1,
-                      padding: '10px 14px',
-                      borderRadius: '10px',
-                      background: 'var(--input-bg)',
-                      border: '1px solid var(--glass-border)',
-                      color: 'var(--input-text)',
-                      fontSize: '0.9rem',
+                      padding: '8px 4px',
+                      borderRadius: '999px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-main)',
+                      fontSize: '0.92rem',
                       outline: 'none',
                       resize: 'none',
-                      minHeight: '42px',
+                      minHeight: '36px',
                       maxHeight: '120px',
                       lineHeight: 1.4,
                       fontFamily: 'inherit',
@@ -1010,23 +1016,24 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     }}
                   />
 
-                  {/* Send Button */}
+                  {/* Send Button Circular Pill Action */}
                   <button
                     type="submit"
                     disabled={isSending || (!inputText.trim() && !selectedImage)}
                     style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '10px',
-                      background: 'var(--primary)',
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      background: '#007aff',
                       border: 'none',
-                      color: theme === 'light' ? '#fff' : '#000',
+                      color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: (!inputText.trim() && !selectedImage) ? 'not-allowed' : 'pointer',
                       opacity: (!inputText.trim() && !selectedImage) ? 0.4 : 1,
                       flexShrink: 0,
+                      boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)',
                       transition: 'all 0.2s'
                     }}
                   >
