@@ -834,17 +834,25 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                           alignItems: isMine ? 'flex-end' : 'flex-start'
                         }}>
                           {/* Chat Bubble (Apple iOS Asymmetrical Squircle) */}
-                          <div style={{
+                          <div className={isMine ? 'bubble-mine' : 'bubble-other'} style={{
                             padding: '10px 16px',
                             borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                            background: isMine ? '#007aff' : '#e9ecef',
-                            border: isMine ? 'none' : '1px solid rgba(0, 0, 0, 0.04)',
-                            color: isMine ? '#ffffff' : '#1f2937',
+                            background: isMine 
+                              ? (theme === 'dark' ? '#0a84ff' : '#007aff') 
+                              : (theme === 'dark' ? '#262628' : '#e9ecef'),
+                            border: isMine 
+                              ? 'none' 
+                              : (theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.04)'),
+                            color: isMine 
+                              ? '#ffffff' 
+                              : (theme === 'dark' ? '#f4f4f5' : '#1f2937'),
                             fontSize: '0.94rem',
                             lineHeight: 1.45,
                             wordBreak: 'break-word',
                             whiteSpace: 'pre-wrap',
-                            boxShadow: isMine ? '0 2px 10px rgba(0, 122, 255, 0.28)' : '0 1px 2px rgba(0, 0, 0, 0.03)'
+                            boxShadow: isMine 
+                              ? (theme === 'dark' ? '0 2px 12px rgba(10, 132, 255, 0.35)' : '0 2px 10px rgba(0, 122, 255, 0.28)') 
+                              : (theme === 'dark' ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 2px rgba(0, 0, 0, 0.03)')
                           }}>
                             {msg.image_data && (
                               <img
@@ -930,16 +938,17 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                 )}
 
                 <form
+                  className="chat-input-pill"
                   onSubmit={handleSendMessage}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: '#f1f3f5',
+                    background: theme === 'dark' ? '#222328' : '#f1f3f5',
                     borderRadius: '999px',
                     padding: '4px 6px 4px 14px',
-                    border: '1px solid rgba(0, 0, 0, 0.08)',
-                    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)'
+                    border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.08)',
+                    boxShadow: theme === 'dark' ? '0 2px 8px rgba(0, 0, 0, 0.25)' : '0 1px 4px rgba(0, 0, 0, 0.03)'
                   }}
                 >
                   <input
@@ -958,9 +967,9 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       width: '34px',
                       height: '34px',
                       borderRadius: '50%',
-                      background: 'rgba(0, 122, 255, 0.1)',
+                      background: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 122, 255, 0.1)',
                       border: 'none',
-                      color: '#007aff',
+                      color: theme === 'dark' ? '#409cff' : '#007aff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1004,7 +1013,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       borderRadius: '999px',
                       background: 'transparent',
                       border: 'none',
-                      color: 'var(--text-main)',
+                      color: theme === 'dark' ? '#f4f4f5' : 'var(--text-main)',
                       fontSize: '0.92rem',
                       outline: 'none',
                       resize: 'none',
@@ -1024,7 +1033,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       width: '36px',
                       height: '36px',
                       borderRadius: '50%',
-                      background: '#007aff',
+                      background: theme === 'dark' ? '#0a84ff' : '#007aff',
                       border: 'none',
                       color: '#ffffff',
                       display: 'flex',
@@ -1033,7 +1042,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       cursor: (!inputText.trim() && !selectedImage) ? 'not-allowed' : 'pointer',
                       opacity: (!inputText.trim() && !selectedImage) ? 0.4 : 1,
                       flexShrink: 0,
-                      boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)',
+                      boxShadow: '0 2px 8px rgba(10, 132, 255, 0.35)',
                       transition: 'all 0.2s'
                     }}
                   >

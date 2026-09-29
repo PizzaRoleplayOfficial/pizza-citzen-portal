@@ -303,8 +303,8 @@ export const MyGarageView = ({
                   width: '100%',
                   padding: '11px 14px 11px 40px',
                   borderRadius: '14px',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
-                  background: '#ffffff',
+                  border: '1px solid var(--border)',
+                  background: 'var(--input-bg)',
                   color: 'var(--text-main)',
                   fontSize: '0.92rem',
                   outline: 'none',
@@ -320,9 +320,9 @@ export const MyGarageView = ({
               style={{
                 padding: '10px 16px',
                 borderRadius: '14px',
-                background: (statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') ? 'var(--primary)' : '#ffffff',
+                background: (statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') ? 'var(--primary)' : 'var(--input-bg)',
                 color: (statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') ? '#ffffff' : 'var(--text-main)',
-                border: '1px solid rgba(0, 0, 0, 0.08)',
+                border: '1px solid var(--border)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
@@ -372,8 +372,8 @@ export const MyGarageView = ({
                 fontSize: '0.78rem',
                 padding: '4px 10px',
                 borderRadius: '999px',
-                background: '#ffffff',
-                border: '1px solid rgba(0, 0, 0, 0.08)',
+                background: 'var(--panel-bg)',
+                border: '1px solid var(--border)',
                 color: 'var(--text-muted)',
                 fontWeight: 600
               }}>
@@ -453,8 +453,8 @@ export const MyGarageView = ({
                           style={{
                             padding: '6px 12px',
                             borderRadius: '999px',
-                            border: statusFilter === tag.id ? '1.5px solid var(--primary)' : '1px solid rgba(0, 0, 0, 0.08)',
-                            background: statusFilter === tag.id ? 'rgba(0, 122, 255, 0.1)' : '#ffffff',
+                            border: statusFilter === tag.id ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                            background: statusFilter === tag.id ? 'rgba(0, 122, 255, 0.1)' : 'var(--panel-bg)',
                             color: statusFilter === tag.id ? 'var(--primary)' : 'var(--text-main)',
                             fontSize: '0.82rem',
                             fontWeight: statusFilter === tag.id ? 700 : 500,
@@ -494,7 +494,7 @@ export const MyGarageView = ({
                         onClick={() => { triggerHaptic('light'); setGarageViewMode('grid'); }}
                         style={{
                           padding: '6px 12px',
-                          background: garageViewMode === 'grid' ? '#ffffff' : 'transparent',
+                          background: garageViewMode === 'grid' ? 'var(--panel-bg)' : 'transparent',
                           border: 'none',
                           borderRadius: '8px',
                           color: garageViewMode === 'grid' ? 'var(--text-main)' : 'var(--text-muted)',
@@ -514,7 +514,7 @@ export const MyGarageView = ({
                         onClick={() => { triggerHaptic('light'); setGarageViewMode('list'); }}
                         style={{
                           padding: '6px 12px',
-                          background: garageViewMode === 'list' ? '#ffffff' : 'transparent',
+                          background: garageViewMode === 'list' ? 'var(--panel-bg)' : 'transparent',
                           border: 'none',
                           borderRadius: '8px',
                           color: garageViewMode === 'list' ? 'var(--text-main)' : 'var(--text-muted)',
@@ -713,7 +713,7 @@ export const MyGarageView = ({
               textAlign: 'center',
               padding: '60px 24px',
               color: 'var(--text-muted)',
-              background: '#ffffff',
+              background: 'var(--panel-bg)',
               borderRadius: '20px',
               border: '1px dashed var(--border)',
               display: 'flex',
