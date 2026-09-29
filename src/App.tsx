@@ -807,8 +807,8 @@ export default function App() {
   const [plateDuplicateWarning, setPlateDuplicateWarning] = useState<string | null>(null);
   const [trailerPlateChecking, setTrailerPlateChecking] = useState(false);
   const [trailerPlateDuplicateWarning, setTrailerPlateDuplicateWarning] = useState<string | null>(null);
-
   const isInitialLoadFinishedRef = React.useRef(false);
+
   useEffect(() => {
     if (view === 'admin') {
       const targetHash = adminTab === 'dashboard' ? 'admin' : `admin/${adminTab}`;
@@ -3217,6 +3217,876 @@ export default function App() {
       )}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: isMobile ? '100vh' : 'calc(100vh - 48px)', position: 'relative', zIndex: 1 }}>
+
+      {isMobile && (
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(16px + var(--safe-top))', paddingBottom: '16px', paddingLeft: 'calc(16px + var(--safe-left))', paddingRight: 'calc(16px + var(--safe-right))', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            {view === 'admin' && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowMobileMenu(true); }} 
+                className="btn glass"
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', display: 'flex', padding: '4px', marginRight: '4px' }}
+              >
+                <Menu size={24} />
+              </button>
+            )}
+            <div onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <img src="/pizza.webp" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '50%' }} />
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
+              className="btn glass"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+                position: 'relative',
+                border: '1px solid var(--glass-border)',
+                background: 'rgba(255,255,255,0.03)',
+                padding: 0,
+              }}
+            >
+              <Bell size={16} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    background: 'var(--error)',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    fontSize: '9px',
+                    fontWeight: 'bold',
+                    minWidth: '15px',
+                    height: '15px',
+                    padding: '0 3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 6px var(--error)',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => { triggerHaptic('light'); setView('messages'); }}
+              className="btn glass"
+              title="メッセージ"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: view === 'messages' ? 'var(--primary)' : 'var(--text-main)',
+                cursor: 'pointer',
+                position: 'relative',
+                border: '1px solid var(--glass-border)',
+                background: view === 'messages' ? 'rgba(0,193,102,0.12)' : 'rgba(255,255,255,0.03)',
+                padding: 0
+              }}
+            >
+              <MessageSquare size={16} style={{ color: view === 'messages' ? 'var(--primary)' : 'var(--text-main)' }} />
+              {unreadDmCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    background: 'var(--primary)',
+                    color: theme === 'light' ? '#fff' : '#000',
+                    borderRadius: '50%',
+                    fontSize: '9px',
+                    fontWeight: 'bold',
+                    minWidth: '15px',
+                    height: '15px',
+                    padding: '0 3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 6px rgba(0, 193, 102, 0.4)'
+                  }}
+                >
+                  {unreadDmCount > 9 ? '9+' : unreadDmCount}
+                </span>
+              )}
+            </button>
+            <div ref={profileMenuRef} style={{ position: 'relative' }}>
+              <img
+                src={currentUser.avatar}
+                alt="u"
+                onClick={() => { triggerHaptic('light'); setShowProfileMenu(!showProfileMenu); }}
+                onError={(e) => handleAvatarError(e, currentUser.username)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: '#fff',
+                  objectFit: 'cover',
+                  cursor: 'pointer',
+                  border: showProfileMenu ? '2px solid var(--primary)' : '2px solid transparent',
+                  transition: 'border 0.2s',
+                  display: 'block'
+                }}
+              />
+              {showProfileMenu && (
+                <div className="glass" style={{
+                  position: 'absolute',
+                  top: '40px',
+                  right: 0,
+                  background: 'var(--nav-bg)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: '12px',
+                  padding: '8px',
+                  minWidth: '160px',
+                  boxShadow: theme === 'light' ? '0 8px 32px rgba(0,0,0,0.1)' : '0 8px 32px rgba(0,0,0,0.5)',
+                  zIndex: 200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px'
+                }}>
+                  <div style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {currentUser.roblox_username || currentUser.username}
+                  </div>
+                  <button onClick={() => { triggerHaptic('light'); setView('apply'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <ClipboardList size={14} /> 市民申請
+                  </button>
+                  {currentUser.role === 'admin' && (
+                    <button onClick={() => { triggerHaptic('light'); setView('admin'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(30,58,138,0.06)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                      <ShieldCheck size={14} /> 管理パネル
+                    </button>
+                  )}
+                  <button onClick={() => { triggerHaptic('light'); setView('profile'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <UserIcon size={14} /> 設定
+                  </button>
+                  <a href="/api/auth/logout" style={{ textDecoration: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--error)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <LogOut size={14} /> ログアウト
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main 
+        className={`container mobile-zoomed-main ${isNavigatingBack ? 'view-slide-in' : 'animate-fade'}`} 
+        style={{ 
+          padding: isMobile ? '30px calc(16px + var(--safe-right)) calc(110px + var(--safe-bottom)) calc(16px + var(--safe-left))' : '0px clamp(16px, 1.5vw, 32px)', 
+          flex: 1, 
+          minWidth: 0, 
+          margin: 0,
+          transform: (isBackSwiping && !isAnyModalOpen && (view !== 'home' || (view === 'admin' && adminTab !== 'dashboard')))
+            ? `scale(${1 - backProgress * 0.05}) translate3d(${backProgress * 8}%, 0, 0)`
+            : 'none',
+          borderRadius: (isBackSwiping && !isAnyModalOpen && (view !== 'home' || (view === 'admin' && adminTab !== 'dashboard')))
+            ? `${backProgress * 24}px`
+            : '0px',
+          overflow: (isBackSwiping && !isAnyModalOpen && (view !== 'home' || (view === 'admin' && adminTab !== 'dashboard')))
+            ? 'hidden'
+            : 'visible',
+          opacity: (isBackSwiping && !isAnyModalOpen && (view !== 'home' || (view === 'admin' && adminTab !== 'dashboard')))
+            ? 1 - backProgress * 0.3
+            : 1,
+          transition: isBackSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, border-radius 0.3s ease'
+        }}
+      >
+        {view === 'home' ? (
+          <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            
+            {/* ぴっざぁ公式Discord バナー */}
+            <div 
+              style={{
+                borderRadius: '20px',
+                padding: isMobile ? '16px 20px' : '20px 28px',
+                background: 'linear-gradient(135deg, rgba(88, 101, 242, 0.08) 0%, rgba(88, 101, 242, 0.02) 100%)',
+                border: '1px solid rgba(88, 101, 242, 0.2)',
+                boxShadow: '0 4px 20px rgba(88, 101, 242, 0.06)',
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, textAlign: isMobile ? 'center' : 'left', flexDirection: isMobile ? 'column' : 'row' }}>
+                <div style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '14px', 
+                  background: 'rgba(88, 101, 242, 0.15)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 127.14 96.36" fill="#5865F2">
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
+                  </svg>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    ぴっざぁ公式 Discord コミュニティ
+                  </h3>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                    市民の交流、公式告知、ロールプレイのサポートチケット窓口はこちらから。
+                  </p>
+                </div>
+              </div>
+
+              <a 
+                href="https://discord.gg/RruM8Gqc4m" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn"
+                style={{
+                  padding: '10px 22px',
+                  borderRadius: '12px',
+                  background: '#5865F2',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(88, 101, 242, 0.3)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                参加する
+              </a>
+            </div>
+            
+            {/* Top row: Official State ID Card + Garage Registry Summary */}
+            <div style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: '24px',
+              alignItems: 'stretch',
+              width: '100%'
+            }}>
+              {/* デジタル市民証カード (Official State ID) */}
+              <div 
+                onMouseMove={(e) => {
+                  if (isMobile) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const cardX = e.clientX - rect.left - rect.width / 2;
+                  const cardY = e.clientY - rect.top - rect.height / 2;
+                  const rotateX = -(cardY / (rect.height / 2)) * 4;
+                  const rotateY = (cardX / (rect.width / 2)) * 4;
+                  setTilt({ x: rotateX, y: rotateY });
+                }}
+                onMouseLeave={() => {
+                  setTilt({ x: 0, y: 0 });
+                }}
+                style={{
+                  position: 'relative',
+                  borderRadius: '20px',
+                  background: '#ffffff',
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.05)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: 1.35,
+                  minWidth: 0,
+                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
+                  transform: isMobile ? 'none' : `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+                  transition: 'transform 0.15s ease-out, box-shadow 0.2s ease',
+                  backfaceVisibility: 'hidden'
+                }}
+              >
+                {/* Official State Header Bar */}
+                <div style={{
+                  background: 'linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%)',
+                  padding: '12px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  color: '#ffffff'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldCheck size={18} style={{ color: '#93c5fd' }} />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-heading)' }}>
+                      STATE OF GREENVIEW • OFFICIAL CITIZEN ID
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.75)', letterSpacing: '0.05em' }}>
+                    DMV REGISTRY
+                  </span>
+                </div>
+
+                <div style={{ padding: isMobile ? '20px' : '24px 28px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '24px', alignItems: 'center', flex: 1 }}>
+                  {/* Left: Avatar & Official Badge */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                    <div style={{ position: 'relative' }}>
+                      <img
+                        src={currentUser.avatar}
+                        alt="Avatar"
+                        onError={(e) => handleAvatarError(e, currentUser.username)}
+                        style={{
+                          width: '92px',
+                          height: '92px',
+                          borderRadius: '16px',
+                          border: '2px solid #e2e8f0',
+                          objectFit: 'cover',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+                        }}
+                      />
+                      {myApplication?.status === 'approved' && (
+                        <span style={{
+                          position: 'absolute',
+                          bottom: '-4px',
+                          right: '-4px',
+                          background: '#2d6a4f',
+                          color: '#ffffff',
+                          borderRadius: '50%',
+                          width: '22px',
+                          height: '22px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 'bold',
+                          fontSize: '0.75rem',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                        }}>✓</span>
+                      )}
+                    </div>
+
+                    <div style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '5px 12px',
+                      borderRadius: '20px',
+                      background: myApplication?.status === 'approved'
+                        ? 'rgba(45, 106, 79, 0.12)'
+                        : myApplication?.status === 'pending'
+                        ? 'rgba(180, 83, 9, 0.12)'
+                        : 'rgba(107, 114, 128, 0.12)',
+                      color: myApplication?.status === 'approved'
+                        ? '#2d6a4f'
+                        : myApplication?.status === 'pending'
+                        ? '#b45309'
+                        : '#4b5563',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase'
+                    }}>
+                      {myApplication?.status === 'approved' ? (
+                        <><span>✓</span> VERIFIED CITIZEN</>
+                      ) : myApplication?.status === 'pending' ? (
+                        <><span>⏳</span> PENDING REVIEW</>
+                      ) : (
+                        <><span>ℹ️</span> UNVERIFIED</>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Citizen Details & Bebas Neue ID */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        NAME / 市民名
+                      </div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#111827', lineHeight: 1.2, fontFamily: 'var(--font-heading)' }}>
+                        {currentUser.roblox_username || currentUser.username}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        @{currentUser.username}
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '4px' }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        CITIZEN IDENTIFIER / 市民識別番号
+                      </div>
+                      <div style={{ 
+                        fontSize: '1.5rem', 
+                        fontWeight: 700, 
+                        color: '#1e3a8a', 
+                        fontFamily: 'var(--font-plate)', 
+                        letterSpacing: '0.12em',
+                        lineHeight: 1.2
+                      }}>
+                        GV-{(currentUser.roblox_id || currentUser.id || '2026').toString().padStart(7, '0')}-RP
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', justifyContent: isMobile ? 'center' : 'flex-start', flexWrap: 'wrap' }}>
+                      <div>管轄: <strong style={{ color: '#1f2937' }}>Greenview / Rensselaer</strong></div>
+                      <div>種別: <strong style={{ color: '#1f2937' }}>一般市民権 (Class R)</strong></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ガレージ登録状況カード (Registry Summary Card) */}
+              <div 
+                className="card"
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '20px',
+                  padding: isMobile ? '20px' : '24px 28px',
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.05)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  flex: 1,
+                  minWidth: 0
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Car size={18} style={{ color: 'var(--primary)' }} />
+                    車両登録簿
+                  </h3>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button 
+                      onClick={() => handleOpenVehicleModal('gv')}
+                      style={{ background: 'rgba(30, 58, 138, 0.08)', border: '1px solid rgba(30, 58, 138, 0.15)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.15)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.08)'}
+                      title="車両登録"
+                    >
+                      <Plus size={14} strokeWidth={2.5} /> 登録申請
+                    </button>
+                    <button 
+                      onClick={() => { triggerHaptic('light'); setView('garage'); }} 
+                      style={{ background: 'var(--btn-secondary-bg)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-main)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                    >
+                      詳細 <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Status counts pills */}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ flex: 1, background: 'rgba(45, 106, 79, 0.08)', border: '1px solid rgba(45, 106, 79, 0.15)', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#2d6a4f', fontWeight: 600, marginBottom: '2px' }}>有効・承認済</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2d6a4f', fontFamily: 'var(--font-heading)' }}>
+                      {vehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length}
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, background: 'rgba(180, 83, 9, 0.08)', border: '1px solid rgba(180, 83, 9, 0.15)', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 600, marginBottom: '2px' }}>審査・審査中</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#b45309', fontFamily: 'var(--font-heading)' }}>
+                      {vehicles.filter(v => v.status === 'pending').length}
+                    </div>
+                  </div>
+                </div>
+
+                {/* List of latest vehicles */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflowY: 'auto', maxHeight: '150px' }}>
+                  {vehicles.length === 0 ? (
+                    <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', border: '1px dashed var(--border)', borderRadius: '14px', justifyContent: 'center', flex: 1 }}>
+                      <span>登録されている車両はありません</span>
+                      <button 
+                        onClick={() => { triggerHaptic('medium'); setView('garage'); setShowAddModal(true); }}
+                        style={{ background: 'var(--primary)', border: 'none', color: '#ffffff', padding: '6px 14px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}
+                      >
+                        🚗 最初の車両を申請する
+                      </button>
+                    </div>
+                  ) : (
+                    vehicles.slice(0, 2).map(v => (
+                      <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid var(--border)', gap: '10px' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {v.year} {v.maker} {v.model}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                            <span style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '1px 6px', borderRadius: '4px', fontFamily: 'var(--font-plate)', fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>{v.plate}</span>
+                            <span>•</span>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.color}</span>
+                          </div>
+                        </div>
+                        <StatusBadge status={v.status} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 下段: 街の動向・タイムライン最新アクティビティ (重複メニューグリッドを排除し生きたコミュニティを表示) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '4px', height: '18px', background: 'var(--primary)', borderRadius: '2px' }} />
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    街の動向・タイムライン
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => { triggerHaptic('light'); setView('timeline'); setTimeout(() => setTriggerTimelineComposer(true), 150); }}
+                    style={{ background: 'rgba(30, 58, 138, 0.08)', border: '1px solid rgba(30, 58, 138, 0.15)', color: 'var(--primary)', padding: '6px 14px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Plus size={14} strokeWidth={2.5} /> 投稿する
+                  </button>
+                  <button
+                    onClick={() => { triggerHaptic('light'); setView('timeline'); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    すべて見る <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Feed cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                {recentTimelinePosts.length === 0 ? (
+                  <div style={{ padding: '36px 20px', textAlign: 'center', background: '#ffffff', borderRadius: '16px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
+                    <MessageSquare size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 10px', opacity: 0.5 }} />
+                    <p style={{ margin: 0, fontWeight: 600 }}>タイムラインの投稿がまだありません。</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem' }}>街の様子や愛車の写真を投稿してみましょう！</p>
+                  </div>
+                ) : (
+                  recentTimelinePosts.map(post => (
+                    <div 
+                      key={post.id}
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setTargetTimelinePostId(post.id);
+                        setView('timeline');
+                      }}
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        border: '1px solid var(--border)',
+                        padding: '16px 20px',
+                        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.borderColor = 'rgba(30, 58, 138, 0.25)';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.06)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.borderColor = 'var(--border)';
+                        e.currentTarget.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.03)';
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <img 
+                          src={`https://www.roblox.com/headshot-thumbnail/image?userId=${post.user_id}&width=150&height=150&format=png`} 
+                          alt="avatar" 
+                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                          style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', background: '#f1f5f9' }}
+                        />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {post.author_name || '市民'}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {new Date(post.created_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: '0.88rem', color: 'var(--text-main)', lineHeight: 1.45, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                        {post.content}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: 'auto', paddingTop: '6px', borderTop: '1px solid rgba(0, 0, 0, 0.04)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Heart size={13} /> {post.likes_count || 0}
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <MessageSquare size={13} /> {post.comments_count || 0}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        ) : view === 'intro' ? (
+          <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', color: 'var(--text-main)' }}>
+            <button onClick={() => setView('home')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '24px' }}>
+              <ArrowLeft size={20} /> ホームへ戻る
+            </button>
+            <h2 style={{ fontSize: '2rem', marginBottom: '8px', fontWeight: 800 }}>🚗 ロールプレイサーバー 公式ルールブック</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>ぴっざぁ運営による公式ガイドラインです。市民申請の前に必ず熟読してください。</p>
+
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: '#10b981', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>🚗 車両登録および使用ルール</h3>
+              <p style={{ marginBottom: '16px', color: 'var(--text-muted)' }}>当サーバーは「アメリカの田舎町」を舞台としたRP環境です。世界観の維持および適正なゲームバランスを保つため、通常セッション内で登録・使用できる車両に以下の制限を設けます。</p>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>1. 禁止車両（通常時の登録・常用不可）</h4>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px' }}>アメリカの田舎という舞台にそぐわない、またはRPにおいて過剰な性能を有する以下の車両は、通常時の登録および使用を禁止します。</p>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>ハイパーカー・スーパーカー:</strong> 極端な最高速度や加速性能を持ち、チェイス等のバランスを著しく崩す車両。</li>
+                  <li><strong>限定車・希少モデル:</strong> 現実世界において生産台数が限られているような超高級車やコンセプトカー。</li>
+                  <li><strong>過剰な装飾が施された特殊モデル:</strong> 純正の状態で、巨大なウィングや過剰なパーツが装着されている競技車両仕様のモデルなど。</li>
+                </ul>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>2. 世界観に基づく推奨車両</h4>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px' }}>当サーバーの景観に馴染む、以下のカテゴリーの車両登録を推奨します。</p>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li>ピックアップトラック、SUV、オフロードカー</li>
+                  <li>一般的なセダン、ワゴン、ハッチバック</li>
+                  <li>古き良きマッスルカーやクラシックカー</li>
+                </ul>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>3. 公共車両・業務用車両（バス、配送バン、緊急車両等）の個人利用制限</h4>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '8px' }}>バス、配送バン、警察車両などの特殊な車両については、以下の通り制限を設けます。</p>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>個人利用の制限:</strong> これらの車両は個人での購入・所有が可能ですが、原則として「特定の職業RP（バス運転手、配送業者、警察官等）」としての使用に限定します。</li>
+                  <li><strong>常用・マイカー利用の禁止:</strong> 一般市民としての日常生活や、単なる移動手段としての常用は、RPの観点からご遠慮ください。</li>
+                  <li><strong>専用塗装の扱い:</strong> 特定ジョブ専用の塗装（ポリスデカールや企業ロゴ等）が施された状態での個人利用は厳禁とします。</li>
+                </ul>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>4. その他のルール（外観・イベント）</h4>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>外観・カスタムの制限:</strong> 田舎町の景観を著しく損なう過度なカスタム（極端なローダウン等）はご遠慮ください。</li>
+                  <li><strong>イベント時の特例について:</strong> レース、カーミート（オフ会）、ドラッグレースなどの公式・非公式イベント開催時については、本ルールの限りではありません。イベントの趣旨に合わせた車両の持ち込みやカスタムについては、各イベントのアナウンスやレギュレーションに従ってください。</li>
+                </ul>
+              </div>
+              
+              <div style={{ padding: '16px', background: 'rgba(255,177,66,0.1)', borderRadius: '12px', borderLeft: '4px solid #ffb142' }}>
+                <strong style={{ display: 'block', marginBottom: '4px', color: '#ffb142' }}>【判断に迷った際の基準】</strong>
+                「この車は、アメリカの田舎町のスーパーの駐車場に停まっていて違和感がないか？」を基準に車両を選定してください。基準に適合しないと運営が判断した車両は、登録取り消しをお願いする場合があります。
+              </div>
+            </div>
+
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--error)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>🚨 緊急時のルールと制約</h3>
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>ピースタイム（平和な時間）</h4>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>定義:</strong> 緊急車両の担当者が不足している場合に告知される時間帯。</li>
+                  <li><strong>制限:</strong> ピースタイム中は、いかなる犯罪行為、法律違反行為も許可されない。</li>
+                  <li><strong>ペナルティ:</strong> これを破った場合、即座にキックされる可能性があるため、十分に注意すること。</li>
+                </ul>
+              </div>
+              <div>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>犯罪行為</h4>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>実行頻度:</strong> 緊急車両の出動体制を考慮し、犯罪行為の実行頻度は10分に1回までとする。これ以上の頻度はFRP（不適切なロールプレイ）と見なされる。</li>
+                  <li><strong>逃走時の退出:</strong> 警察に手配された状態でセッションを退出（ログアウト）した場合、手配状態は次のRPセッションに引き継がれ、再参加時にジョブ（役職）を変更することはできない。</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: '#ffb142', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>🚦 交通規則（アメリカ交通法準拠）</h3>
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>速度と違反</h4>
+                 <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>制限速度の超過:</strong> 制限速度から6mph(10km/h)までの速度超過は許容される場合があるが、状況によっては（学校区域など）違反となることもある。</li>
+                  <li><strong>重度の速度違反:</strong> これ以上の速度超過は、違反点数が通常の倍となり、免許停止処分を受ける可能性がある。</li>
+                  <li><strong>危険運転の禁止:</strong> Tailgating（前の車に執拗に付いていく行為）や煽り運転は明確な交通違反と見なされる。</li>
+                </ul>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>アメリカ特有の規則（重要）</h4>
+                 <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>赤信号での右折:</strong> 通常、赤信号でも左右の安全を確認した上で右折（Right Turn on Red）が可能だ。ただし、赤信号では必ず一時停止（Stop）をしないと違反となる。例外として、標識で右折が禁止されている交差点もある。</li>
+                  <li><strong>信号のない交差点:</strong> 優先権は、自分から見て右側にいる車にある。</li>
+                  <li><strong>環状交差点:</strong> 手前の「YIELD」（譲れ）標識に従い、交差点内にいる車の走行を妨げない限り、一時停止をせずに進入・通過して良い。</li>
+                  <li><strong>踏切:</strong> 一時停止の必要はない。</li>
+                </ul>
+              </div>
+              <div>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px', fontWeight: 600 }}>交通違反とペナルティ</h4>
+                 <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                  <li><strong>警察からの逃走:</strong> 警察の停止命令から逃走を続けることは可能だが、その場合、違反回数が自動的に倍としてカウントされる。</li>
+                  <li><strong>違反回数の上限:</strong> 交通違反の回数は月間で8回まで。これを超えると1週間ロールプレイサーバーに参加できなくなる。</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: '#ff5252', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>💥 事故処理とモラル</h3>
+               <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8, marginBottom: '20px' }}>
+                 <li><strong>事故発生時の対応:</strong> 人身事故（高速）などで負傷者が確認された場合は、保険請求のためにも必ず現場の写真を記録し、警察に通報すること。現場からの立ち去りは当て逃げとして指名手配犯となる。</li>
+                 <li><strong>モラルと騒音:</strong> セッションホストや運営の指示には必ず従うこと。クラクションの乱用、レブアップ、無駄なドアベルなどの過度な騒音や迷惑行為は禁止。</li>
+               </ul>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: '#ff5252', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>⛔ 禁止行為と非RP行為（FRP）</h3>
+               <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                 <li>深刻な倫理的問題を伴う以下のような行為は全て禁止（性的なRP、子供の無視、学校での銃撃、麻薬関連、グラフィックな残虐RP、大量殺人など）。</li>
+                 <li><strong>コンバットログの禁止:</strong> ゲーム内の戦闘や緊迫したシーンの最中では、いかなる理由があっても無言での退出（ログアウト）は許可されない。緊急時は必ず運営に連絡すること。</li>
+               </ul>
+            </div>
+
+            <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '24px', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.4rem', marginBottom: '16px', color: 'var(--primary)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>🅿️ 車両とジョブ</h3>
+               <ul style={{ listStyleType: 'disc', paddingLeft: '20px', lineHeight: 1.8 }}>
+                 <li><strong>車両のスポーン場所:</strong> 駐車場に限定される。路上、空き地など、現実的でない場所や危険な場所でのスポーンは禁止。</li>
+                 <li><strong>ジョブと資格:</strong> 警察官（LEO）、GVFD、DOTとして参加するには、適切なトレーニングとDiscordでの役職が必須。</li>
+                 <li><strong>車両登録の義務:</strong> RPに参加する車両は全て事前にこのシステムで登録が必要。売却やカスタム後の変更も速やかに再申請すること。</li>
+               </ul>
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '40px' }}>
+               <button className="btn btn-primary" onClick={() => setView('apply')} style={{ padding: '16px 32px', fontSize: '1.1rem', fontWeight: 600 }}>
+                 ✍️ ルールを理解した上で市民申請へ進む
+               </button>
+            </div>
+          </div>
+        ) : view === 'apply' ? (
+          <ApplicationFormView
+            myApplication={myApplication}
+            isLoading={isLoading}
+            questions={questions}
+            currentUser={currentUser}
+            applyAnswers={applyAnswers as any}
+            applySubmitting={applySubmitting}
+            setApplyAnswers={setApplyAnswers as any}
+            handleSubmitApplication={handleSubmitApplication}
+            handleManualRefresh={handleManualRefresh}
+            setView={setView}
+            isMobile={isMobile}
+          />
+        ) : view === 'garage' ? (
+          <MyGarageView
+            myApplication={myApplication}
+            vehicles={vehicles}
+            isLoading={isLoading}
+            handleManualRefresh={handleManualRefresh}
+            garageTab={garageTab}
+            setGarageTab={setGarageTab}
+            garageViewMode={garageViewMode}
+            setGarageViewMode={setGarageViewMode}
+            garageSortOrder={garageSortOrder}
+            setGarageSortOrder={setGarageSortOrder}
+            setView={setView}
+            currentUser={currentUser}
+            setShowBetaAutoFillModal={setShowBetaAutoFillModal}
+            setFormData={setFormData}
+            setEditingVehicleId={setEditingVehicleId}
+            setShowAddModal={setShowAddModal}
+            setTrailerFormData={setTrailerFormData}
+            setShowTrailerModal={setShowTrailerModal}
+            handleStartEdit={handleStartEdit}
+            handleDeleteVehicle={handleDeleteVehicle}
+            isMobile={isMobile}
+            dataSaverEnabled={dataSaverEnabled}
+          />
+        ) : view === 'profile' ? (
+          <ProfileView
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            theme={theme}
+            setTheme={setTheme}
+            handleUpdateProfile={handleUpdateProfile}
+            onCheckUpdate={() => handleCheckUpdate(true)}
+            isCheckingUpdate={isCheckingUpdate}
+            appVersion={appVersion}
+            autoCheckUpdates={autoCheckUpdates}
+            onToggleAutoCheck={handleToggleAutoCheck}
+            pushSettings={pushSettings}
+            onTogglePushSetting={handleTogglePushSetting}
+            enterKeyBehavior={enterKeyBehavior}
+            setEnterKeyBehavior={setEnterKeyBehavior}
+            liteMode={liteMode}
+            onToggleLiteMode={handleToggleLiteMode}
+            dataSaverEnabled={dataSaverEnabled}
+            onToggleDataSaver={handleToggleDataSaver}
+          />
+        ) : view === 'timeline' ? (
+          <TimelineView
+            currentUser={currentUser}
+            isMobile={isMobile}
+            theme={theme}
+            targetPostId={targetTimelinePostId}
+            onClearTargetPost={() => setTargetTimelinePostId(null)}
+            enterKeyBehavior={enterKeyBehavior}
+            dataSaverEnabled={dataSaverEnabled}
+            triggerComposer={triggerTimelineComposer}
+            onComposerTriggered={() => setTriggerTimelineComposer(false)}
+          />
+        ) : view === 'messages' ? (
+          <DirectMessagesView
+            currentUser={currentUser}
+            isMobile={isMobile}
+            theme={theme}
+            initialConversationId={dmTargetConversationId}
+            initialTargetUserId={dmTargetUserId}
+            onClearInitialIds={() => {
+              setDmTargetConversationId(null);
+              setDmTargetUserId(null);
+            }}
+            onUnreadCountChange={(cnt) => setUnreadDmCount(cnt)}
+            onClose={() => setView('home')}
+          />
+        ) : (
+          <AdminDashboardView
+            adminTab={adminTab}
+            setAdminTabPersist={setAdminTabPersist}
+            vehicles={vehicles}
+            allSearchVehicles={allSearchVehicles}
+            allUsers={allUsers}
+            allApplications={allApplications}
+            allQuestionsAdmin={allQuestionsAdmin}
+            editingQuestion={editingQuestion}
+            setEditingQuestion={setEditingQuestion}
+            isLoading={isLoading}
+            isMobile={isMobile}
+            showMobileMenu={showMobileMenu}
+            setShowMobileMenu={setShowMobileMenu}
+            handleManualRefresh={handleManualRefresh}
+            handleUpdateStatus={handleUpdateStatus}
+            handleDeleteVehicle={handleDeleteVehicle}
+            handleUpdateRole={handleUpdateRole}
+            handleReviewApplication={handleReviewApplication}
+            handleWikiSync={handleWikiSync}
+            handleSaveQuestion={handleSaveQuestion}
+            handleToggleQuestion={handleToggleQuestion}
+            currentUser={currentUser}
+            setView={setView}
+            selectedUserForVehicles={selectedUserForVehicles}
+            setSelectedUserForVehicles={setSelectedUserForVehicles}
+            adminSearchTerm={adminSearchTerm}
+            setAdminSearchTerm={setAdminSearchTerm}
+            adminSortOrder={adminSortOrder}
+            setAdminSortOrder={setAdminSortOrder}
+            userSearchTerm={userSearchTerm}
+            setUserSearchTerm={setUserSearchTerm}
+            usersViewMode={usersViewMode}
+            setUsersViewMode={setUsersViewMode}
+            lookupViewMode={lookupViewMode}
+            setLookupViewMode={setLookupViewMode}
+          />
+        )}
+      </main>
 
       {isMobile && (
         <nav style={{ 
