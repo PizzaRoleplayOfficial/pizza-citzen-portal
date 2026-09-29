@@ -808,6 +808,7 @@ export default function App() {
   const [trailerPlateChecking, setTrailerPlateChecking] = useState(false);
   const [trailerPlateDuplicateWarning, setTrailerPlateDuplicateWarning] = useState<string | null>(null);
 
+  const isInitialLoadFinishedRef = React.useRef(false);
   useEffect(() => {
     if (view === 'admin') {
       const targetHash = adminTab === 'dashboard' ? 'admin' : `admin/${adminTab}`;
@@ -819,7 +820,13 @@ export default function App() {
         window.location.hash = view;
       }
     }
-    // ページ切り替え時に振動を発生させる（初回起動時のローディング中はスキップ）
+    // 初回ロード完了時は振動させず、その後のユーザーによる画面切り替え時のみ振動
+    if (!isInitialLoadFinishedRef.current) {
+      if (!isLoading) {
+        isInitialLoadFinishedRef.current = true;
+      }
+      return;
+    }
     if (!isLoading) {
       triggerHaptic('light');
     }

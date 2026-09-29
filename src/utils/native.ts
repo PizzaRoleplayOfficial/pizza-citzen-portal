@@ -29,6 +29,11 @@ export const triggerHaptic = async (
 ) => {
   if (!isNative) {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      // Chrome Intervention check: navigator.vibrate requires user gesture activation.
+      // If user hasn't tapped or interacted with document yet, skip to avoid [Intervention] warning.
+      if ('userActivation' in navigator && !navigator.userActivation.hasBeenActive) {
+        return;
+      }
       try {
         switch (type) {
           case 'light':
