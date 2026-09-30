@@ -2601,3 +2601,59 @@ img[alt="author"],
   padding: 14px 28px !important;
   border-radius: 999px !important;
 }
+
+
+/* ==========================================================================
+   【ぴっざぁポータル】UI/UXデザイン・実装完全準拠マニュアル 追加規定
+   ========================================================================== */
+
+/* 1. 検索バーの完全なピル形状統一（border-radius: 999px） */
+input[type="search"],
+.search-input,
+.search-bar input,
+input[placeholder*="検索"],
+input[placeholder*="探す"] {
+  border-radius: 999px !important;
+}
+
+/* 2. ディスエーブル（操作不可）の不透明度40%明示 */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+.btn:disabled,
+.disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* 3. ホバー時の0.2秒スムーズ浮遊エフェクト */
+.btn,
+.btn-sidebar,
+.admin-nav-btn,
+button:not(:disabled) {
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+:root[data-theme='light'] .btn-sidebar:hover:not(.active),
+:root[data-theme='light'] .admin-nav-btn:hover:not(.active) {
+  background: rgba(37, 99, 235, 0.06) !important;
+  color: var(--primary) !important;
+}
+
+:root[data-theme='dark'] .btn-sidebar:hover:not(.active),
+:root[data-theme='dark'] .admin-nav-btn:hover:not(.active) {
+  background: rgba(10, 132, 255, 0.10) !important;
+  color: #0a84ff !important;
+}
+
+/* 4. モバイルプラスボタン（センターアクション）の発光をインディゴに統一 */
+.mobile-nav-plus-btn {
+  background: var(--primary) !important;
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35) !important;
+}
+
+:root[data-theme='dark'] .mobile-nav-plus-btn {
+  box-shadow: 0 4px 18px rgba(10, 132, 255, 0.45) !important;
+}

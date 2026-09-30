@@ -3175,7 +3175,7 @@ export default function App() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <button className={`btn-sidebar ${view === 'home' || view === 'intro' ? 'active' : ''}`} onClick={() => setView('home')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <Home size={18} strokeWidth={view === 'home' || view === 'intro' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>ホーム</span>}
+                <Home size={18} fill={view === 'home' || view === 'intro' ? 'currentColor' : 'none'} strokeWidth={view === 'home' || view === 'intro' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>ホーム</span>}
               </button>
               <button className={`btn-sidebar ${view === 'apply' ? 'active' : ''}`} onClick={() => setView('apply')} style={{ position: 'relative', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
                 <ClipboardList size={18} strokeWidth={view === 'apply' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>市民申請</span>}
@@ -3184,14 +3184,14 @@ export default function App() {
                 )}
               </button>
               <button className={`btn-sidebar ${view === 'garage' ? 'active' : ''}`} onClick={() => setView('garage')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <LayoutDashboard size={18} strokeWidth={view === 'garage' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>ガレージ</span>}
+                <LayoutDashboard size={18} fill={view === 'garage' ? 'currentColor' : 'none'} strokeWidth={view === 'garage' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>ガレージ</span>}
               </button>
               <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <Flame size={18} strokeWidth={view === 'timeline' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>タイムライン</span>}
+                <Flame size={18} fill={view === 'timeline' ? 'currentColor' : 'none'} strokeWidth={view === 'timeline' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>タイムライン</span>}
               </button>
               <button className={`btn-sidebar ${view === 'messages' ? 'active' : ''}`} onClick={() => setView('messages')} style={{ position: 'relative', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <MessageSquare size={18} strokeWidth={view === 'messages' ? 2.4 : 1.8} />
+                  <MessageSquare size={18} fill={view === 'messages' ? 'currentColor' : 'none'} strokeWidth={view === 'messages' ? 2.4 : 1.8} />
                   {unreadDmCount > 0 && (
                     <span style={{
                       position: 'absolute',
@@ -3217,7 +3217,7 @@ export default function App() {
                 {!sidebarCollapsed && <span style={{ marginLeft: '8px' }}>メッセージ</span>}
               </button>
               <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <UserIcon size={18} strokeWidth={view === 'profile' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>設定</span>}
+                <UserIcon size={18} fill={view === 'profile' ? 'currentColor' : 'none'} strokeWidth={view === 'profile' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>設定</span>}
               </button>
             </div>
 
@@ -3230,7 +3230,7 @@ export default function App() {
                   </div>
                 )}
                 <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                  <ShieldCheck size={18} strokeWidth={view === 'admin' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>管理パネル</span>}
+                  <ShieldCheck size={18} fill={view === 'admin' ? 'currentColor' : 'none'} strokeWidth={view === 'admin' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>管理パネル</span>}
                 </button>
               </div>
             )}
@@ -4391,7 +4391,7 @@ export default function App() {
                     borderRadius: '10px',
                     border: '1px dashed var(--primary)',
                     color: 'var(--primary)',
-                    background: 'rgba(0,193,102,0.08)',
+                    background: 'rgba(37, 99, 235, 0.08)',
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -4431,7 +4431,7 @@ export default function App() {
                       padding: '10px 16px',
                       borderRadius: '8px',
                       border: 'none',
-                      background: formData.game_type === 'gv' ? 'rgba(0, 193, 102, 0.2)' : 'transparent',
+                      background: formData.game_type === 'gv' ? 'rgba(37, 99, 235, 0.15)' : 'transparent',
                       color: formData.game_type === 'gv' ? 'var(--primary)' : 'var(--text-muted)',
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -4440,7 +4440,7 @@ export default function App() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      boxShadow: formData.game_type === 'gv' ? '0 2px 8px rgba(0, 193, 102, 0.15)' : 'none'
+                      boxShadow: formData.game_type === 'gv' ? '0 2px 8px rgba(37, 99, 235, 0.18)' : 'none'
                     }}
                   >
                     🟢 Greenville (Gv)
@@ -4776,7 +4776,7 @@ export default function App() {
                       padding: '10px 16px',
                       borderRadius: '8px',
                       border: 'none',
-                      background: trailerFormData.game_type === 'gv' ? 'rgba(0, 193, 102, 0.2)' : 'transparent',
+                      background: trailerFormData.game_type === 'gv' ? 'rgba(37, 99, 235, 0.15)' : 'transparent',
                       color: trailerFormData.game_type === 'gv' ? 'var(--primary)' : 'var(--text-muted)',
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -4785,7 +4785,7 @@ export default function App() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      boxShadow: trailerFormData.game_type === 'gv' ? '0 2px 8px rgba(0, 193, 102, 0.15)' : 'none'
+                      boxShadow: trailerFormData.game_type === 'gv' ? '0 2px 8px rgba(37, 99, 235, 0.18)' : 'none'
                     }}
                   >
                     🟢 Greenville (Gv)
@@ -5184,7 +5184,7 @@ export default function App() {
                 borderRadius: '16px', 
                 padding: isMobile ? '28px 16px' : '36px 20px', 
                 position: 'relative', 
-                background: isMobile ? 'rgba(0, 193, 102, 0.04)' : 'var(--input-bg)', 
+                background: isMobile ? 'rgba(37, 99, 235, 0.04)' : 'var(--input-bg)', 
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'center', 
@@ -5871,7 +5871,7 @@ export default function App() {
           fontWeight: 700,
           zIndex: 999999,
           border: '1px solid var(--primary)',
-          boxShadow: '0 4px 20px rgba(0,193,102,0.3)',
+          boxShadow: '0 4px 20px rgba(37, 99, 235, 0.35)',
           display: 'flex',
           flexDirection: 'column',
           gap: '4px',

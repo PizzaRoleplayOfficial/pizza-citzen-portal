@@ -1147,10 +1147,10 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                   autoFocus
                   style={{
                     width: '100%',
-                    padding: '10px 14px 10px 38px',
-                    borderRadius: '10px',
+                    padding: '10px 20px 10px 42px',
+                    borderRadius: '999px',
                     background: 'var(--input-bg)',
-                    border: '1px solid var(--glass-border)',
+                    border: 'none',
                     color: 'var(--input-text)',
                     fontSize: '0.9rem',
                     outline: 'none',

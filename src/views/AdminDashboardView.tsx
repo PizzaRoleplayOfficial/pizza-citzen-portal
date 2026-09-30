@@ -521,14 +521,16 @@ export const AdminDashboardView = ({
               disabled={isLoading}
               title="更新"
               style={{ 
-                width: isMobile ? '38px' : '48px', 
-                height: isMobile ? '38px' : '48px', 
-                borderRadius: isMobile ? '10px' : '14px', 
+                width: isMobile ? '38px' : '44px', 
+                height: isMobile ? '38px' : '44px', 
+                minWidth: isMobile ? '38px' : '44px', 
+                minHeight: isMobile ? '38px' : '44px', 
+                borderRadius: '50%', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
-                background: 'rgba(0, 193, 102, 0.12)',
-                border: '1px solid rgba(0, 193, 102, 0.35)',
+                background: 'rgba(37, 99, 235, 0.10)',
+                border: 'none',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 flexShrink: 0,
@@ -536,10 +538,10 @@ export const AdminDashboardView = ({
                 outline: 'none',
                 lineHeight: 1,
               }} 
-              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 193, 102, 0.25)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 193, 102, 0.12)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(37, 99, 235, 0.20)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(37, 99, 235, 0.10)'; e.currentTarget.style.transform = 'scale(1)'; }}
             >
-              <RotateCcw size={isMobile ? 18 : 22} color="#00c166" strokeWidth={2.5} className={isLoading ? 'animate-spin' : undefined} />
+              <RotateCcw size={isMobile ? 18 : 20} color="var(--primary)" strokeWidth={2.2} className={isLoading ? 'animate-spin' : undefined} />
             </button>
           )}
         </div>
@@ -1130,7 +1132,7 @@ export const AdminDashboardView = ({
               <div style={{ marginBottom: '24px', display: 'flex', gap: '12px' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
                   <SearchIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="text" placeholder="ナンバープレート、ユーザー名、車両名..." value={adminSearchTerm} onChange={e => setAdminSearchTerm(e.target.value)} className="glass" style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: 'none', background: 'var(--panel-bg)' }} />
+                  <input type="text" placeholder="ナンバープレート、ユーザー名、車両名..." value={adminSearchTerm} onChange={e => setAdminSearchTerm(e.target.value)} className="glass" style={{ width: '100%', padding: '10px 20px 10px 42px', borderRadius: '999px', border: 'none', background: 'var(--panel-bg)', outline: 'none' }} />
                 </div>
               </div>
 
@@ -1369,7 +1371,7 @@ export const AdminDashboardView = ({
                    value={userSearchTerm} 
                    onChange={e => setUserSearchTerm(e.target.value)} 
                    className="glass" 
-                   style={{ width: '100%', padding: '12px 12px 12px 42px', borderRadius: '12px', border: 'none', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.95rem' }} 
+                   style={{ width: '100%', padding: '10px 20px 10px 44px', borderRadius: '999px', border: 'none', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.95rem', outline: 'none' }} 
                  />
                </div>
                

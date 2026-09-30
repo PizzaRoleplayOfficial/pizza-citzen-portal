@@ -307,9 +307,9 @@ export const MyGarageView = ({
                 onChange={(e: any) => setGarageSearchTerm(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '11px 14px 11px 40px',
-                  borderRadius: '14px',
-                  border: '1px solid var(--border)',
+                  padding: '11px 20px 11px 42px',
+                  borderRadius: '999px',
+                  border: 'none',
                   background: 'var(--input-bg)',
                   color: 'var(--text-main)',
                   fontSize: '0.92rem',
@@ -324,11 +324,11 @@ export const MyGarageView = ({
               type="button"
               onClick={() => { triggerHaptic('light'); setShowFilterSheet(true); }}
               style={{
-                padding: '10px 16px',
-                borderRadius: '14px',
+                padding: '10px 20px',
+                borderRadius: '999px',
+                border: 'none',
                 background: (statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') ? 'var(--primary)' : 'var(--input-bg)',
                 color: (statusFilter !== 'all' || garageSortOrder !== 'newest' || garageTab !== 'car') ? '#ffffff' : 'var(--text-main)',
-                border: '1px solid var(--border)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',

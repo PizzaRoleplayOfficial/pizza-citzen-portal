@@ -3441,24 +3441,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             placeholder="タイムライン内を検索..."
             style={{
               width: '100%',
-              padding: '12px 16px 12px 46px',
-              borderRadius: '14px',
+              padding: '12px 20px 12px 46px',
+              borderRadius: '999px',
               background: 'var(--panel-bg)',
-              border: '1px solid var(--glass-border)',
+              border: 'none',
               color: 'var(--text-main)',
               fontSize: '0.95rem',
               outline: 'none',
               transition: 'all 0.2s ease',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
             }}
             onFocus={e => {
               setIsSearchFocused(true);
-              e.currentTarget.style.borderColor = 'var(--primary)';
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,193,102,0.15), inset 0 2px 4px rgba(0,0,0,0.1)';
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.18)';
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'var(--glass-border)';
-              e.currentTarget.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.1)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
             }}
           />
           <Search 
