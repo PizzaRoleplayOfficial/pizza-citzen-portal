@@ -3042,7 +3042,7 @@ export default function App() {
       minHeight: '100vh',
       position: 'relative'
     }}>
-      {isMaintenanceActive && isAdmin && (
+      {!isMobile && isMaintenanceActive && isAdmin && (
         <div style={{
           position: 'sticky',
           top: 0,
@@ -3352,111 +3352,127 @@ export default function App() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: isMobile ? '100vh' : 'calc(100vh - 48px)', position: 'relative', zIndex: 1 }}>
 
       {isMobile && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 100, background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingTop: 'calc(16px + var(--safe-top))', paddingBottom: '16px', paddingLeft: 'calc(16px + var(--safe-left))', paddingRight: 'calc(16px + var(--safe-right))', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-            {view === 'admin' && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowMobileMenu(true); }} 
-                className="btn glass"
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', display: 'flex', padding: '4px', marginRight: '4px' }}
+        <div style={{ position: 'sticky', top: 0, zIndex: 100 }}>
+          {isMaintenanceActive && isAdmin && (
+            <div style={{
+              background: 'linear-gradient(90deg, #dc2626, #ea580c)',
+              color: '#ffffff',
+              paddingTop: 'calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 8px)',
+              paddingBottom: '8px',
+              paddingLeft: 'calc(var(--safe-left, 0px) + 16px)',
+              paddingRight: 'calc(var(--safe-right, 0px) + 16px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, marginRight: '8px' }}>
+                <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  ⚠️ メンテナンスモード稼働中（一般市民のアクセスは遮断されています）
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  triggerHaptic('light');
+                  setView('admin');
+                  setAdminTabPersist('maintenance');
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  padding: '4px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap'
+                }}
               >
-                <Menu size={24} />
+                設定変更 →
               </button>
-            )}
-            <div onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <img src="/pizza.webp" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '50%' }} />
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>
             </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
-              className="btn glass"
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-main)',
-                cursor: 'pointer',
-                position: 'relative',
-                border: '1px solid var(--glass-border)',
-                background: 'rgba(255,255,255,0.03)',
-                padding: 0,
-              }}
-            >
-              <Bell size={16} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '-3px',
-                    right: '-3px',
-                    background: 'var(--error)',
-                    color: '#fff',
-                    borderRadius: '50%',
-                    fontSize: '9px',
-                    fontWeight: 'bold',
-                    minWidth: '15px',
-                    height: '15px',
-                    padding: '0 3px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 0 6px var(--error)',
-                  }}
+          )}
+
+          <div style={{
+            background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            paddingTop: (isMaintenanceActive && isAdmin) ? '12px' : 'calc(16px + var(--safe-top, 0px))',
+            paddingBottom: '16px',
+            paddingLeft: 'calc(16px + var(--safe-left, 0px))',
+            paddingRight: 'calc(16px + var(--safe-right, 0px))',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid var(--glass-border)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              {view === 'admin' && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowMobileMenu(true); }} 
+                  className="btn glass"
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', display: 'flex', padding: '4px', marginRight: '4px' }}
                 >
-                  {unreadCount}
-                </span>
+                  <Menu size={24} />
+                </button>
               )}
-            </button>
-            <button
-              onClick={() => { triggerHaptic('light'); setView('messages'); }}
-              className="btn glass"
-              title="メッセージ"
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: view === 'messages' ? 'var(--primary)' : 'var(--text-main)',
-                cursor: 'pointer',
-                position: 'relative',
-                border: '1px solid var(--glass-border)',
-                background: view === 'messages' ? 'rgba(0,193,102,0.12)' : 'rgba(255,255,255,0.03)',
-                padding: 0
-              }}
-            >
-              <MessageSquare size={16} style={{ color: view === 'messages' ? 'var(--primary)' : 'var(--text-main)' }} />
-              {unreadDmCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '-3px',
-                    right: '-3px',
-                    background: 'var(--primary)',
-                    color: theme === 'light' ? '#fff' : '#000',
-                    borderRadius: '50%',
-                    fontSize: '9px',
-                    fontWeight: 'bold',
-                    minWidth: '15px',
-                    height: '15px',
-                    padding: '0 3px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 6px rgba(0, 193, 102, 0.4)'
-                  }}
-                >
-                  {unreadDmCount > 9 ? '9+' : unreadDmCount}
-                </span>
-              )}
-            </button>
-            <div ref={profileMenuRef} style={{ position: 'relative' }}>
+              <div onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/pizza.webp" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '50%' }} />
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
+                className="btn glass"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  border: '1px solid var(--glass-border)',
+                  background: 'rgba(255,255,255,0.03)',
+                  padding: 0,
+                }}
+              >
+                <Bell size={16} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
+                {unreadCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-3px',
+                      right: '-3px',
+                      background: 'var(--error)',
+                      color: '#fff',
+                      borderRadius: '50%',
+                      fontSize: '9px',
+                      fontWeight: 'bold',
+                      minWidth: '15px',
+                      height: '15px',
+                      padding: '0 3px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 6px var(--error)',
+                    }}
+                  >
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <div ref={profileMenuRef} style={{ position: 'relative' }}>
               <img
                 src={currentUser.avatar}
                 alt="u"
@@ -3465,7 +3481,7 @@ export default function App() {
                 style={{
                   width: '32px',
                   height: '32px',
-                  borderRadius: '10px',
+                  borderRadius: '50%',
                   background: '#fff',
                   objectFit: 'cover',
                   cursor: 'pointer',
@@ -3511,6 +3527,7 @@ export default function App() {
               )}
             </div>
           </div>
+        </div>
         </div>
       )}
 
