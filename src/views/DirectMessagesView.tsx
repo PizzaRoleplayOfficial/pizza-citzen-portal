@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   RefreshCw,
   Upload,
-  Download
+  Download,
+  ChevronDown
 } from 'lucide-react';
 import { compressImage } from '../utils/helpers';
 import { triggerHaptic, notifyActiveConversation } from '../utils/native';
@@ -131,11 +132,32 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  // Refs
+  // Refs & Smart Scroll State
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollTimerRef = useRef<any>(null);
+  const isNearBottomRef = useRef(true);
+  const userJustSentRef = useRef(false);
+  const isInitialLoadRef = useRef(true);
+  const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
+
+  const handleTimelineScroll = () => {
+    if (!timelineRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = timelineRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    // Consider user at bottom if within 120px
+    const nearBottom = distanceFromBottom <= 120;
+    isNearBottomRef.current = nearBottom;
+    setShowScrollBottomBtn(!nearBottom);
+  };
+
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    isNearBottomRef.current = true;
+    setShowScrollBottomBtn(false);
+  };
 
   // Helper to safely parse UTC date strings from SQLite ("YYYY-MM-DD HH:MM:SS") or ISO
   const parseUtcDate = (dateStr: string | null): Date | null => {
@@ -199,7 +221,30 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       const res = await fetch(`/api/dm?action=messages&conversationId=${convId}&userId=${currentUser.id}`);
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        const nextMessages: Message[] = data.messages || [];
+
+        // Reference check: preserve state identity if messages are identical to avoid auto-scroll jerking
+        setMessages(prev => {
+          if (prev.length === nextMessages.length) {
+            let isIdentical = true;
+            for (let i = 0; i < prev.length; i++) {
+              if (
+                prev[i].id !== nextMessages[i].id ||
+                prev[i].content !== nextMessages[i].content ||
+                prev[i].is_read !== nextMessages[i].is_read ||
+                prev[i].image_url !== nextMessages[i].image_url
+              ) {
+                isIdentical = false;
+                break;
+              }
+            }
+            if (isIdentical) {
+              return prev;
+            }
+          }
+          return nextMessages;
+        });
+
         if (data.partner) {
           setActivePartner(data.partner);
         }
@@ -253,6 +298,11 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
   // 高速メッセージ同期ループ (アクティブな会話中は1秒間隔で同期)
   useEffect(() => {
     if (!activeConversationId) return;
+
+    // Reset scroll tracking for active conversation
+    isInitialLoadRef.current = true;
+    isNearBottomRef.current = true;
+    setShowScrollBottomBtn(false);
 
     // Restore draft text for this conversation
     const savedDraft = localStorage.getItem(`gvvr_dm_draft_${activeConversationId}`) || '';
@@ -330,12 +380,26 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
   // Auto-scroll to bottom when messages update
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isInitialLoadRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      isInitialLoadRef.current = false;
+    } else if (userJustSentRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      userJustSentRef.current = false;
+      isNearBottomRef.current = true;
+      setShowScrollBottomBtn(false);
+    } else if (isNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    // If isNearBottomRef.current is false, user is reading history: do NOT scroll
   }, [messages]);
 
   // Handle select conversation
   const handleSelectConversation = (conv: Conversation) => {
     triggerHaptic('light');
+    isInitialLoadRef.current = true;
+    isNearBottomRef.current = true;
+    setShowScrollBottomBtn(false);
     setActiveConversationId(conv.id);
     setActivePartner({
       id: conv.partner_id,
@@ -358,6 +422,9 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
     triggerHaptic('medium');
     setIsSending(true);
+    userJustSentRef.current = true;
+    isNearBottomRef.current = true;
+    setShowScrollBottomBtn(false);
 
     const tempId = 'temp_' + Date.now();
     const optimisticMessage: Message = {
@@ -813,15 +880,20 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                 </button>
               </div>
 
-              {/* Messages Timeline */}
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px'
-              }}>
+              {/* Messages Timeline Container */}
+              <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div
+                  ref={timelineRef}
+                  onScroll={handleTimelineScroll}
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    padding: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px'
+                  }}
+                >
                 {isLoadingMessages && messages.length === 0 ? (
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                     <Loader2 size={24} className="animate-spin" style={{ color: 'var(--primary)' }} />
@@ -920,7 +992,39 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     );
                   })
                 )}
-                <div ref={messagesEndRef} />
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Floating Scroll to Bottom Button */}
+                {showScrollBottomBtn && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToBottom(true)}
+                    aria-label="最新のメッセージへスクロール"
+                    style={{
+                      position: 'absolute',
+                      bottom: '16px',
+                      right: '20px',
+                      zIndex: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      borderRadius: '999px',
+                      background: theme === 'dark' ? '#27272a' : '#ffffff',
+                      color: theme === 'dark' ? '#f4f4f5' : '#1e293b',
+                      border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(0, 0, 0, 0.1)',
+                      boxShadow: theme === 'dark' ? '0 4px 16px rgba(0, 0, 0, 0.45)' : '0 4px 14px rgba(0, 0, 0, 0.12)',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <ChevronDown size={16} />
+                    <span>最新へ</span>
+                  </button>
+                )}
               </div>
 
               {/* Bottom Input Bar */}
@@ -1034,21 +1138,25 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     }}
                     placeholder={`${activePartner.username}さんにメッセージ...`}
                     maxLength={1000}
+                    className="dm-textarea chat-input-textarea"
                     style={{
                       flex: 1,
                       padding: '8px 4px',
-                      borderRadius: '999px',
                       background: 'transparent',
                       border: 'none',
                       color: theme === 'dark' ? '#f4f4f5' : 'var(--text-main)',
                       fontSize: '16px',
                       outline: 'none',
+                      boxShadow: 'none',
                       resize: 'none',
                       minHeight: '36px',
                       maxHeight: '120px',
                       lineHeight: 1.4,
                       fontFamily: 'inherit',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      overflowY: 'auto',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none'
                     }}
                   />
 

@@ -2301,6 +2301,61 @@ img[src*="ui-avatars"],
   align-items: center !important;
   gap: 8px !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.chat-input-pill:focus-within {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3) !important;
+}
+
+:root[data-theme='dark'] .chat-input-pill {
+  background: #222328 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+:root[data-theme='dark'] .chat-input-pill:focus-within {
+  border-color: #0a84ff !important;
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.4) !important;
+}
+
+/* Ensure textarea inside chat-input-pill has NO inner scrollbar and NO inner focus outline/box-shadow */
+:root textarea.dm-textarea,
+:root .chat-input-pill textarea,
+:root[data-theme='light'] textarea.dm-textarea,
+:root[data-theme='dark'] textarea.dm-textarea,
+:root[data-theme='light'] .chat-input-pill textarea,
+:root[data-theme='dark'] .chat-input-pill textarea {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overflow-y: auto !important;
+}
+
+:root textarea.dm-textarea:focus,
+:root .chat-input-pill textarea:focus,
+:root[data-theme='light'] textarea.dm-textarea:focus,
+:root[data-theme='dark'] textarea.dm-textarea:focus,
+:root[data-theme='light'] .chat-input-pill textarea:focus,
+:root[data-theme='dark'] .chat-input-pill textarea:focus {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+:root textarea.dm-textarea::-webkit-scrollbar,
+:root .chat-input-pill textarea::-webkit-scrollbar,
+textarea.dm-textarea::-webkit-scrollbar,
+.chat-input-pill textarea::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
 }
 
 /* Bottom Action Sheet iOS Clean */

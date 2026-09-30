@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.6.7'; // 2.5.2 (Fix: restore main view rendering for messages, garage, profile, timeline)
+export const CURRENT_VERSION = '2.6.8'; // 2.5.2 (Fix: restore main view rendering for messages, garage, profile, timeline)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
