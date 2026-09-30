@@ -626,8 +626,8 @@ export const AdminDashboardView = ({
               <button
                 type="button"
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: '12px',
+                  padding: '6px 16px',
+                  borderRadius: '999px',
                   background: 'var(--subtle-bg)',
                   border: '1px solid var(--glass-border)',
                   color: 'var(--text-main)',

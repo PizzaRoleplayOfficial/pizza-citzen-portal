@@ -3259,7 +3259,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               onClick={() => { triggerHaptic('light'); fetchPosts(); }} 
               disabled={isLoading}
               className="btn btn-secondary"
-              style={{ padding: '10px 16px' }}
+              style={{ width: '38px', height: '38px', minWidth: '38px', minHeight: '38px', borderRadius: '50%', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              title="再読み込み"
             >
               <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
             </button>
@@ -4201,24 +4202,18 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
         if (posts.length === 0) {
           return (
-            <div className="glass card" style={{ padding: '60px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-              <AlertCircle size={48} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-              <div>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px', color: 'var(--text-main)' }}>まだ投稿がありません</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>最初のひとりごとを投稿してみませんか？</p>
-              </div>
+            <div style={{ padding: '48px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', background: 'transparent' }}>
+              <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>まだ投稿がありません</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', margin: 0 }}>最初のひとりごとを投稿してみませんか？</p>
             </div>
           );
         }
 
         if (filteredPosts.length === 0 && searchQuery) {
           return (
-            <div className="glass card" style={{ padding: '60px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
-              <Search size={48} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-              <div>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px', color: 'var(--text-main)' }}>検索結果が見つかりませんでした</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>キーワードを変更してもう一度お試しください。</p>
-              </div>
+            <div style={{ padding: '48px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', background: 'transparent' }}>
+              <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>検索結果が見つかりませんでした</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', margin: 0 }}>キーワードを変更してもう一度お試しください。</p>
             </div>
           );
         }
@@ -4329,7 +4324,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     flexDirection: 'column',
                     gap: '12px', 
                     background: isAnnouncementPost 
-                      ? '#ffffff'
+                      ? (theme === 'dark' ? '#1c1c1e' : '#ffffff')
                       : 'var(--panel-bg)', 
                     border: 'none',
                     borderLeft: isAnnouncementPost ? '4px solid #2563eb' : 'none',

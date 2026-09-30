@@ -249,7 +249,13 @@ export const MyGarageView = ({
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
               {!isMobile && (
-                <button className="btn btn-secondary" onClick={() => { triggerHaptic('medium'); handleManualRefresh(); }} style={{ padding: '10px 16px' }} disabled={isLoading}>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => { triggerHaptic('medium'); handleManualRefresh(); }} 
+                  style={{ width: '38px', height: '38px', minWidth: '38px', minHeight: '38px', borderRadius: '50%', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} 
+                  disabled={isLoading}
+                  title="再読み込み"
+                >
                   <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
                 </button>
               )}

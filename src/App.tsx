@@ -3047,19 +3047,20 @@ export default function App() {
           position: 'sticky',
           top: 0,
           zIndex: 9999,
-          background: 'linear-gradient(90deg, #dc2626, #ea580c)',
-          color: '#ffffff',
-          padding: '10px 16px',
+          background: theme === 'dark' ? '#292524' : '#fef3c7',
+          color: theme === 'dark' ? '#fde68a' : '#92400e',
+          borderBottom: theme === 'dark' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid #fde68a',
+          padding: '10px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           fontSize: '0.88rem',
           fontWeight: 700,
-          boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)'
+          boxShadow: '0 2px 10px rgba(245, 158, 11, 0.08)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertTriangle size={18} />
-            <span>⚠️ メンテナンスモード稼働中（一般市民のアクセスは遮断されています）</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AlertTriangle size={18} style={{ color: theme === 'dark' ? '#f59e0b' : '#d97706', flexShrink: 0 }} />
+            <span>メンテナンスモード稼働中（一般市民のアクセスは遮断されています）</span>
           </div>
           <button
             onClick={() => {
@@ -3068,11 +3069,11 @@ export default function App() {
               setAdminTabPersist('maintenance');
             }}
             style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              border: '1px solid rgba(255, 255, 255, 0.4)',
-              color: '#ffffff',
-              borderRadius: '8px',
-              padding: '4px 12px',
+              background: theme === 'dark' ? 'rgba(245, 158, 11, 0.2)' : '#fde68a',
+              border: theme === 'dark' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid #f59e0b',
+              color: theme === 'dark' ? '#fef3c7' : '#78350f',
+              borderRadius: '999px',
+              padding: '5px 16px',
               fontSize: '0.8rem',
               fontWeight: 800,
               cursor: 'pointer'
@@ -3305,9 +3306,9 @@ export default function App() {
                 onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
                 className="btn glass"
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -3355,8 +3356,9 @@ export default function App() {
         <div style={{ position: 'sticky', top: 0, zIndex: 100 }}>
           {isMaintenanceActive && isAdmin && (
             <div style={{
-              background: 'linear-gradient(90deg, #dc2626, #ea580c)',
-              color: '#ffffff',
+              background: theme === 'dark' ? '#292524' : '#fef3c7',
+              color: theme === 'dark' ? '#fde68a' : '#92400e',
+              borderBottom: theme === 'dark' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid #fde68a',
               paddingTop: 'calc(max(env(safe-area-inset-top, 0px), 16px) + 8px)',
               paddingBottom: '8px',
               paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
@@ -3366,12 +3368,12 @@ export default function App() {
               justifyContent: 'space-between',
               fontSize: '0.82rem',
               fontWeight: 700,
-              boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)'
+              boxShadow: '0 2px 10px rgba(245, 158, 11, 0.08)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, marginRight: '8px' }}>
-                <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                <AlertTriangle size={18} style={{ color: theme === 'dark' ? '#f59e0b' : '#d97706', flexShrink: 0 }} />
                 <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  ⚠️ メンテナンスモード稼働中（一般市民のアクセスは遮断されています）
+                  メンテナンスモード稼働中（アクセス遮断中）
                 </span>
               </div>
               <button
@@ -3381,11 +3383,11 @@ export default function App() {
                   setAdminTabPersist('maintenance');
                 }}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
-                  color: '#ffffff',
-                  borderRadius: '8px',
-                  padding: '4px 10px',
+                  background: theme === 'dark' ? 'rgba(245, 158, 11, 0.2)' : '#fde68a',
+                  border: theme === 'dark' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid #f59e0b',
+                  color: theme === 'dark' ? '#fef3c7' : '#78350f',
+                  borderRadius: '999px',
+                  padding: '4px 12px',
                   fontSize: '0.78rem',
                   fontWeight: 800,
                   cursor: 'pointer',
@@ -3416,7 +3418,7 @@ export default function App() {
                 <button 
                   onClick={(e) => { e.stopPropagation(); setShowMobileMenu(true); }} 
                   className="btn glass"
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', display: 'flex', padding: '4px', marginRight: '4px' }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', padding: 0, marginRight: '4px' }}
                 >
                   <Menu size={24} />
                 </button>
@@ -3436,7 +3438,7 @@ export default function App() {
                   height: '40px',
                   minWidth: '40px',
                   minHeight: '40px',
-                  borderRadius: '12px',
+                  borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -3584,10 +3586,10 @@ export default function App() {
                 }}
                 style={{
                   position: 'relative',
-                  borderRadius: '20px',
-                  background: '#ffffff',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.05)',
+                  borderRadius: '26px',
+                  background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
+                  border: 'none',
+                  boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.4)' : '0 8px 30px rgba(0, 0, 0, 0.04)',
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
@@ -3729,11 +3731,11 @@ export default function App() {
               <div 
                 className="card"
                 style={{
-                  background: '#ffffff',
-                  borderRadius: '20px',
+                  background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
+                  borderRadius: '26px',
                   padding: isMobile ? '20px' : '24px 28px',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.05)',
+                  border: 'none',
+                  boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.4)' : '0 8px 30px rgba(0, 0, 0, 0.04)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',
@@ -3749,7 +3751,7 @@ export default function App() {
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button 
                       onClick={() => handleOpenVehicleModal('gv')}
-                      style={{ background: 'rgba(30, 58, 138, 0.08)', border: '1px solid rgba(30, 58, 138, 0.15)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      style={{ background: 'rgba(30, 58, 138, 0.08)', border: '1px solid rgba(30, 58, 138, 0.15)', padding: '6px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
                       onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.15)'}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.08)'}
                       title="車両登録"
@@ -3758,7 +3760,7 @@ export default function App() {
                     </button>
                     <button 
                       onClick={() => { triggerHaptic('light'); setView('garage'); }} 
-                      style={{ background: 'var(--btn-secondary-bg)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      style={{ background: 'var(--btn-secondary-bg)', border: '1px solid var(--border)', padding: '6px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
                       onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-main)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                     >
@@ -3912,10 +3914,9 @@ export default function App() {
               {/* Feed cards */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
                 {recentTimelinePosts.length === 0 ? (
-                  <div style={{ padding: '36px 20px', textAlign: 'center', background: '#ffffff', borderRadius: '16px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
-                    <MessageSquare size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 10px', opacity: 0.5 }} />
+                  <div style={{ padding: '24px 16px', textAlign: 'center', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.88rem', gridColumn: '1 / -1' }}>
                     <p style={{ margin: 0, fontWeight: 600 }}>タイムラインの投稿がまだありません。</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem' }}>街の様子や愛車の写真を投稿してみましょう！</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.75 }}>街の様子や愛車の写真を投稿してみましょう！</p>
                   </div>
                 ) : (
                   recentTimelinePosts.map(post => (
@@ -3927,13 +3928,13 @@ export default function App() {
                         setView('timeline');
                       }}
                       style={{
-                        background: '#ffffff',
-                        borderRadius: '16px',
-                        border: '1px solid var(--border)',
-                        padding: '16px 20px',
-                        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
+                        background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
+                        borderRadius: '24px',
+                        border: 'none',
+                        padding: '20px 24px',
+                        boxShadow: theme === 'dark' ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.04)',
                         cursor: 'pointer',
-                        transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+                        transition: 'transform 0.2s, box-shadow 0.2s',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '10px'

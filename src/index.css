@@ -566,7 +566,7 @@ h2, h3, h4 {
 }
 
 .admin-nav-btn.active {
-  background: rgba(0, 193, 102, 0.08);
+  background: rgba(37, 99, 235, 0.08);
   color: var(--primary);
   font-weight: 700;
   transform: translateX(4px);
@@ -575,7 +575,7 @@ h2, h3, h4 {
 }
 
 :root[data-theme='light'] .admin-nav-btn.active {
-  background: rgba(0, 193, 102, 0.06);
+  background: rgba(37, 99, 235, 0.06);
 }
 
 .admin-nav-btn svg {
@@ -771,7 +771,7 @@ h2, h3, h4 {
   transition: all 0.2s ease;
 }
 .user-link:hover {
-  text-shadow: 0 0 8px rgba(0, 193, 102, 0.4);
+  text-shadow: none;
   opacity: 0.8;
 }
 
@@ -1053,12 +1053,12 @@ h2, h3, h4 {
 }
 
 .theme-selector-item:hover {
-  border-color: rgba(0, 193, 102, 0.4);
-  background: rgba(0, 193, 102, 0.02);
+  border-color: rgba(37, 99, 235, 0.4);
+  background: rgba(37, 99, 235, 0.02);
 }
 
 .theme-selector-item.active {
-  background: rgba(0, 193, 102, 0.1) !important;
+  background: rgba(37, 99, 235, 0.1) !important;
   border: 1.5px solid var(--primary) !important;
 }
 
@@ -1874,7 +1874,7 @@ h2, h3, h4 {
 }
 
 .btn-sidebar.active {
-  background: rgba(0, 193, 102, 0.08);
+  background: rgba(37, 99, 235, 0.08);
   color: var(--primary);
   font-weight: 700;
   transform: translateX(4px);
@@ -1883,7 +1883,7 @@ h2, h3, h4 {
 }
 
 :root[data-theme='light'] .btn-sidebar.active {
-  background: rgba(0, 193, 102, 0.06);
+  background: rgba(37, 99, 235, 0.06);
 }
 
 .btn-sidebar svg {
@@ -1906,7 +1906,7 @@ h2, h3, h4 {
 }
 
 .sidebar-user-card:hover {
-  border-color: rgba(0, 193, 102, 0.2) !important;
+  border-color: rgba(37, 99, 235, 0.2) !important;
   background: rgba(255, 255, 255, 0.04) !important;
 }
 
@@ -2468,4 +2468,104 @@ img[alt="author"],
 :root {
   --success: #15803d !important;
   --success-bg: rgba(21, 128, 61, 0.1) !important;
+}
+
+
+/* ========================================================
+   【ぴっざぁポータル】UI/UXデザイン・実装規約（PC/スマホ・ダークモード対応 最終統合版）
+   ======================================================== */
+
+/* 1. iOS自動ズーム防止: すべてのフォーム要素に16pxを強制適用 */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* 2. ボタン・入力フォーム: 完全なピル形状（border-radius: 999px;）を標準化 */
+.btn,
+button.btn,
+.btn-primary,
+.btn-secondary,
+input[type="text"],
+input[type="search"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+select {
+  border-radius: 999px !important;
+}
+
+textarea {
+  border-radius: 24px !important;
+}
+
+/* 3. アイコン単体ボタン（再読み込み、閉じる、通知等）: 固定サイズ & 完全な正円（50%） */
+button.btn-icon,
+.btn-icon,
+.icon-btn,
+button.icon-button {
+  border-radius: 50% !important;
+}
+
+/* 4. ユーザーアバター: 例外なく完全な正円 */
+img[src*="avatar"],
+img[src*="avatars"],
+img[alt="Avatar"],
+img[alt="u"],
+img[alt="author"],
+.user-avatar,
+.avatar-img {
+  border-radius: 50% !important;
+}
+
+/* 5. カード類（Squircle: 24px〜28px, 内部余白 24px 以上, 枠線排除） */
+:root[data-theme='light'] .card,
+:root[data-theme='light'] .glass:not(.mobile-nav):not(.nav-fixed),
+:root[data-theme='light'] .vehicle-card,
+:root[data-theme='light'] .feed-card {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border: none !important;
+  border-radius: 26px !important;
+  padding: 24px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* 6. ダークテーマ（網膜保護の絶対ルール: 純白カード完全禁止, エレベーション・グレー #1c1c1e, 文字色 #ebebf5） */
+:root[data-theme='dark'] .card,
+:root[data-theme='dark'] .glass:not(.mobile-nav):not(.nav-fixed),
+:root[data-theme='dark'] .vehicle-card,
+:root[data-theme='dark'] .feed-card {
+  background: #1c1c1e !important;
+  color: #ebebf5 !important;
+  border: none !important;
+  border-radius: 26px !important;
+  padding: 24px !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* 7. フォーカス時強調（ライト: #2563eb / ダーク: #0a84ff のリング） */
+:root[data-theme='light'] input[type="text"]:focus,
+:root[data-theme='light'] input[type="search"]:focus,
+:root[data-theme='light'] input[type="password"]:focus,
+:root[data-theme='light'] input[type="email"]:focus,
+:root[data-theme='light'] input[type="number"]:focus,
+:root[data-theme='light'] textarea:focus,
+:root[data-theme='light'] select:focus {
+  background: #ffffff !important;
+  box-shadow: 0 0 0 2px #2563eb !important;
+  border-color: transparent !important;
+  outline: none !important;
+}
+
+:root[data-theme='dark'] input[type="text"]:focus,
+:root[data-theme='dark'] input[type="search"]:focus,
+:root[data-theme='dark'] input[type="password"]:focus,
+:root[data-theme='dark'] input[type="email"]:focus,
+:root[data-theme='dark'] input[type="number"]:focus,
+:root[data-theme='dark'] textarea:focus,
+:root[data-theme='dark'] select:focus {
+  background: #1c1c1e !important;
+  box-shadow: 0 0 0 2px #0a84ff !important;
+  border-color: transparent !important;
+  outline: none !important;
 }
