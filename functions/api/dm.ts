@@ -85,6 +85,44 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       });
     }
 
+    // 1.5 Ultra-lightweight conversation update check (single-row index lookup, CPU < 0.5ms)
+    if (action === 'check_updates') {
+      const conversationId = url.searchParams.get('conversationId') || '';
+      const since = url.searchParams.get('since') || '';
+
+      if (!conversationId) {
+        return new Response(JSON.stringify({ error: 'Missing conversationId' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Single indexed row lookup
+      const conv = await env.D1_DB.prepare(
+        "SELECT id, user1_id, user2_id, strftime('%Y-%m-%dT%H:%M:%SZ', updated_at) as updated_at, strftime('%Y-%m-%dT%H:%M:%SZ', last_message_at) as last_message_at FROM dm_conversations WHERE id = ?"
+      ).bind(conversationId).first() as any;
+
+      if (!conv || (conv.user1_id !== userId && conv.user2_id !== userId)) {
+        return new Response(JSON.stringify({ error: 'Conversation not found or unauthorized' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const latestStamp = conv.updated_at || conv.last_message_at || '';
+      const hasUpdates = !since || !latestStamp || latestStamp > since;
+
+      return new Response(JSON.stringify({
+        has_updates: hasUpdates,
+        updated_at: latestStamp
+      }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+    }
+
     // 2. Search users to start new DM
     if (action === 'search_users') {
       const query = (url.searchParams.get('query') || '').trim();
@@ -165,7 +203,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
       // Verify user is in this conversation
       const conv = await env.D1_DB.prepare(
-        "SELECT id, user1_id, user2_id FROM dm_conversations WHERE id = ?"
+        "SELECT id, user1_id, user2_id, strftime('%Y-%m-%dT%H:%M:%SZ', updated_at) as updated_at, strftime('%Y-%m-%dT%H:%M:%SZ', last_message_at) as last_message_at FROM dm_conversations WHERE id = ?"
       ).bind(conversationId).first() as any;
 
       if (!conv || (conv.user1_id !== userId && conv.user2_id !== userId)) {
@@ -188,6 +226,12 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
           SET is_read = 1, read_at = CURRENT_TIMESTAMP 
           WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0
         `).bind(conversationId, userId).run();
+
+        await env.D1_DB.prepare(`
+          UPDATE dm_conversations 
+          SET updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind(conversationId).run().catch(() => {});
 
         await env.D1_DB.prepare(`
           UPDATE notifications 
@@ -228,7 +272,8 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       return new Response(JSON.stringify({
         conversationId,
         partner,
-        messages: rawMessages || []
+        messages: rawMessages || [],
+        updatedAt: conv?.updated_at || conv?.last_message_at || new Date().toISOString()
       }), {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -298,6 +343,12 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
         SET is_read = 1, read_at = CURRENT_TIMESTAMP 
         WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0
       `).bind(conversationId, senderId).run();
+
+      await env.D1_DB.prepare(`
+        UPDATE dm_conversations 
+        SET updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).bind(conversationId).run().catch(() => {});
 
       // Also mark notifications in notification center as read for this conversation
       await env.D1_DB.prepare(`

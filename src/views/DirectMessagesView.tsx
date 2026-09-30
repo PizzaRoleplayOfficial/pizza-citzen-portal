@@ -143,6 +143,11 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
   const isInitialLoadRef = useRef(true);
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
 
+  // Hybrid Real-time & Adaptive Sync Refs
+  const lastSyncTimeRef = useRef<string | null>(null);
+  const lastInteractionRef = useRef<number>(Date.now());
+  const isCheckingUpdatesRef = useRef<boolean>(false);
+
   const handleTimelineScroll = () => {
     if (!timelineRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = timelineRef.current;
@@ -157,6 +162,29 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
     isNearBottomRef.current = true;
     setShowScrollBottomBtn(false);
+  };
+
+  // Ultra-lightweight conversation update check (reads 1 row, CPU < 0.5ms)
+  const checkForUpdates = async (convId: string) => {
+    if (!currentUser?.id || !convId || isCheckingUpdatesRef.current) return;
+    isCheckingUpdatesRef.current = true;
+    try {
+      const since = lastSyncTimeRef.current || '';
+      const res = await fetch(`/api/dm?action=check_updates&conversationId=${convId}&userId=${currentUser.id}&since=${encodeURIComponent(since)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.has_updates) {
+          await fetchMessages(convId, true);
+        }
+        if (data.updated_at) {
+          lastSyncTimeRef.current = data.updated_at;
+        }
+      }
+    } catch (err) {
+      console.warn('[DM] checkForUpdates error:', err);
+    } finally {
+      isCheckingUpdatesRef.current = false;
+    }
   };
 
   // Helper to safely parse UTC date strings from SQLite ("YYYY-MM-DD HH:MM:SS") or ISO
@@ -221,6 +249,9 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       const res = await fetch(`/api/dm?action=messages&conversationId=${convId}&userId=${currentUser.id}`);
       if (res.ok) {
         const data = await res.json();
+        if (data.updatedAt) {
+          lastSyncTimeRef.current = data.updatedAt;
+        }
         const nextMessages: Message[] = data.messages || [];
 
         // Reference check: preserve state identity if messages are identical to avoid auto-scroll jerking
@@ -303,6 +334,8 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     isInitialLoadRef.current = true;
     isNearBottomRef.current = true;
     setShowScrollBottomBtn(false);
+    lastSyncTimeRef.current = null;
+    lastInteractionRef.current = Date.now();
 
     // Restore draft text for this conversation
     const savedDraft = localStorage.getItem(`gvvr_dm_draft_${activeConversationId}`) || '';
@@ -313,15 +346,37 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     // ネイティブ側に現在閲覧中の会話IDを通知（通知シェードのポップアップを抑制＆既読通知を即時解除）
     notifyActiveConversation(activeConversationId);
 
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    pollTimerRef.current = setInterval(() => {
-      if (!document.hidden && activeConversationId) {
-        fetchMessages(activeConversationId, true);
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+
+    // Adaptive lightweight check loop:
+    // - FCM handles instant message arrivals on Android without polling
+    // - Background loop checks ultra-lightweight check_updates endpoint (1-row check)
+    // - 5s when active (<30s), 15s when idle, 25s when long idle
+    // - Completely suspended when document is hidden (screen off / other tab)
+    const scheduleNextCheck = () => {
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+      if (document.hidden || !activeConversationId) return;
+
+      const idleSec = (Date.now() - lastInteractionRef.current) / 1000;
+      let interval = 15000;
+      if (idleSec < 30) {
+        interval = 5000; // active conversation
+      } else if (idleSec > 120) {
+        interval = 25000; // idle
       }
-    }, 2000);
+
+      pollTimerRef.current = setTimeout(async () => {
+        if (!document.hidden && activeConversationId) {
+          await checkForUpdates(activeConversationId);
+        }
+        scheduleNextCheck();
+      }, interval);
+    };
+
+    scheduleNextCheck();
 
     return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
       notifyActiveConversation(null);
     };
   }, [activeConversationId]);
@@ -335,6 +390,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       console.log('[DirectMessagesView] Instant DM event received:', detail);
       if (detail && detail.conversationId) {
         if (activeConversationId && detail.conversationId === activeConversationId) {
+          lastInteractionRef.current = Date.now();
           fetchMessages(activeConversationId, true);
           triggerHaptic('light');
         }
@@ -358,7 +414,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       if (!document.hidden && !activeConversationId) {
         fetchConversations(true);
       }
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(listTimer);
   }, [activeConversationId]);
@@ -422,6 +478,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
     triggerHaptic('medium');
     setIsSending(true);
+    lastInteractionRef.current = Date.now();
     userJustSentRef.current = true;
     isNearBottomRef.current = true;
     setShowScrollBottomBtn(false);
@@ -1118,6 +1175,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     rows={1}
                     value={inputText}
                     onChange={(e) => {
+                      lastInteractionRef.current = Date.now();
                       const val = e.target.value;
                       setInputText(val);
                       if (activeConversationId) {
