@@ -202,14 +202,28 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         "SELECT id, username, roblox_username, avatar, role FROM users WHERE id = ?"
       ).bind(partnerId).first() as any;
 
-      // Fetch messages (up to 100 recent)
-      const { results: rawMessages } = await env.D1_DB.prepare(`
-        SELECT id, conversation_id, sender_id, recipient_id, content, image_data, is_read, read_at, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) as created_at
-        FROM dm_messages
-        WHERE conversation_id = ?
+      // Fetch messages (up to 500 latest messages, ordered chronologically from oldest to newest)
+      const limitParam = Math.min(parseInt(url.searchParams.get('limit') || '500', 10), 1000);
+      const beforeTimestamp = url.searchParams.get('before');
+
+      let query = `
+        SELECT id, conversation_id, sender_id, recipient_id, content, image_data, is_read, read_at, created_at
+        FROM (
+          SELECT id, conversation_id, sender_id, recipient_id, content, image_data, is_read, read_at, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) as created_at
+          FROM dm_messages
+          WHERE conversation_id = ?
+          ${beforeTimestamp ? 'AND created_at < ?' : ''}
+          ORDER BY created_at DESC, rowid DESC
+          LIMIT ?
+        )
         ORDER BY created_at ASC
-        LIMIT 100
-      `).bind(conversationId).all();
+      `;
+
+      const bindings = beforeTimestamp
+        ? [conversationId, beforeTimestamp, limitParam]
+        : [conversationId, limitParam];
+
+      const { results: rawMessages } = await env.D1_DB.prepare(query).bind(...bindings).all();
 
       return new Response(JSON.stringify({
         conversationId,
@@ -368,27 +382,35 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       ).bind(senderId).first() as any;
 
       if (sender && actualRecipientId) {
-        // Query unread messages from this conversation for recipient to bundle
-        const { results: unreadRows } = await env.D1_DB.prepare(`
-          SELECT content, image_data FROM dm_messages 
-          WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0 
-          ORDER BY created_at ASC
-        `).bind(conversationId, actualRecipientId).all();
+        // Query unread count and latest unread messages for push notification bundling
+        const unreadCountRow = await env.D1_DB.prepare(`
+          SELECT COUNT(*) as count FROM dm_messages 
+          WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0
+        `).bind(conversationId, actualRecipientId).first() as any;
+        const unreadCount = unreadCountRow?.count || 1;
 
-        const unreadCount = (unreadRows || []).length || 1;
-        let notifTitle = `📩 ${sender.username}さんからのメッセージ`;
+        let notifTitle = `💬 ${sender.username}さんからの新着メッセージ`;
         let notifBody = previewText;
 
+        const { results: unreadRows } = await env.D1_DB.prepare(`
+          SELECT content, image_data FROM (
+            SELECT content, image_data, created_at FROM dm_messages 
+            WHERE conversation_id = ? AND recipient_id = ? AND is_read = 0 
+            ORDER BY created_at DESC 
+            LIMIT 6
+          ) ORDER BY created_at ASC
+        `).bind(conversationId, actualRecipientId).all();
+
         if (unreadCount > 1 && unreadRows && unreadRows.length > 0) {
-          notifTitle = `📩 ${sender.username}さんからのメッセージ (${unreadCount}件)`;
+          notifTitle = `💬 ${sender.username}さんからの新着メッセージ (${unreadCount}件)`;
           const formatted = (unreadRows as any[]).map(r => {
             const txt = (r.content || '').trim();
             return txt ? (txt.length > 40 ? txt.substring(0, 40) + '...' : txt) : '📷 [画像]';
           });
           const slice = formatted.slice(-4);
           notifBody = slice.join('\n');
-          if (formatted.length > 4) {
-            notifBody = `...他${formatted.length - 4}件\n` + notifBody;
+          if (unreadCount > 4) {
+            notifBody = `...他${unreadCount - 4}件\n` + notifBody;
           }
         }
 
