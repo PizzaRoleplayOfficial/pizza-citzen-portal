@@ -17,7 +17,7 @@ import {
   Download
 } from 'lucide-react';
 import { compressImage } from '../utils/helpers';
-import { triggerHaptic } from '../utils/native';
+import { triggerHaptic, notifyActiveConversation } from '../utils/native';
 
 interface DirectMessagesViewProps {
   currentUser: any;
@@ -260,19 +260,46 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
     fetchMessages(activeConversationId);
 
+    // ネイティブ側に現在閲覧中の会話IDを通知（通知シェードのポップアップを抑制＆既読通知を即時解除）
+    notifyActiveConversation(activeConversationId);
+
     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     pollTimerRef.current = setInterval(() => {
       if (!document.hidden && activeConversationId) {
         fetchMessages(activeConversationId, true);
       }
-    }, 5000);
+    }, 2000);
 
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      notifyActiveConversation(null);
     };
   }, [activeConversationId]);
 
   // 会話一覧閲覧時の自動ポーリング (2.5秒間隔)
+
+  // FCMプッシュ通知受信時のリアルタイム即時反映（ポーリングを待たずに0.1秒で即時描画）
+  useEffect(() => {
+    const handleInstantDm = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.log('[DirectMessagesView] Instant DM event received:', detail);
+      if (detail && detail.conversationId) {
+        if (activeConversationId && detail.conversationId === activeConversationId) {
+          fetchMessages(activeConversationId, true);
+          triggerHaptic('light');
+        }
+        // 会話一覧の未読バッジと最新メッセージも即座に更新
+        fetchConversations(true);
+      }
+    };
+
+    window.addEventListener('gvvr-dm-received', handleInstantDm);
+    return () => {
+      window.removeEventListener('gvvr-dm-received', handleInstantDm);
+    };
+  }, [activeConversationId]);
+
+  // 会話一覧画面の定期ポーリング (2.5秒間隔)
   useEffect(() => {
     if (activeConversationId) return;
 

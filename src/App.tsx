@@ -362,11 +362,13 @@ export default function App() {
       fetchNotifications();
     };
     window.addEventListener('gv-notifications-refresh', handleNotifRefresh);
+    window.addEventListener('gvvr-dm-received', handleNotifRefresh);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('gv-open-dm', handleOpenDmEvent);
       window.removeEventListener('gv-notifications-refresh', handleNotifRefresh);
+      window.removeEventListener('gvvr-dm-received', handleNotifRefresh);
     };
   }, [currentUser?.id]);
 

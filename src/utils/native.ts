@@ -554,16 +554,27 @@ export const registerPushNotifications = async (
       async (notification: PushNotificationSchema) => {
         console.log('Push notification received in foreground:', notification);
         
-        // メタデータが存在する場合、カスタム DOM イベントを発火させて React アプリ側に通知する
+        // データが存在する場合、カスタム DOM イベントを発火して React アプリに通知
         const data = notification.data;
-        if (data && data.updateType) {
-          console.log('FCM updateType detected, dispatching status update event:', data);
-          const event = new CustomEvent('gvvr-fcm-status-update', { detail: data });
-          window.dispatchEvent(event);
+        if (data) {
+          if (data.updateType) {
+            console.log('FCM updateType detected, dispatching status update event:', data);
+            const event = new CustomEvent('gvvr-fcm-status-update', { detail: data });
+            window.dispatchEvent(event);
+          }
+
+          // Direct Message (DM) 即時受信イベント
+          if (data.type === 'dm_message' || data.channelId === 'dm_messages_channel' || data.conversationId) {
+            console.log('FCM DM message received in foreground, dispatching gvvr-dm-received:', data);
+            const dmEvent = new CustomEvent('gvvr-dm-received', { detail: data });
+            window.dispatchEvent(dmEvent);
+          }
         }
 
-        // フォアグラウンドでの受信時はハプティクスなどを鳴らす
-        await triggerHaptic('success');
+        // フォアグラウンドでの受信時はハプティクスなどを鳴らす (DMはチャット側で細かく制御)
+        if (!data || (!data.conversationId && data.type !== 'dm_message')) {
+          await triggerHaptic('success');
+        }
       }
     );
 
@@ -809,5 +820,24 @@ export const updateVehicleTrackerNotification = (vehicles: any[]) => {
     }
   } catch (err) {
     console.error('Error in updateVehicleTrackerNotification:', err);
+  }
+};
+
+/**
+ * ネイティブAndroid側に現在閲覧中のDM会話IDを通知し、通知シェードの重複ポップアップを抑制する
+ */
+export const notifyActiveConversation = async (conversationId: string | null) => {
+  if (!isNative) return;
+  try {
+    const DmState = (window as any).Capacitor?.Plugins?.DmState;
+    if (DmState) {
+      if (conversationId) {
+        await DmState.setActiveConversation({ conversationId });
+      } else {
+        await DmState.clearActiveConversation();
+      }
+    }
+  } catch (e) {
+    console.error('Failed to notify active conversation to DmState plugin:', e);
   }
 };

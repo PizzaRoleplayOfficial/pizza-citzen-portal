@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(LiveProgressPlugin.class);
         registerPlugin(PhotoPickerPlugin.class);
         registerPlugin(BackGesturePlugin.class);
+        registerPlugin(DmStatePlugin.class);
 
         super.onCreate(savedInstanceState);
 
@@ -72,8 +73,15 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        PortalFirebaseMessagingService.setAppForeground(true);
+    }
+
+    @Override
     public void onPause() {
         super.onPause();
+        PortalFirebaseMessagingService.setAppForeground(false);
         // Prevent WebView from pausing to allow background HTML5 audio/video playback
         if (this.bridge != null && this.bridge.getWebView() != null) {
             this.bridge.getWebView().onResume();
@@ -84,6 +92,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
+        PortalFirebaseMessagingService.setAppForeground(false);
         // Prevent WebView from pausing when fully stopped/minimized to allow background play
         if (this.bridge != null && this.bridge.getWebView() != null) {
             this.bridge.getWebView().onResume();

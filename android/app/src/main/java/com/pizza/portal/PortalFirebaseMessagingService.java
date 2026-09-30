@@ -42,6 +42,23 @@ public class PortalFirebaseMessagingService extends FirebaseMessagingService {
     private static final String TAG = "PortalFCM";
     public static final String CHANNEL_ID = "dm_messages_channel";
 
+    private static volatile boolean isAppForeground = false;
+    private static volatile String activeConversationId = null;
+
+    public static void setAppForeground(boolean foreground) {
+        isAppForeground = foreground;
+        Log.d(TAG, "isAppForeground set to: " + foreground);
+    }
+
+    public static void setActiveConversationId(String convId) {
+        activeConversationId = convId;
+        Log.d(TAG, "activeConversationId set to: " + convId);
+    }
+
+    public static String getActiveConversationId() {
+        return activeConversationId;
+    }
+
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
@@ -49,8 +66,22 @@ public class PortalFirebaseMessagingService extends FirebaseMessagingService {
 
         Map<String, String> data = remoteMessage.getData();
         if (data != null && isDmNotification(data)) {
-            Log.d(TAG, "Handling DM rich notification with Direct Reply & MessagingStyle");
-            showDmRichNotification(data);
+            String convId = data.getOrDefault("conversationId", "");
+            boolean isViewingThisDm = isAppForeground && activeConversationId != null && !activeConversationId.isEmpty() && activeConversationId.equals(convId);
+
+            if (isViewingThisDm) {
+                Log.d(TAG, "User is actively viewing conversation " + convId + " in foreground. Suppressing notification shade popup.");
+            } else {
+                Log.d(TAG, "Showing DM rich notification with Direct Reply & MessagingStyle (active=" + activeConversationId + ", fg=" + isAppForeground + ")");
+                showDmRichNotification(data);
+            }
+
+            // Always forward to Capacitor plugin so foreground web app can update immediately
+            try {
+                PushNotificationsPlugin.sendRemoteMessage(remoteMessage);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to sendRemoteMessage to PushNotificationsPlugin", e);
+            }
         } else {
             // Forward non-DM notifications to Capacitor plugin
             Log.d(TAG, "Forwarding non-DM notification to Capacitor plugin");
