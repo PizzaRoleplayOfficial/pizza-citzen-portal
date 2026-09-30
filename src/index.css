@@ -2412,7 +2412,6 @@ input, textarea, select {
 
 /* 2. 境界線（ボーダー）の徹底排除: 選択中・フォーカス時以外は非表示、余白と拡散シャドウで表現 */
 :root[data-theme='light'] .card,
-:root[data-theme='light'] .glass:not(.mobile-nav):not(.nav-fixed),
 :root[data-theme='light'] .vehicle-card,
 :root[data-theme='light'] .feed-card {
   background: #ffffff !important;
@@ -2519,7 +2518,6 @@ img[alt="author"],
 
 /* 5. カード類（Squircle: 24px〜28px, 内部余白 24px 以上, 枠線排除） */
 :root[data-theme='light'] .card,
-:root[data-theme='light'] .glass:not(.mobile-nav):not(.nav-fixed),
 :root[data-theme='light'] .vehicle-card,
 :root[data-theme='light'] .feed-card {
   background: #ffffff !important;
@@ -2532,7 +2530,6 @@ img[alt="author"],
 
 /* 6. ダークテーマ（網膜保護の絶対ルール: 純白カード完全禁止, エレベーション・グレー #1c1c1e, 文字色 #ebebf5） */
 :root[data-theme='dark'] .card,
-:root[data-theme='dark'] .glass:not(.mobile-nav):not(.nav-fixed),
 :root[data-theme='dark'] .vehicle-card,
 :root[data-theme='dark'] .feed-card {
   background: #1c1c1e !important;
@@ -2568,4 +2565,39 @@ img[alt="author"],
   box-shadow: 0 0 0 2px #0a84ff !important;
   border-color: transparent !important;
   outline: none !important;
+}
+
+
+/* 選択状態（Active）の独立浮遊表示 */
+.btn-sidebar.active,
+.admin-nav-btn.active {
+  background: rgba(37, 99, 235, 0.12) !important;
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+  margin: 0 8px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+:root[data-theme='dark'] .btn-sidebar.active,
+:root[data-theme='dark'] .admin-nav-btn.active {
+  background: rgba(10, 132, 255, 0.18) !important;
+  color: #0a84ff !important;
+}
+
+/* ピル形状の余白ルール（左右が上下の1.5〜2倍） */
+.btn {
+  padding: 10px 20px !important;
+  border-radius: 999px !important;
+}
+
+.btn-sm {
+  padding: 6px 14px !important;
+  border-radius: 999px !important;
+}
+
+.btn-lg {
+  padding: 14px 28px !important;
+  border-radius: 999px !important;
 }
