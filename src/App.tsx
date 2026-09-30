@@ -1475,6 +1475,12 @@ export default function App() {
                   if (postId) {
                     setTargetTimelinePostId(postId);
                   }
+                } else if (parsedUrl.host === 'dm' || (parsedUrl.host === 'pizzaportal' && parsedUrl.pathname === '/dm') || parsedUrl.pathname === '/messages') {
+                  const convId = parsedUrl.searchParams.get('conversationId');
+                  const partnerId = parsedUrl.searchParams.get('partnerId');
+                  setView('messages');
+                  if (convId) setDmTargetConversationId(convId);
+                  if (partnerId) setDmTargetUserId(partnerId);
                 }
               } catch (err) {
                 console.error('Failed to parse Deep Link URL:', err);

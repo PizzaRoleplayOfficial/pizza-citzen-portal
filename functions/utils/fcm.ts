@@ -119,25 +119,36 @@ export async function sendFcmNotification(
 
     // 2. FCM v1 APIのメッセージ構築
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
-    const message = {
+    const isDm = payload.channelId === 'dm_messages_channel';
+    const message: any = {
       message: {
         token: token,
-        notification: {
+        data: {
+          ...(payload.data || {}),
           title: payload.title,
-          body: payload.body
+          body: payload.body,
+          channelId: payload.channelId || 'application_results_channel'
         },
-        data: payload.data || undefined, // data属性を追加 (v2.0.3)
         android: {
-          notification: {
-            channel_id: payload.channelId || 'application_results_channel',
-            sound: 'default',
-            tag: payload.tag || (payload.channelId === 'dm_messages_channel' && payload.data?.conversationId ? `dm_${payload.data.conversationId}` : undefined),
-            notification_count: payload.notificationCount || undefined,
-            click_action: payload.channelId === 'dm_messages_channel' ? 'DM_REPLY_ACTION' : undefined
-          }
+          priority: 'HIGH'
         }
       }
     };
+
+    // DM通知はAndroid OSによる強制簡易表示を防ぎ、Native MessagingStyle (直接返信・既読) を発火させるため Data-Only として送信
+    // 通常の申請・タイムライン通知は従来通り notification を含めて標準表示
+    if (!isDm) {
+      message.message.notification = {
+        title: payload.title,
+        body: payload.body
+      };
+      message.message.android.notification = {
+        channel_id: payload.channelId || 'application_results_channel',
+        sound: 'default',
+        tag: payload.tag || undefined,
+        notification_count: payload.notificationCount || undefined
+      };
+    }
 
     // 3. FCM v1 APIへリクエスト送信
     const res = await fetch(fcmUrl, {

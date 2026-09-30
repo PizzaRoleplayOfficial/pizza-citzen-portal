@@ -392,6 +392,11 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
           }
         }
 
+        const messagesData = (unreadRows && unreadRows.length > 0 ? unreadRows : [{ content: previewText }]).slice(-6).map((r: any) => ({
+          text: (r.content || '').trim() || (r.image_data ? '📷 [画像]' : '...'),
+          sender: sender.username
+        }));
+
         await sendFcmNotificationToUser(env, actualRecipientId, {
           title: notifTitle,
           body: notifBody,
@@ -401,11 +406,14 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
           data: {
             action: `dm?conversationId=${conversationId}&partnerId=${senderId}`,
             conversationId,
-            senderId,
+            partnerId: senderId,
             recipientId: actualRecipientId,
             senderUsername: sender.username,
+            senderAvatar: sender.avatar || '',
             type: 'dm_message',
-            canReply: 'true'
+            canReply: 'true',
+            messagesJson: JSON.stringify(messagesData),
+            lastMessage: previewText
           }
         });
       }

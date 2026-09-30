@@ -53,6 +53,19 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        <!-- Custom Firebase Messaging Service for rich Discord-like DM notifications with Direct Reply & MessagingStyle -->
+        <service
+            android:name=".PortalFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter android:priority="1000">
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- BroadcastReceiver for Direct Reply & Mark as Read actions from notification shade -->
+        <receiver
+            android:name=".DirectReplyReceiver"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->
