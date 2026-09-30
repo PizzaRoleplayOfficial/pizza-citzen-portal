@@ -3185,7 +3185,7 @@ export default function App() {
                 <LayoutDashboard size={18} strokeWidth={view === 'garage' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>ガレージ</span>}
               </button>
               <button className={`btn-sidebar ${view === 'timeline' ? 'active' : ''}`} onClick={() => setView('timeline')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                <MessageSquare size={18} strokeWidth={view === 'timeline' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>タイムライン</span>}
+                <Flame size={18} strokeWidth={view === 'timeline' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>タイムライン</span>}
               </button>
               <button className={`btn-sidebar ${view === 'messages' ? 'active' : ''}`} onClick={() => setView('messages')} style={{ position: 'relative', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>

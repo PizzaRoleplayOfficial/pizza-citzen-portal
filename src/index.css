@@ -2366,3 +2366,36 @@ img[src*="ui-avatars"],
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   color: #0a84ff !important;
 }
+
+/* ========================================================
+   【ぴっざぁポータル】UI/UXデザイン規約（最新完全版）準拠
+   入力フォーム・検索バーの境界線最小化 & フォーカスリング
+   ======================================================== */
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+  outline: none !important;
+}
+
+:root[data-theme='light'] input[type="text"]:focus,
+:root[data-theme='light'] input[type="search"]:focus,
+:root[data-theme='light'] input[type="password"]:focus,
+:root[data-theme='light'] input[type="email"]:focus,
+:root[data-theme='light'] textarea:focus {
+  background: #ffffff !important;
+  box-shadow: 0 0 0 2px #2563eb !important;
+  border-color: transparent !important;
+}
+
+:root[data-theme='dark'] input[type="text"]:focus,
+:root[data-theme='dark'] input[type="search"]:focus,
+:root[data-theme='dark'] input[type="password"]:focus,
+:root[data-theme='dark'] input[type="email"]:focus,
+:root[data-theme='dark'] textarea:focus {
+  background: #1c1d22 !important;
+  box-shadow: 0 0 0 2px #0a84ff !important;
+  border-color: transparent !important;
+}

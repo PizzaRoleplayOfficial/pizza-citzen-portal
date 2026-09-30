@@ -1014,7 +1014,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       background: 'transparent',
                       border: 'none',
                       color: theme === 'dark' ? '#f4f4f5' : 'var(--text-main)',
-                      fontSize: '0.92rem',
+                      fontSize: '16px',
                       outline: 'none',
                       resize: 'none',
                       minHeight: '36px',
