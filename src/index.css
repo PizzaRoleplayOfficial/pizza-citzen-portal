@@ -2399,3 +2399,73 @@ textarea:focus {
   box-shadow: 0 0 0 2px #0a84ff !important;
   border-color: transparent !important;
 }
+
+
+/* ========================================================
+   【ぴっざぁポータル】UI/UXデザイン・実装規約（PC/スマホ完全統合版）
+   ======================================================== */
+
+/* 1. iOS自動ズーム防止: すべての入力フォームに16pxを強制適用 */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* 2. 境界線（ボーダー）の徹底排除: 選択中・フォーカス時以外は非表示、余白と拡散シャドウで表現 */
+:root[data-theme='light'] .card,
+:root[data-theme='light'] .glass:not(.mobile-nav):not(.nav-fixed),
+:root[data-theme='light'] .vehicle-card,
+:root[data-theme='light'] .feed-card {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 18px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* 3. 入力フォームのボーダー排除 & フォーカス時ホワイト反転＋プライマリブルーリング */
+:root[data-theme='light'] input[type="text"],
+:root[data-theme='light'] input[type="search"],
+:root[data-theme='light'] input[type="password"],
+:root[data-theme='light'] input[type="email"],
+:root[data-theme='light'] input[type="number"],
+:root[data-theme='light'] textarea,
+:root[data-theme='light'] select {
+  background: #f4f5f7 !important;
+  border: 1px solid transparent !important;
+  border-radius: 12px !important;
+  color: #1f2937 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+:root[data-theme='light'] input[type="text"]:focus,
+:root[data-theme='light'] input[type="search"]:focus,
+:root[data-theme='light'] input[type="password"]:focus,
+:root[data-theme='light'] input[type="email"]:focus,
+:root[data-theme='light'] input[type="number"]:focus,
+:root[data-theme='light'] textarea:focus,
+:root[data-theme='light'] select:focus {
+  background: #ffffff !important;
+  box-shadow: 0 0 0 2px #2563eb !important;
+  border-color: transparent !important;
+  outline: none !important;
+}
+
+/* 4. 造形とアバター: ボタン角丸 10px〜12px、アバターは例外なく完全な正円 */
+.btn {
+  border-radius: 12px !important;
+}
+
+img[src*="avatar"],
+img[src*="avatars"],
+img[alt="Avatar"],
+img[alt="u"],
+img[alt="author"],
+.avatar-img,
+.user-avatar {
+  border-radius: 50% !important;
+}
+
+/* 5. 緑色発光エフェクト全面禁止（公的印章ディープグリーンを採用） */
+:root {
+  --success: #15803d !important;
+  --success-bg: rgba(21, 128, 61, 0.1) !important;
+}

@@ -423,7 +423,7 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
         artworkUrl = window.location.origin + artwork;
       }
     } else {
-      artworkUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(artist || 'P')}&background=00c166&color=fff&size=128`;
+      artworkUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(artist || 'P')}&background=2563eb&color=fff&size=128`;
     }
 
     const metadataParams = {
@@ -812,7 +812,7 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
           height: 14px;
           border-radius: 50%;
           background: #ffffff;
-          box-shadow: 0 0 10px rgba(0, 193, 102, 0.8), 0 0 4px rgba(0,0,0,0.5);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
           cursor: pointer;
           margin-top: -4.5px;
           border: none;
@@ -827,7 +827,7 @@ const TimelineVideoPlayer = ({ src, onPlay, maxHeight, title, artist, artwork }:
           border-radius: 50%;
           background: #ffffff;
           border: none;
-          box-shadow: 0 0 10px rgba(0, 193, 102, 0.8), 0 0 4px rgba(0,0,0,0.5);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
           cursor: pointer;
           transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
@@ -2883,7 +2883,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   };
 
   const handleAvatarError = (e: React.SyntheticEvent<HTMLImageElement>, username: string) => {
-    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=00c166&color=fff&size=100`;
+    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=2563eb&color=fff&size=100`;
   };
 
   const renderImageGrid = (imagesJson: string | null, postId: string) => {
@@ -3592,9 +3592,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <img
-                  src={u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=00c166&color=fff`}
+                  src={u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=2563eb&color=fff`}
                   alt={u.username}
-                  style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'cover', background: '#fff' }}
+                  style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', background: '#fff' }}
                   onError={e => handleAvatarError(e, u.username)}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
@@ -4151,7 +4151,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             background: 'var(--primary)',
             color: '#000',
             border: 'none',
-            boxShadow: '0 4px 20px rgba(0,255,136,0.45), 0 2px 8px rgba(0,0,0,0.3)',
+            color: '#ffffff',
+            boxShadow: '0 8px 24px rgba(37, 99, 235, 0.35)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -4257,7 +4258,18 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    background: 'rgba(37, 99, 235, 0.08)',
+                    color: '#2563eb',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.02em'
+                  }}>
                     <span>📢 運営からの重要なお知らせ</span>
                   </div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -4278,10 +4290,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px' }}>
                   <img 
-                    src={latestAnnouncement.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(latestAnnouncement.author_username || 'P')}&background=00c166&color=fff`} 
+                    src={latestAnnouncement.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(latestAnnouncement.author_username || 'P')}&background=2563eb&color=fff`} 
                     alt="u" 
                     onError={(e) => handleAvatarError(e, latestAnnouncement.author_username || 'P')}
-                    style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover' }}
+                    style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
@@ -4317,20 +4329,14 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     flexDirection: 'column',
                     gap: '12px', 
                     background: isAnnouncementPost 
-                      ? (theme === 'light'
-                          ? 'linear-gradient(135deg, #eefcf5 0%, #ffffff 100%)'
-                          : 'linear-gradient(135deg, rgba(20,25,35,0.7) 0%, rgba(0, 255, 136, 0.03) 100%)')
+                      ? '#ffffff'
                       : 'var(--panel-bg)', 
-                    border: isAnnouncementPost 
-                      ? (theme === 'light'
-                          ? '1.5px solid rgba(0, 193, 102, 0.3)'
-                          : '1.5px solid rgba(0, 255, 136, 0.3)')
-                      : '1px solid var(--glass-border)',
+                    border: 'none',
+                    borderLeft: isAnnouncementPost ? '4px solid #2563eb' : 'none',
                     boxShadow: isAnnouncementPost 
-                      ? (theme === 'light'
-                          ? '0 8px 24px rgba(0, 193, 102, 0.08)'
-                          : '0 8px 24px rgba(0, 255, 136, 0.06)')
-                      : 'none',
+                      ? '0 4px 20px rgba(0, 0, 0, 0.04)'
+                      : '0 2px 10px rgba(0, 0, 0, 0.02)',
+                    borderRadius: '16px',
                     position: 'relative',
                     opacity: post.isPending ? 0.6 : 1,
                     pointerEvents: post.isPending ? 'none' : 'auto'
@@ -4403,7 +4409,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', width: '100%' }}>
                       {/* Author Avatar */}
                       <img 
-                        src={targetPost.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(targetPost.author_username || 'P')}&background=00c166&color=fff`} 
+                        src={targetPost.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(targetPost.author_username || 'P')}&background=2563eb&color=fff`} 
                         alt="Author Avatar" 
                         onError={(e) => handleAvatarError(e, targetPost.author_username || 'P')}
                         onClick={() => {
@@ -4439,11 +4445,10 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                             <span style={{
                               fontSize: '0.72rem',
                               fontWeight: 800,
-                              background: theme === 'light' ? 'rgba(0, 193, 102, 0.12)' : 'rgba(0, 255, 136, 0.15)',
-                              border: theme === 'light' ? '1px solid rgba(0, 193, 102, 0.25)' : '1px solid rgba(0, 255, 136, 0.3)',
-                              color: 'var(--primary)',
+                              background: 'rgba(37, 99, 235, 0.08)',
+                              color: '#2563eb',
                               padding: '2px 8px',
-                              borderRadius: '12px',
+                              borderRadius: '8px',
                               marginLeft: '4px',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -4857,7 +4862,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               {/* Original Post Context */}
               <div style={{ display: 'flex', gap: '12px', padding: '16px', background: 'rgba(255,255,255,0.015)', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                 <img 
-                  src={activePost.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePost.author_username || 'P')}&background=00c166&color=fff`} 
+                  src={activePost.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePost.author_username || 'P')}&background=2563eb&color=fff`} 
                   alt="Author Avatar" 
                   onError={(e) => handleAvatarError(e, activePost.author_username || 'P')}
                   onClick={() => {
@@ -4946,7 +4951,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           {/* 1階層目: メインコメント */}
                           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                             <img 
-                              src={comment.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author_username || 'C')}&background=00c166&color=fff`} 
+                              src={comment.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author_username || 'C')}&background=2563eb&color=fff`} 
                               alt="Avatar" 
                               onError={(e) => handleAvatarError(e, comment.author_username || 'C')}
                               onClick={() => {
@@ -5123,7 +5128,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                                 return (
                                   <div key={sub.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', paddingBottom: '4px', opacity: sub.isPending ? 0.6 : 1, pointerEvents: sub.isPending ? 'none' : 'auto' }}>
                                     <img 
-                                      src={sub.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sub.author_username || 'C')}&background=00c166&color=fff`} 
+                                      src={sub.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sub.author_username || 'C')}&background=2563eb&color=fff`} 
                                       alt="Avatar" 
                                       onError={(e) => handleAvatarError(e, sub.author_username || 'C')}
                                       style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#fff', objectFit: 'cover', flexShrink: 0 }}
@@ -5686,7 +5691,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               {/* Avatar offset */}
               <div style={{ position: 'relative', marginTop: '-45px', marginBottom: '8px', display: 'inline-block', width: '90px' }}>
                 <img 
-                  src={selectedUserProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUserProfile.username || 'P')}&background=00c166&color=fff`}
+                  src={selectedUserProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUserProfile.username || 'P')}&background=2563eb&color=fff`}
                   alt="Avatar"
                   onError={(e) => handleAvatarError(e, selectedUserProfile.username || 'P')}
                   style={{
@@ -6265,7 +6270,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     }}
                   >
                     <img
-                      src={item.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username || 'P')}&background=00c166&color=fff`}
+                      src={item.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username || 'P')}&background=2563eb&color=fff`}
                       alt="Avatar"
                       onError={(e) => handleAvatarError(e, item.username || 'P')}
                       style={{

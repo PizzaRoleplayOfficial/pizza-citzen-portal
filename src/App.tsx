@@ -3292,7 +3292,7 @@ export default function App() {
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'scale(1.05)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; (e.currentTarget.firstChild as HTMLElement).style.transform = 'none'; }}
             >
-              <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff', objectFit: 'cover', transition: 'transform 0.2s ease' }} />
+              <img src={currentUser.avatar} alt="u" onError={(e) => handleAvatarError(e, currentUser.username)} style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#fff', objectFit: 'cover', transition: 'transform 0.2s ease' }} />
               {!sidebarCollapsed && (
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.username}</div>
@@ -3357,10 +3357,10 @@ export default function App() {
             <div style={{
               background: 'linear-gradient(90deg, #dc2626, #ea580c)',
               color: '#ffffff',
-              paddingTop: 'calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 8px)',
+              paddingTop: 'calc(max(env(safe-area-inset-top, 0px), 16px) + 8px)',
               paddingBottom: '8px',
-              paddingLeft: 'calc(var(--safe-left, 0px) + 16px)',
-              paddingRight: 'calc(var(--safe-right, 0px) + 16px)',
+              paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+              paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -3402,10 +3402,10 @@ export default function App() {
             background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            paddingTop: (isMaintenanceActive && isAdmin) ? '12px' : 'calc(16px + var(--safe-top, 0px))',
+            paddingTop: (isMaintenanceActive && isAdmin) ? '12px' : 'max(env(safe-area-inset-top, 0px), 16px)',
             paddingBottom: '16px',
-            paddingLeft: 'calc(16px + var(--safe-left, 0px))',
-            paddingRight: 'calc(16px + var(--safe-right, 0px))',
+            paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+            paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -3432,9 +3432,11 @@ export default function App() {
                 onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
                 className="btn glass"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
+                  width: '40px',
+                  height: '40px',
+                  minWidth: '40px',
+                  minHeight: '40px',
+                  borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -3446,7 +3448,7 @@ export default function App() {
                   padding: 0,
                 }}
               >
-                <Bell size={16} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
+                <Bell size={18} style={{ color: unreadCount > 0 ? 'var(--primary)' : 'var(--text-main)' }} />
                 {unreadCount > 0 && (
                   <span
                     style={{
@@ -3479,8 +3481,10 @@ export default function App() {
                 onClick={() => { triggerHaptic('light'); setShowProfileMenu(!showProfileMenu); }}
                 onError={(e) => handleAvatarError(e, currentUser.username)}
                 style={{
-                  width: '32px',
-                  height: '32px',
+                  width: '40px',
+                  height: '40px',
+                  minWidth: '40px',
+                  minHeight: '40px',
                   borderRadius: '50%',
                   background: '#fff',
                   objectFit: 'cover',
@@ -3626,8 +3630,8 @@ export default function App() {
                         style={{
                           width: '92px',
                           height: '92px',
-                          borderRadius: '16px',
-                          border: '2px solid #e2e8f0',
+                          borderRadius: '50%',
+                          border: '2px solid #ffffff',
                           objectFit: 'cover',
                           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
                         }}

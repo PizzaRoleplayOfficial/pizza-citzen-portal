@@ -165,7 +165,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
   };
 
   const handleAvatarError = (e: React.SyntheticEvent<HTMLImageElement>, name: string) => {
-    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'U')}&background=00c166&color=fff`;
+    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'U')}&background=2563eb&color=fff`;
   };
 
   // 1. Fetch conversations list
@@ -599,7 +599,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                   >
                     <div style={{ position: 'relative' }}>
                       <img
-                        src={conv.partner_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.partner_username)}&background=00c166&color=fff`}
+                        src={conv.partner_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.partner_username)}&background=2563eb&color=fff`}
                         alt={conv.partner_username}
                         onError={(e) => handleAvatarError(e, conv.partner_username)}
                         style={{ width: '46px', height: '46px', borderRadius: '50%', objectFit: 'cover' }}
@@ -748,7 +748,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     </button>
                   )}
                   <img
-                    src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=00c166&color=fff`}
+                    src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=2563eb&color=fff`}
                     alt={activePartner.username}
                     onError={(e) => handleAvatarError(e, activePartner.username)}
                     style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
@@ -820,7 +820,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       >
                         {!isMine && (
                           <img
-                            src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=00c166&color=fff`}
+                            src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=2563eb&color=fff`}
                             alt="avatar"
                             onError={(e) => handleAvatarError(e, activePartner.username)}
                             style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
@@ -1157,10 +1157,10 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <img
-                          src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=00c166&color=fff`}
+                          src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=2563eb&color=fff`}
                           alt={user.username}
                           onError={(e) => handleAvatarError(e, user.username)}
-                          style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover' }}
+                          style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
                         />
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
