@@ -37,6 +37,7 @@ const ensureDmTables = async (db: any) => {
       recipient_id TEXT NOT NULL,
       content TEXT,
       image_data TEXT,
+      reply_to_id TEXT,
       is_read INTEGER DEFAULT 0,
       read_at TEXT,
       created_at TEXT DEFAULT (datetime('now'))
@@ -49,6 +50,26 @@ const ensureDmTables = async (db: any) => {
 
   await db.prepare(`
     CREATE INDEX IF NOT EXISTS idx_dm_msg_recipient_unread ON dm_messages(recipient_id, is_read);
+  `).run();
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS dm_reactions (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL,
+      conversation_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(message_id, user_id, emoji)
+    );
+  `).run();
+
+  await db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_dm_reactions_msg ON dm_reactions(message_id);
+  `).run();
+
+  await db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_dm_reactions_conv ON dm_reactions(conversation_id);
   `).run();
 };
 
@@ -251,13 +272,24 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       const beforeTimestamp = url.searchParams.get('before');
 
       let query = `
-        SELECT id, conversation_id, sender_id, recipient_id, content, image_data, is_read, read_at, created_at
+        SELECT 
+          id, conversation_id, sender_id, recipient_id, content, image_data, is_read, read_at, created_at,
+          reply_to_id, reply_content, reply_sender_id, reply_sender_name, reply_image
         FROM (
-          SELECT id, conversation_id, sender_id, recipient_id, content, image_data, is_read, read_at, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) as created_at
-          FROM dm_messages
-          WHERE conversation_id = ?
-          ${beforeTimestamp ? 'AND created_at < ?' : ''}
-          ORDER BY created_at DESC, rowid DESC
+          SELECT 
+            m.id, m.conversation_id, m.sender_id, m.recipient_id, m.content, m.image_data, m.is_read, m.read_at,
+            strftime('%Y-%m-%dT%H:%M:%SZ', m.created_at) as created_at,
+            m.reply_to_id,
+            orig.content as reply_content,
+            orig.sender_id as reply_sender_id,
+            orig_user.username as reply_sender_name,
+            orig.image_data as reply_image
+          FROM dm_messages m
+          LEFT JOIN dm_messages orig ON m.reply_to_id = orig.id
+          LEFT JOIN users orig_user ON orig.sender_id = orig_user.id
+          WHERE m.conversation_id = ?
+          ${beforeTimestamp ? 'AND m.created_at < ?' : ''}
+          ORDER BY m.created_at DESC, m.rowid DESC
           LIMIT ?
         )
         ORDER BY created_at ASC
@@ -269,10 +301,43 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
       const { results: rawMessages } = await env.D1_DB.prepare(query).bind(...bindings).all();
 
+      // Fetch reactions for this conversation
+      const { results: rawReactions } = await env.D1_DB.prepare(`
+        SELECT r.id, r.message_id, r.user_id, r.emoji, u.username
+        FROM dm_reactions r
+        LEFT JOIN users u ON r.user_id = u.id
+        WHERE r.conversation_id = ?
+      `).bind(conversationId).all().catch(() => ({ results: [] }));
+
+      // Group reactions by message_id
+      const reactionsByMsg: Record<string, { emoji: string; count: number; users: string[]; hasReacted: boolean }[]> = {};
+      if (rawReactions && rawReactions.length > 0) {
+        for (const item of rawReactions as any[]) {
+          if (!reactionsByMsg[item.message_id]) {
+            reactionsByMsg[item.message_id] = [];
+          }
+          let entry = reactionsByMsg[item.message_id].find(e => e.emoji === item.emoji);
+          if (!entry) {
+            entry = { emoji: item.emoji, count: 0, users: [], hasReacted: false };
+            reactionsByMsg[item.message_id].push(entry);
+          }
+          entry.count += 1;
+          entry.users.push(item.username || 'User');
+          if (item.user_id === userId) {
+            entry.hasReacted = true;
+          }
+        }
+      }
+
+      const messagesWithReactions = (rawMessages || []).map((m: any) => ({
+        ...m,
+        reactions: reactionsByMsg[m.id] || []
+      }));
+
       return new Response(JSON.stringify({
         conversationId,
         partner,
-        messages: rawMessages || [],
+        messages: messagesWithReactions,
         updatedAt: conv?.updated_at || conv?.last_message_at || new Date().toISOString()
       }), {
         headers: { 'Content-Type': 'application/json' }
@@ -328,6 +393,63 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     if (!senderId) {
       return new Response(JSON.stringify({ error: 'Missing senderId' }), {
         status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Action 0: Toggle emoji reaction on a message
+    if (action === 'toggle_reaction') {
+      const messageId = body.messageId;
+      const emoji = (body.emoji || '').trim();
+
+      if (!messageId || !emoji || !senderId) {
+        return new Response(JSON.stringify({ error: 'messageId, emoji, and senderId required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const msg = await env.D1_DB.prepare(
+        "SELECT id, conversation_id FROM dm_messages WHERE id = ?"
+      ).bind(messageId).first() as any;
+
+      if (!msg) {
+        return new Response(JSON.stringify({ error: 'Message not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const existing = await env.D1_DB.prepare(
+        "SELECT id FROM dm_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?"
+      ).bind(messageId, senderId, emoji).first() as any;
+
+      let reactionResult = 'added';
+      if (existing) {
+        await env.D1_DB.prepare(
+          "DELETE FROM dm_reactions WHERE id = ?"
+        ).bind(existing.id).run();
+        reactionResult = 'removed';
+      } else {
+        const reactionId = crypto.randomUUID();
+        await env.D1_DB.prepare(`
+          INSERT INTO dm_reactions (id, message_id, conversation_id, user_id, emoji, created_at)
+          VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `).bind(reactionId, messageId, msg.conversation_id, senderId, emoji).run();
+        reactionResult = 'added';
+      }
+
+      // Touch conversation updated_at for instant adaptive sync
+      await env.D1_DB.prepare(
+        "UPDATE dm_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+      ).bind(msg.conversation_id).run().catch(() => {});
+
+      return new Response(JSON.stringify({
+        success: true,
+        action: reactionResult,
+        messageId,
+        emoji
+      }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -409,15 +531,16 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
     }
 
     const messageId = crypto.randomUUID();
+    const replyToId = body.replyToId || null;
     const previewText = trimmedContent 
       ? (trimmedContent.length > 60 ? trimmedContent.substring(0, 60) + '...' : trimmedContent)
       : '📷 [画像]';
 
     // Insert message
     await env.D1_DB.prepare(`
-      INSERT INTO dm_messages (id, conversation_id, sender_id, recipient_id, content, image_data, is_read, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
-    `).bind(messageId, conversationId, senderId, actualRecipientId, trimmedContent, imageData || null).run();
+      INSERT INTO dm_messages (id, conversation_id, sender_id, recipient_id, content, image_data, reply_to_id, is_read, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+    `).bind(messageId, conversationId, senderId, actualRecipientId, trimmedContent, imageData || null, replyToId).run();
 
     // Update conversation metadata
     await env.D1_DB.prepare(`
@@ -433,6 +556,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       ).bind(senderId).first() as any;
 
       if (sender && actualRecipientId) {
+        const notifTitle = replyToId ? `${sender.username}からの返信` : sender.username;
         // Query unread count and latest unread messages for push notification bundling
         const unreadCountRow = await env.D1_DB.prepare(`
           SELECT COUNT(*) as count FROM dm_messages 

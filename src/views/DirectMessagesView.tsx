@@ -15,7 +15,12 @@ import {
   RefreshCw,
   Upload,
   Download,
-  ChevronDown
+  ChevronDown,
+  Reply,
+  CornerDownRight,
+  Smile,
+  Copy,
+  Check
 } from 'lucide-react';
 import { compressImage } from '../utils/helpers';
 import { triggerHaptic, notifyActiveConversation } from '../utils/native';
@@ -46,6 +51,13 @@ interface Conversation {
   unread_count: number;
 }
 
+interface Reaction {
+  emoji: string;
+  count: number;
+  users: string[];
+  hasReacted: boolean;
+}
+
 interface Message {
   id: string;
   conversation_id: string;
@@ -56,7 +68,38 @@ interface Message {
   is_read: number;
   read_at: string | null;
   created_at: string;
+  reply_to_id?: string | null;
+  reply_content?: string | null;
+  reply_sender_id?: string | null;
+  reply_sender_name?: string | null;
+  reply_image?: string | null;
+  reactions?: Reaction[];
 }
+
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🍕', '🔥'];
+
+const EMOJI_CATEGORIES = [
+  {
+    name: '定番・リアクション',
+    emojis: ['👍', '❤️', '😂', '😮', '😢', '🙏', '🍕', '🔥', '👏', '🎉', '💯', '✨', '🥺', '🤣', '😍', '👀']
+  },
+  {
+    name: '表情・スマイリー',
+    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '😎', '🥳', '😏', '😭', '😤', '😡', '🤯', '😳', '😱', '🤫', '😴', '🤤', '🤠']
+  },
+  {
+    name: 'ジェスチャー・手',
+    emojis: ['👍', '👎', '👏', '🙌', '👐', '🤝', '🙏', '✌️', '🤞', '🤟', '🤘', '👌', '🤌', '👈', '👉', '👆', '👇', '✋', '🤚', '👋', '💪', '🖕', '✍️', '💅']
+  },
+  {
+    name: 'ハート・感情',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '⭐', '🌟', '💫', '💥', '💢', '💤']
+  },
+  {
+    name: 'アイテム・乗り物・フード',
+    emojis: ['🍕', '🍔', '🍟', '🍜', '🍣', '🍱', '🍦', '🍩', '🎂', '☕', '🍵', '🧃', '🥤', '🍺', '🍻', '🚗', '🚓', '🚑', '🏎️', '🏍️', '🚲', '🎁', '🏆', '🎯', '🎮']
+  }
+];
 
 // Utility: Render formatted message with clickable hyperlinks
 const renderFormattedMessageText = (text: string) => {
@@ -132,6 +175,15 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
+  // State: Reply & Reactions
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  const [activeActionMessageId, setActiveActionMessageId] = useState<string | null>(null);
+  const [showFullEmojiPicker, setShowFullEmojiPicker] = useState<string | null>(null);
+  const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+  const touchTimerRef = useRef<any>(null);
+
   // Refs & Smart Scroll State
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -162,6 +214,118 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
     isNearBottomRef.current = true;
     setShowScrollBottomBtn(false);
+  };
+
+  // Start reply to a message
+  const handleStartReply = (msg: Message) => {
+    triggerHaptic('light');
+    setReplyingTo(msg);
+    setActiveActionMessageId(null);
+    setHoveredMessageId(null);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 80);
+  };
+
+  // Scroll to original message when clicking reply quote
+  const scrollToOriginalMessage = (origId: string) => {
+    const el = document.getElementById(`dm-msg-${origId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMsgId(origId);
+      triggerHaptic('light');
+      setTimeout(() => {
+        setHighlightedMsgId(null);
+      }, 1600);
+    }
+  };
+
+  // Copy message text
+  const handleCopyMessage = async (msg: Message) => {
+    if (!msg.content) return;
+    try {
+      await navigator.clipboard.writeText(msg.content);
+      triggerHaptic('light');
+      setCopiedMsgId(msg.id);
+      setActiveActionMessageId(null);
+      setTimeout(() => setCopiedMsgId(null), 1500);
+    } catch (e) {
+      console.error('Copy failed:', e);
+    }
+  };
+
+  // Toggle emoji reaction
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    triggerHaptic('light');
+    setActiveActionMessageId(null);
+    setShowFullEmojiPicker(null);
+    setHoveredMessageId(null);
+
+    // Optimistically update reactions
+    setMessages(prev => prev.map(m => {
+      if (m.id !== messageId) return m;
+      const existing = m.reactions ? [...m.reactions] : [];
+      const idx = existing.findIndex(r => r.emoji === emoji);
+
+      if (idx !== -1) {
+        const item = { ...existing[idx] };
+        if (item.hasReacted) {
+          item.count -= 1;
+          item.hasReacted = false;
+          item.users = item.users.filter(u => u !== (currentUser?.username || ''));
+          if (item.count <= 0) {
+            existing.splice(idx, 1);
+          } else {
+            existing[idx] = item;
+          }
+        } else {
+          item.count += 1;
+          item.hasReacted = true;
+          item.users.push(currentUser?.username || '');
+          existing[idx] = item;
+        }
+      } else {
+        existing.push({
+          emoji,
+          count: 1,
+          users: [currentUser?.username || ''],
+          hasReacted: true
+        });
+      }
+      return { ...m, reactions: existing };
+    }));
+
+    try {
+      await fetch('/api/dm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle_reaction',
+          messageId,
+          emoji,
+          senderId: currentUser.id
+        })
+      });
+    } catch (err) {
+      console.error('Failed to toggle reaction:', err);
+      fetchMessages(activeConversationId!, true);
+    }
+  };
+
+  // Touch handlers for mobile long-press
+  const handleMessageTouchStart = (msg: Message) => {
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+    touchTimerRef.current = setTimeout(() => {
+      triggerHaptic('medium');
+      setActiveActionMessageId(msg.id);
+    }, 450);
+  };
+
+  const handleMessageTouchEnd = () => {
+    if (touchTimerRef.current) {
+      clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
+    }
   };
 
   // Ultra-lightweight conversation update check (reads 1 row, CPU < 0.5ms)
@@ -483,6 +647,9 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     isNearBottomRef.current = true;
     setShowScrollBottomBtn(false);
 
+    const targetReply = replyingTo;
+    setReplyingTo(null);
+
     const tempId = 'temp_' + Date.now();
     const optimisticMessage: Message = {
       id: tempId,
@@ -493,7 +660,13 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       image_data: selectedImage || null,
       is_read: 0,
       read_at: null,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      reply_to_id: targetReply?.id || null,
+      reply_content: targetReply?.content || null,
+      reply_sender_id: targetReply?.sender_id || null,
+      reply_sender_name: targetReply ? (targetReply.sender_id === currentUser.id ? '自分' : activePartner.username) : null,
+      reply_image: targetReply?.image_data || null,
+      reactions: []
     };
 
     // Optimistically append message
@@ -514,7 +687,8 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
           senderId: currentUser.id,
           recipientId: activePartner.id,
           content: trimmed,
-          imageData: selectedImage
+          imageData: selectedImage,
+          replyToId: targetReply?.id || null
         })
       });
 
@@ -963,17 +1137,181 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                 ) : (
                   messages.map((msg, index) => {
                     const isMine = msg.sender_id === currentUser.id;
+                    const isHighlighted = highlightedMsgId === msg.id;
+                    const isHoveredOrActive = hoveredMessageId === msg.id || activeActionMessageId === msg.id;
+
                     return (
                       <div
                         key={msg.id || index}
+                        id={`dm-msg-${msg.id}`}
+                        onMouseEnter={() => !isMobile && setHoveredMessageId(msg.id)}
+                        onMouseLeave={() => !isMobile && setHoveredMessageId(null)}
+                        onTouchStart={() => isMobile && handleMessageTouchStart(msg)}
+                        onTouchEnd={() => isMobile && handleMessageTouchEnd()}
+                        onTouchCancel={() => isMobile && handleMessageTouchEnd()}
                         style={{
+                          position: 'relative',
                           display: 'flex',
                           flexDirection: isMine ? 'row-reverse' : 'row',
                           alignItems: 'flex-end',
                           gap: '8px',
-                          maxWidth: '100%'
+                          maxWidth: '100%',
+                          padding: '4px 6px',
+                          borderRadius: '16px',
+                          background: isHighlighted
+                            ? (theme === 'dark' ? 'rgba(10, 132, 255, 0.22)' : 'rgba(37, 99, 235, 0.14)')
+                            : 'transparent',
+                          transition: 'background-color 0.3s ease, transform 0.2s ease',
+                          transform: isHighlighted ? 'scale(1.02)' : 'none'
                         }}
                       >
+                        {/* Floating Action Pill Toolbar (Hover on PC, Long-press on Mobile) */}
+                        {isHoveredOrActive && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              position: 'absolute',
+                              top: '-36px',
+                              [isMine ? 'right' : 'left']: isMobile ? '8px' : '36px',
+                              zIndex: 25,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              padding: '4px 8px',
+                              borderRadius: '999px',
+                              background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
+                              border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid rgba(0, 0, 0, 0.1)',
+                              boxShadow: theme === 'dark' ? '0 6px 20px rgba(0,0,0,0.6)' : '0 4px 14px rgba(0,0,0,0.12)',
+                              animation: 'fadeIn 0.15s ease'
+                            }}
+                          >
+                            {/* Quick Emojis */}
+                            {QUICK_EMOJIS.slice(0, 5).map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleReaction(msg.id, emoji);
+                                }}
+                                title={emoji}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  padding: '2px 4px',
+                                  fontSize: '1rem',
+                                  borderRadius: '6px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  transition: 'transform 0.1s ease'
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.25)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+
+                            <div style={{ width: '1px', height: '14px', background: 'var(--glass-border)', margin: '0 2px' }} />
+
+                            {/* Full Emoji Picker Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowFullEmojiPicker(msg.id);
+                              }}
+                              title="絵文字を追加"
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '50%'
+                              }}
+                            >
+                              <Smile size={16} />
+                            </button>
+
+                            {/* Reply Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartReply(msg);
+                              }}
+                              title="返信"
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '50%'
+                              }}
+                            >
+                              <Reply size={16} />
+                            </button>
+
+                            {/* Copy Button (if text exists) */}
+                            {msg.content && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyMessage(msg);
+                                }}
+                                title="コピー"
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: copiedMsgId === msg.id ? 'var(--primary)' : 'var(--text-muted)',
+                                  cursor: 'pointer',
+                                  padding: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  borderRadius: '50%'
+                                }}
+                              >
+                                {copiedMsgId === msg.id ? <Check size={16} /> : <Copy size={15} />}
+                              </button>
+                            )}
+
+                            {/* Close Menu Button on Mobile */}
+                            {activeActionMessageId === msg.id && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveActionMessageId(null);
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--text-muted)',
+                                  cursor: 'pointer',
+                                  padding: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <X size={15} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+
                         {!isMine && (
                           <img
                             src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=2563eb&color=fff`}
@@ -984,7 +1322,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                         )}
 
                         <div style={{
-                          maxWidth: isMobile ? '80%' : '65%',
+                          maxWidth: isMobile ? '82%' : '65%',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: isMine ? 'flex-end' : 'flex-start'
@@ -1010,6 +1348,47 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                               ? (theme === 'dark' ? '0 2px 12px rgba(10, 132, 255, 0.35)' : '0 2px 10px rgba(0, 122, 255, 0.28)') 
                               : (theme === 'dark' ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 2px rgba(0, 0, 0, 0.03)')
                           }}>
+                            {/* Reply Quote Header */}
+                            {msg.reply_to_id && (
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  scrollToOriginalMessage(msg.reply_to_id!);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '5px 8px',
+                                  marginBottom: '8px',
+                                  borderRadius: '8px',
+                                  background: isMine
+                                    ? 'rgba(0, 0, 0, 0.22)'
+                                    : (theme === 'dark' ? 'rgba(255, 255, 255, 0.09)' : 'rgba(0, 0, 0, 0.06)'),
+                                  cursor: 'pointer',
+                                  fontSize: '0.78rem',
+                                  borderLeft: isMine
+                                    ? '3px solid rgba(255, 255, 255, 0.85)'
+                                    : (theme === 'dark' ? '3px solid #0a84ff' : '3px solid #2563eb'),
+                                  transition: 'opacity 0.15s ease'
+                                }}
+                              >
+                                <CornerDownRight size={12} style={{ flexShrink: 0, opacity: 0.85 }} />
+                                <span style={{ fontWeight: 700, flexShrink: 0 }}>
+                                  {msg.reply_sender_id === currentUser.id ? '自分' : (msg.reply_sender_name || '返信')}:
+                                </span>
+                                <span style={{
+                                  opacity: 0.85,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  maxWidth: '200px'
+                                }}>
+                                  {msg.reply_content || (msg.reply_image ? '📷 [画像]' : '...')}
+                                </span>
+                              </div>
+                            )}
+
                             {msg.image_data && (
                               <img
                                 src={msg.image_data}
@@ -1028,6 +1407,49 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                             )}
                             {renderFormattedMessageText(msg.content)}
                           </div>
+
+                          {/* Reaction Capsules */}
+                          {msg.reactions && msg.reactions.length > 0 && (
+                            <div style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '4px',
+                              marginTop: '4px',
+                              justifyContent: isMine ? 'flex-end' : 'flex-start'
+                            }}>
+                              {msg.reactions.map((r) => (
+                                <button
+                                  key={r.emoji}
+                                  type="button"
+                                  onClick={() => handleToggleReaction(msg.id, r.emoji)}
+                                  title={r.users.join(', ')}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '2px 8px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.8rem',
+                                    border: r.hasReacted
+                                      ? (theme === 'dark' ? '1px solid #0a84ff' : '1px solid #2563eb')
+                                      : (theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.08)'),
+                                    background: r.hasReacted
+                                      ? (theme === 'dark' ? 'rgba(10, 132, 255, 0.2)' : 'rgba(37, 99, 235, 0.12)')
+                                      : (theme === 'dark' ? '#222328' : '#ffffff'),
+                                    color: r.hasReacted
+                                      ? (theme === 'dark' ? '#409cff' : '#2563eb')
+                                      : 'var(--text-main)',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <span>{r.emoji}</span>
+                                  <span style={{ fontWeight: 600, fontSize: '0.72rem' }}>{r.count}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
                           {/* Time & Read status */}
                           <div style={{
@@ -1091,6 +1513,59 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                 background: theme === 'light' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(10, 15, 25, 0.6)',
                 backdropFilter: 'blur(10px)'
               }}>
+                {/* Replying To Banner */}
+                {replyingTo && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    marginBottom: '8px',
+                    borderRadius: '12px',
+                    background: theme === 'dark' ? '#222328' : '#ffffff',
+                    borderLeft: theme === 'dark' ? '3px solid #0a84ff' : '3px solid #2563eb',
+                    borderTop: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)',
+                    borderRight: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)',
+                    borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)',
+                    boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.04)',
+                    animation: 'fadeIn 0.15s ease'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: theme === 'dark' ? '#0a84ff' : '#2563eb', fontWeight: 700 }}>
+                        <Reply size={13} />
+                        <span>{replyingTo.sender_id === currentUser.id ? '自分' : activePartner.username} への返信</span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.82rem',
+                        color: 'var(--text-muted)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {replyingTo.content || (replyingTo.image_data ? '📷 [画像]' : '...')}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReplyingTo(null)}
+                      title="返信をキャンセル"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '50%'
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+
                 {/* Image Preview Thumbnail */}
                 {selectedImage && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', position: 'relative' }}>
@@ -1465,6 +1940,115 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
               cursor: 'default'
             }}
           />
+        </div>
+      )}
+
+      {/* Full Emoji Picker Modal */}
+      {showFullEmojiPicker && (
+        <div
+          onClick={() => setShowFullEmojiPicker(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            background: 'rgba(0, 0, 0, 0.55)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '380px',
+              maxHeight: '440px',
+              borderRadius: '20px',
+              background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
+              border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 12px 36px rgba(0,0,0,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              animation: 'fadeIn 0.2s ease'
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid var(--glass-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Smile size={18} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>リアクションを選択</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullEmojiPicker(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Categories & Emojis Scrollable Area */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '14px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}>
+              {EMOJI_CATEGORIES.map(cat => (
+                <div key={cat.name}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                    {cat.name}
+                  </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(8, 1fr)',
+                    gap: '6px'
+                  }}>
+                    {cat.emojis.map(emoji => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => handleToggleReaction(showFullEmojiPicker, emoji)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '1.3rem',
+                          cursor: 'pointer',
+                          padding: '6px 0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'transform 0.1s ease, background 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.25)';
+                          e.currentTarget.style.background = theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.background = 'none';
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
