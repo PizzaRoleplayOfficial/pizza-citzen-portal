@@ -556,7 +556,6 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       ).bind(senderId).first() as any;
 
       if (sender && actualRecipientId) {
-        const notifTitle = replyToId ? `${sender.username}からの返信` : sender.username;
         // Query unread count and latest unread messages for push notification bundling
         const unreadCountRow = await env.D1_DB.prepare(`
           SELECT COUNT(*) as count FROM dm_messages 
@@ -564,7 +563,9 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
         `).bind(conversationId, actualRecipientId).first() as any;
         const unreadCount = unreadCountRow?.count || 1;
 
-        let notifTitle = `💬 ${sender.username}さんからの新着メッセージ`;
+        let notifTitle = replyToId 
+          ? `💬 ${sender.username}さんからの返信` 
+          : `💬 ${sender.username}さんからの新着メッセージ`;
         let notifBody = previewText;
 
         const { results: unreadRows } = await env.D1_DB.prepare(`
