@@ -1,12 +1,16 @@
-// desktop/main.js - Discord-style Windows Desktop Shell
-const { app, BrowserWindow, ipcMain, Notification } = require('electron');
+// desktop/main.js - Discord-style Windows Desktop Shell (Optimized & Silent)
+const { app, BrowserWindow, ipcMain, Notification, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { createTray } = require('./tray');
 
-// Set Application User Model ID for Windows Action Center Toast Notifications
-const AUMID = 'jp.pizzaroleplay.citizenportal';
-app.setAppUserModelId(AUMID);
+// App name and Windows Action Center AUMID
+app.name = 'ぴっざぁ市民ポータル';
+app.setAppUserModelId('ぴっざぁ市民ポータル');
+
+// Fast startup & performance switches
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
 
 // Simple file-based config store for desktop preferences
 const configPath = path.join(app.getPath('userData'), 'desktop_config.json');
@@ -36,7 +40,6 @@ const store = {
 
 let mainWindow = null;
 let trayController = null;
-let hasShownTrayBalloon = false;
 
 // Enforce single instance lock (just like Discord)
 const gotTheLock = app.requestSingleInstanceLock();
@@ -45,8 +48,7 @@ if (!gotTheLock) {
   process.exit(0);
 }
 
-app.on('second-instance', (event, commandLine, workingDirectory) => {
-  // If someone tried to run a second instance, focus our window
+app.on('second-instance', () => {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     if (!mainWindow.isVisible()) mainWindow.show();
@@ -63,7 +65,7 @@ function createWindow() {
     height: 820,
     minWidth: 800,
     minHeight: 600,
-    show: false, // Don't show until ready-to-show
+    show: !isHiddenStartup, // Instant display on launch (no waiting lag)
     backgroundColor: '#0a0d14',
     icon: path.join(__dirname, 'assets', 'icon.ico'),
     // Discord-like integrated titlebar with native Windows 11 controls
@@ -87,6 +89,11 @@ function createWindow() {
     mainWindow.webContents.send('desktop:navigate', actionData);
   });
 
+  // Enable HTTP cache for fast instant loads
+  if (mainWindow.webContents.session) {
+    mainWindow.webContents.session.setPreloads([path.join(__dirname, 'preload.js')]);
+  }
+
   // Load target URL: Dev server, Cloudflare production deployment, or local dist fallback
   let targetUrl = 'https://pizza-citzen-portal.pages.dev';
   if (isDev) {
@@ -107,34 +114,13 @@ function createWindow() {
     }
   });
 
-  // Ready to show
-  mainWindow.once('ready-to-show', () => {
-    if (!isHiddenStartup) {
-      mainWindow.show();
-      mainWindow.focus();
-    } else {
-      console.log('Started silently in system tray (--hidden)');
-    }
-  });
-
-  // Discord behavior: Close to Tray
+  // Discord behavior: Close to Tray (Silent - No balloon notification!)
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
       const closeToTray = store.get('closeToTray', true);
       if (closeToTray) {
         event.preventDefault();
-        mainWindow.hide();
-
-        // First time hint balloon (Windows native notification)
-        if (!hasShownTrayBalloon && process.platform === 'win32') {
-          hasShownTrayBalloon = true;
-          if (trayController && trayController.tray) {
-            trayController.tray.displayBalloon({
-              title: 'ぴっざぁ市民ポータル',
-              content: 'アプリはタスクトレイに常駐しています。通知は引き続き届きます。'
-            });
-          }
-        }
+        mainWindow.hide(); // Silently hide to tray without any popups!
       }
     }
   });

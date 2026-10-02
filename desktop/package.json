@@ -8,6 +8,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
+    "build:dir": "electron-builder --dir",
+    "build:portable": "electron-builder --win portable",
     "build:win": "electron-builder --win"
   },
   "dependencies": {},
@@ -18,14 +20,21 @@
   "build": {
     "appId": "jp.pizzaroleplay.citizenportal",
     "productName": "ぴっざぁ市民ポータル",
+    "executableName": "PizzaPortal",
     "directories": {
       "output": "dist-electron"
     },
+    "files": [
+      "main.js",
+      "preload.js",
+      "tray.js",
+      "assets/**/*"
+    ],
     "win": {
       "icon": "assets/icon.ico",
       "target": [
-        "nsis",
-        "portable"
+        "portable",
+        "nsis"
       ]
     },
     "nsis": {
