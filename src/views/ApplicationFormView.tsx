@@ -166,15 +166,15 @@ export const ApplicationFormView = ({
             <div className="glass" style={{ padding: '32px', borderRadius: '20px', marginBottom: '24px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '8px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Roblox ユーザー名</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Roblox ユーザー名</label>
                   <input className="glass" value={currentUser.roblox_username || ''} readOnly style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Discord ユーザー名</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Discord ユーザー名</label>
                   <input className="glass" value={currentUser.username} readOnly style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
                 </div>
               </div>
-              {!currentUser.roblox_username && <p style={{ color: 'var(--error)', fontSize: '0.85rem', marginTop: '8px' }}>⚠️ <a onClick={() => setView('profile')} style={{ cursor: 'pointer', textDecoration: 'underline' }}>プロフィールでRobloxユーザー名を先に設定してください。</a></p>}
+              {!currentUser.roblox_username && <p style={{ color: 'var(--error)', fontSize: '16px', marginTop: '8px' }}>⚠️ <a onClick={() => setView('profile')} style={{ cursor: 'pointer', textDecoration: 'underline' }}>プロフィールでRobloxユーザー名を先に設定してください。</a></p>}
             </div>
 
             {questions.map((q: any) => (
@@ -185,7 +185,7 @@ export const ApplicationFormView = ({
                     {(JSON.parse(q.choices || '[]') as string[]).map((c: string) => (
                       <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '10px 14px', borderRadius: '10px', background: applyAnswers[q.id] === c ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${applyAnswers[q.id] === c ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}`, transition: '0.2s' }}>
                         <input type="radio" name={q.id} value={c} checked={applyAnswers[q.id] === c} onChange={() => setApplyAnswers(p => ({ ...p, [q.id]: c }))} style={{ accentColor: 'var(--primary)' }} />
-                        <span style={{ fontSize: '0.9rem' }}>{c}</span>
+                        <span style={{ fontSize: '16px' }}>{c}</span>
                       </label>
                     ))}
                   </div>
@@ -200,14 +200,14 @@ export const ApplicationFormView = ({
                             const prev: string[] = Array.isArray(applyAnswers[q.id]) ? applyAnswers[q.id] : [];
                             setApplyAnswers(p => ({ ...p, [q.id]: checked ? prev.filter(x => x !== c) : [...prev, c] }));
                           }} style={{ accentColor: 'var(--primary)' }} />
-                          <span style={{ fontSize: '0.9rem' }}>{c}</span>
+                          <span style={{ fontSize: '16px' }}>{c}</span>
                         </label>
                       );
                     })}
                   </div>
                 )}
                 {q.type === 'text' && (
-                  <textarea value={(applyAnswers[q.id] as string) || ''} onChange={e => setApplyAnswers(p => ({ ...p, [q.id]: e.target.value }))} rows={3} placeholder="回答を入力してください" className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '0.95rem', background: 'var(--input-bg)', resize: 'vertical' }} />
+                  <textarea value={(applyAnswers[q.id] as string) || ''} onChange={e => setApplyAnswers(p => ({ ...p, [q.id]: e.target.value }))} rows={3} placeholder="回答を入力してください" className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '16px', background: 'var(--input-bg)', resize: 'vertical' }} />
                 )}
               </div>
             ))}

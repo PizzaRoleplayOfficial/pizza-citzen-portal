@@ -4476,7 +4476,7 @@ export default function App() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '12px' : '20px' }}>
 
                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Maker</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Maker</label>
                     <input type="text" list="maker-list" placeholder="例: Toyota" value={formData.maker} onChange={e => setFormData({...formData, maker: e.target.value, model: ''})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
                     <datalist id="maker-list">
                       {Object.keys(carModels).map(maker => (
@@ -4485,7 +4485,7 @@ export default function App() {
                     </datalist>
                  </div>
                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Model</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Model</label>
                     <input type="text" list="model-list" placeholder="例: Camry" value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
                     <datalist id="model-list">
                       {(carModels[formData.maker] || []).map(model => (
@@ -4515,30 +4515,30 @@ export default function App() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: isMobile ? '12px' : '20px' }}>
 
                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Year</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Year</label>
                     <input type="number" value={formData.year} onChange={e => setFormData({...formData, year: parseInt(e.target.value)})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
                  </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Trim / Grade</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Trim / Grade</label>
                     <input type="text" list="trim-list" placeholder="例: XSE" value={formData.trim} onChange={e => setFormData({...formData, trim: e.target.value})} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
                     <datalist id="trim-list">
                       {wikiTrims.map(t => <option key={t} value={t} />)}
                     </datalist>
                  </div>
                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Color</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Color</label>
                     <input type="text" list="color-list" placeholder="例: Black" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
                     <datalist id="color-list">
                       {wikiColors.map(c => <option key={c} value={c} />)}
                     </datalist>
                  </div>
               </div>              <div>
-                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Area</label>
+                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>License Plate Area</label>
                  <input type="text" placeholder="例: WISCONSIN" value={formData.plate_region} onChange={e => setFormData({...formData, plate_region: e.target.value})} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
               </div>
               
               <div>
-                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>登録区分 (Registration Mode)</label>
+                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>登録区分 (Registration Mode)</label>
                  <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                    <button
                      type="button"
@@ -4591,7 +4591,7 @@ export default function App() {
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                    <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Number *</label>
                    {plateChecking && (
-                     <span style={{ fontSize: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                     <span style={{ fontSize: '16px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                        <RefreshCw size={12} className="spin" /> 重複確認中...
                      </span>
                    )}
@@ -4906,13 +4906,13 @@ export default function App() {
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Maker（メーカー）</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Maker（メーカー）</label>
                   <input type="text" value={trailerFormData.maker} readOnly className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '1rem', background: 'var(--input-bg)', cursor: 'default' }} />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Trailer Type（種別）</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Trailer Type（種別）</label>
                   <div style={{ position: 'relative' }}>
                     <div 
                       onClick={() => setShowTypeDropdown(!showTypeDropdown)}
@@ -4995,19 +4995,19 @@ export default function App() {
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Color</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>Color</label>
                   <input type="text" placeholder="例: Black" value={trailerFormData.color} onChange={e => setTrailerFormData({...trailerFormData, color: e.target.value})} className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Area *</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '16px', color: 'var(--text-muted)' }}>License Plate Area *</label>
                 <input type="text" placeholder="例: WISCONSIN" value={trailerFormData.plate_region} onChange={e => setTrailerFormData({...trailerFormData, plate_region: e.target.value.toUpperCase()})} required className="glass" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-main)', fontSize: '1rem', background: 'var(--input-bg)' }} />
               </div>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>License Plate Number *</label>
+                  <label style={{ fontSize: '16px', color: 'var(--text-muted)' }}>License Plate Number *</label>
                   {trailerPlateChecking && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontSize: '16px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <RefreshCw size={12} className="spin" /> 重複確認中...
                     </span>
                   )}
@@ -5327,7 +5327,7 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              <label style={{ fontSize: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>
                 理由の直接入力・微調整 {rejectModal.type === 'vehicle_warning' && <span style={{ color: 'var(--error)' }}>（必須）</span>}
               </label>
               <textarea 
@@ -5343,7 +5343,7 @@ export default function App() {
                   border: '1px solid var(--glass-border)', 
                   background: 'var(--input-bg)',
                   color: 'var(--text-main)', 
-                  fontSize: '0.95rem',
+                  fontSize: '16px',
                   resize: 'none',
                   outline: 'none'
                 }}

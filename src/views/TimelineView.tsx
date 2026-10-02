@@ -3446,7 +3446,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               background: 'var(--panel-bg)',
               border: 'none',
               color: 'var(--text-main)',
-              fontSize: '0.95rem',
+              fontSize: '16px',
               outline: 'none',
               transition: 'all 0.2s ease',
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
@@ -3844,7 +3844,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           borderRadius: '8px',
                           padding: '8px 12px',
                           color: 'var(--input-text)',
-                          fontSize: '0.85rem',
+                          fontSize: '16px',
                           outline: 'none'
                         }}
                       />
@@ -3887,7 +3887,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>投票期間:</span>
+                      <span style={{ fontSize: '16px', color: 'var(--text-muted)' }}>投票期間:</span>
                       <select 
                         value={pollDuration} 
                         onChange={(e) => setPollDuration(Number(e.target.value))}
@@ -3897,7 +3897,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           borderRadius: '8px',
                           padding: '6px 12px',
                           color: 'var(--input-text)',
-                          fontSize: '0.8rem',
+                          fontSize: '16px',
                           outline: 'none',
                           cursor: 'pointer'
                         }}
@@ -3911,7 +3911,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>複数投票を許可</span>
+                      <span style={{ fontSize: '16px', color: 'var(--text-muted)' }}>複数投票を許可</span>
                       <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px', cursor: 'pointer' }}>
                         <input 
                           type="checkbox" 
@@ -5921,7 +5921,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           background: 'rgba(0,0,0,0.2)',
                           borderRadius: '16px',
                           border: '1px solid var(--primary)',
-                          fontSize: '0.88rem',
+                          fontSize: '16px',
                           color: 'var(--text-main)',
                           outline: 'none',
                           resize: 'none',

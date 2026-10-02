@@ -1,4 +1,44 @@
 /* ========================================================
+   iOS Safari 自動ズーム防止 (16px強制 & テキスト自動拡大制御)
+   ======================================================== */
+html, body {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+input,
+textarea,
+select,
+input[type="text"],
+input[type="search"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+.dm-textarea,
+.chat-input-textarea {
+  font-size: 16px !important;
+}
+
+@media screen and (max-width: 768px) {
+  input,
+  textarea,
+  select,
+  input[type="text"],
+  input[type="search"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  .dm-textarea,
+  .chat-input-textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ========================================================
    【ぴっざぁポータル】UI/UXデザイン規約（最終決定版）
    モダンなDMV × Appleライクな洗練と親しみやすさ
    ライトテーマ厳守 (ウォームグレー / ピュアホワイト)

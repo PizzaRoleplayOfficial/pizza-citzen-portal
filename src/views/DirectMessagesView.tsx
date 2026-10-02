@@ -2336,7 +2336,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       background: 'var(--input-bg)',
                       border: '1px solid var(--glass-border)',
                       color: 'var(--input-text)',
-                      fontSize: '0.9rem',
+                      fontSize: '16px',
                       outline: 'none',
                       boxSizing: 'border-box'
                     }}
@@ -2437,7 +2437,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       background: 'var(--input-bg)',
                       border: '1px solid var(--glass-border)',
                       color: 'var(--input-text)',
-                      fontSize: '0.9rem',
+                      fontSize: '16px',
                       fontWeight: 600,
                       outline: 'none'
                     }}
@@ -2480,7 +2480,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       background: 'var(--input-bg)',
                       border: '1px solid var(--glass-border)',
                       color: 'var(--input-text)',
-                      fontSize: '0.88rem',
+                      fontSize: '16px',
                       outline: 'none',
                       boxSizing: 'border-box'
                     }}
@@ -2878,7 +2878,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>グループ名・アイコンの変更</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-muted)' }}>グループ名・アイコンの変更</div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <input
                     type="text"
@@ -2911,7 +2911,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       background: 'var(--input-bg)',
                       border: '1px solid var(--glass-border)',
                       color: 'var(--input-text)',
-                      fontSize: '0.9rem',
+                      fontSize: '16px',
                       fontWeight: 600,
                       outline: 'none'
                     }}
@@ -3164,7 +3164,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     background: 'var(--input-bg)',
                     border: '1px solid var(--glass-border)',
                     color: 'var(--input-text)',
-                    fontSize: '0.88rem',
+                    fontSize: '16px',
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}

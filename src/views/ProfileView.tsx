@@ -242,14 +242,14 @@ export const ProfileView = ({
       }}>
         <form onSubmit={handleUpdateProfile} className="glass card settings-card">
         <div>
-          <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Roblox ユーザー名</label>
+          <label style={{ display: 'block', marginBottom: '12px', fontSize: '16px', color: 'var(--text-muted)' }}>Roblox ユーザー名</label>
           <div style={{ position: 'relative' }}>
             <UserIcon size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input type="text" value={currentUser.roblox_username || ''} onChange={e => setCurrentUser({...currentUser, roblox_username: e.target.value})} style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--input-text)', fontSize: '1rem' }} />
           </div>
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>テーマ設定（見た目）</label>
+          <label style={{ display: 'block', marginBottom: '12px', fontSize: '16px', color: 'var(--text-muted)' }}>テーマ設定（見た目）</label>
           <div className="theme-selector-container">
             <label className={`theme-selector-item ${theme === 'dark' ? 'active' : ''}`}>
               <input type="radio" value="dark" checked={theme === 'dark'} onChange={() => setTheme('dark')} style={{ accentColor: 'var(--primary)' }} />
@@ -262,7 +262,7 @@ export const ProfileView = ({
           </div>
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>タイムラインの送信キー（キーボード操作時）</label>
+          <label style={{ display: 'block', marginBottom: '12px', fontSize: '16px', color: 'var(--text-muted)' }}>タイムラインの送信キー（キーボード操作時）</label>
           <div className="theme-selector-container">
             <label className={`theme-selector-item ${enterKeyBehavior === 'enter' ? 'active' : ''}`}>
               <input 
@@ -305,8 +305,8 @@ export const ProfileView = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
               <div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>申請結果の通知</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>市民権や車両登録申請の審査結果をプッシュ通知で受け取ります。</div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>申請結果の通知</div>
+                <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>市民権や車両登録申請の審査結果をプッシュ通知で受け取ります。</div>
               </div>
               <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
                 <input 
@@ -343,8 +343,8 @@ export const ProfileView = ({
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>新規申請の管理者向け通知</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から新しい申請が提出された際にプッシュ通知を受け取ります。</div>
+                    <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>新規申請の管理者向け通知</div>
+                    <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から新しい申請が提出された際にプッシュ通知を受け取ります。</div>
                   </div>
                   <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
                     <input 
@@ -379,8 +379,8 @@ export const ProfileView = ({
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>登録編集申請の管理者向け通知</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から車両登録情報の編集申請が提出された際にプッシュ通知を受け取ります。</div>
+                    <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>登録編集申請の管理者向け通知</div>
+                    <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民から車両登録情報の編集申請が提出された際にプッシュ通知を受け取ります。</div>
                   </div>
                   <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
                     <input 
@@ -421,8 +421,8 @@ export const ProfileView = ({
             {/* Timeline Like Toggle */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
               <div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>「いいね」通知</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>自分の投稿にいいねされた際に通知を受け取ります。</div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>「いいね」通知</div>
+                <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>自分の投稿にいいねされた際に通知を受け取ります。</div>
               </div>
               <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
                 <input 
@@ -458,8 +458,8 @@ export const ProfileView = ({
             {/* Timeline Comment Toggle */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
               <div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>「コメント（返信）」通知</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>自分の投稿に返信があった際に通知を受け取ります。</div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>「コメント（返信）」通知</div>
+                <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>自分の投稿に返信があった際に通知を受け取ります。</div>
               </div>
               <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
                 <input 
@@ -495,8 +495,8 @@ export const ProfileView = ({
             {/* Timeline New Post Toggle */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
               <div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>「新着投稿」通知</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民が新しくタイムラインへ投稿した際に通知を受け取ります。</div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>「新着投稿」通知</div>
+                <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>他の市民が新しくタイムラインへ投稿した際に通知を受け取ります。</div>
               </div>
               <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
                 <input 
@@ -749,8 +749,8 @@ export const ProfileView = ({
         {isNative && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
             <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>起動時に自動更新をチェック</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>アプリの起動時に自動で最新版を確認します。</div>
+              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>起動時に自動更新をチェック</div>
+              <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>アプリの起動時に自動で最新版を確認します。</div>
             </div>
             <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
               <input 
@@ -786,8 +786,8 @@ export const ProfileView = ({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
           <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>軽量モード (パフォーマンス優先)</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>ガラスのブラー効果 (blur) やアニメーションを無効にし、低スペック端末の動作速度を向上させます。</div>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>軽量モード (パフォーマンス優先)</div>
+            <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>ガラスのブラー効果 (blur) やアニメーションを無効にし、低スペック端末の動作速度を向上させます。</div>
           </div>
           <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
             <input 
@@ -822,8 +822,8 @@ export const ProfileView = ({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
           <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>データセーバー (低速回線向け)</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>タイムライン等の画像を低解像度でプレースホルダー表示し、タップするまで高画質画像のロードを抑制します。</div>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>データセーバー (低速回線向け)</div>
+            <div style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px' }}>タイムライン等の画像を低解像度でプレースホルダー表示し、タップするまで高画質画像のロードを抑制します。</div>
           </div>
           <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
             <input 

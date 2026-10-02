@@ -312,7 +312,7 @@ export const MyGarageView = ({
                   border: 'none',
                   background: 'var(--input-bg)',
                   color: 'var(--text-main)',
-                  fontSize: '0.92rem',
+                  fontSize: '16px',
                   outline: 'none',
                   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
                 }}

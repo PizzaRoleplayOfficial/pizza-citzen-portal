@@ -1377,7 +1377,7 @@ export const AdminDashboardView = ({
                    value={userSearchTerm} 
                    onChange={e => setUserSearchTerm(e.target.value)} 
                    className="glass" 
-                   style={{ width: '100%', padding: '10px 20px 10px 44px', borderRadius: '999px', border: 'none', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.95rem', outline: 'none' }} 
+                   style={{ width: '100%', padding: '10px 20px 10px 44px', borderRadius: '999px', border: 'none', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '16px', outline: 'none' }} 
                  />
                </div>
                
@@ -1734,7 +1734,7 @@ export const AdminDashboardView = ({
               </h4>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '16px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
                   告知タイトル
                 </label>
                 <input
@@ -1750,13 +1750,13 @@ export const AdminDashboardView = ({
                     border: '1px solid var(--glass-border)',
                     background: 'var(--subtle-bg)',
                     color: 'var(--text-main)',
-                    fontSize: '0.95rem'
+                    fontSize: '16px'
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '16px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
                   作業概要・告知メッセージ
                 </label>
                 <textarea
@@ -1772,7 +1772,7 @@ export const AdminDashboardView = ({
                     border: '1px solid var(--glass-border)',
                     background: 'var(--subtle-bg)',
                     color: 'var(--text-main)',
-                    fontSize: '0.95rem',
+                    fontSize: '16px',
                     resize: 'vertical',
                     lineHeight: 1.6
                   }}
@@ -1781,7 +1781,7 @@ export const AdminDashboardView = ({
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '16px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
                     終了予定日時（任意）
                   </label>
                   <input
@@ -1796,7 +1796,7 @@ export const AdminDashboardView = ({
                       border: '1px solid var(--glass-border)',
                       background: 'var(--subtle-bg)',
                       color: 'var(--text-main)',
-                      fontSize: '0.95rem'
+                      fontSize: '16px'
                     }}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
@@ -1805,7 +1805,7 @@ export const AdminDashboardView = ({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '16px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
                     公式Discord URL
                   </label>
                   <input
@@ -1821,7 +1821,7 @@ export const AdminDashboardView = ({
                       border: '1px solid var(--glass-border)',
                       background: 'var(--subtle-bg)',
                       color: 'var(--text-main)',
-                      fontSize: '0.95rem'
+                      fontSize: '16px'
                     }}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
@@ -1924,7 +1924,7 @@ export const AdminDashboardView = ({
             
             <div style={{ marginBottom: '32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>有効期間 (Days)</span>
+                <span style={{ fontSize: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>有効期間 (Days)</span>
                 <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ff9f43' }}>{tempDays} <span style={{ fontSize: '1rem', fontWeight: 600 }}>日間</span></span>
               </div>
               <input 
