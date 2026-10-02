@@ -33,14 +33,19 @@
     "win": {
       "icon": "assets/icon.ico",
       "target": [
-        "portable",
         "nsis"
       ]
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "shortcutName": "ぴっざぁ市民ポータル"
-    }
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "ぴっざぁ市民ポータル",
+      "uninstallDisplayName": "ぴっざぁ市民ポータル",
+      "runAfterFinish": true
+    },
+    "artifactName": "${productName}-Setup-${version}.${ext}"
   }
 }
