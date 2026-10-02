@@ -20,7 +20,13 @@ import {
   CornerDownRight,
   Smile,
   Copy,
-  Check
+  Check,
+  Users,
+  UserPlus,
+  LogOut,
+  Settings,
+  Crown,
+  Edit3
 } from 'lucide-react';
 import { compressImage } from '../utils/helpers';
 import { triggerHaptic, notifyActiveConversation } from '../utils/native';
@@ -49,6 +55,21 @@ interface Conversation {
   partner_avatar: string | null;
   partner_role: string | null;
   unread_count: number;
+  is_group?: number;
+  group_name?: string | null;
+  group_icon?: string | null;
+  group_owner_id?: string | null;
+  member_count?: number;
+}
+
+interface GroupMember {
+  id: string;
+  role: 'owner' | 'member';
+  joined_at?: string;
+  username: string;
+  roblox_username?: string | null;
+  avatar?: string | null;
+  user_role?: string | null;
 }
 
 interface Reaction {
@@ -74,6 +95,10 @@ interface Message {
   reply_sender_name?: string | null;
   reply_image?: string | null;
   reactions?: Reaction[];
+  sender_username?: string | null;
+  sender_roblox_username?: string | null;
+  sender_avatar?: string | null;
+  sender_role?: string | null;
 }
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🍕', '🔥'];
@@ -167,9 +192,27 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
   // State: Search & Start new DM
   const [showNewDmModal, setShowNewDmModal] = useState(false);
+  const [newDmTab, setNewDmTab] = useState<'direct' | 'group'>('direct');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // State: Group Chat Creation & Management
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupIcon, setNewGroupIcon] = useState('👥');
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<any[]>([]);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [showGroupInfoModal, setShowGroupInfoModal] = useState(false);
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false);
+  const [editGroupName, setEditGroupName] = useState('');
+  const [editGroupIcon, setEditGroupIcon] = useState('');
+  const [isSavingGroupInfo, setIsSavingGroupInfo] = useState(false);
+  const [addMemberQuery, setAddMemberQuery] = useState('');
+  const [addMemberResults, setAddMemberResults] = useState<any[]>([]);
+  const [selectedAddMembers, setSelectedAddMembers] = useState<any[]>([]);
+  const [isAddingMembers, setIsAddingMembers] = useState(false);
 
   // State: Image Zoom
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -513,6 +556,9 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
         if (data.partner) {
           setActivePartner(data.partner);
         }
+        if (data.members) {
+          setGroupMembers(data.members);
+        }
 
         // Update local conversation unread count to 0
         setConversations(prev => prev.map(c => c.id === convId ? { ...c, unread_count: 0 } : c));
@@ -694,13 +740,26 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     setShowScrollBottomBtn(false);
     setMessages([]);
     setActiveConversationId(conv.id);
-    setActivePartner({
-      id: conv.partner_id,
-      username: conv.partner_username,
-      roblox_username: conv.partner_roblox_username,
-      avatar: conv.partner_avatar,
-      role: conv.partner_role
-    });
+    if (conv.is_group === 1) {
+      setActivePartner({
+        id: conv.id,
+        username: conv.partner_username || 'グループチャット',
+        avatar: conv.partner_avatar || '👥',
+        role: 'group',
+        is_group: true,
+        owner_id: conv.group_owner_id,
+        member_count: conv.member_count
+      });
+    } else {
+      setActivePartner({
+        id: conv.partner_id,
+        username: conv.partner_username,
+        roblox_username: conv.partner_roblox_username,
+        avatar: conv.partner_avatar,
+        role: conv.partner_role,
+        is_group: false
+      });
+    }
     fetchMessages(conv.id);
   };
 
@@ -911,6 +970,207 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       setIsLoadingMessages(false);
     }
   };
+  // ─── Group Chat Action Handlers ───
+
+  // Toggle user selection in Group creation modal
+  const handleToggleGroupMember = (user: any) => {
+    triggerHaptic('light');
+    setSelectedGroupMembers(prev => {
+      const exists = prev.some(u => u.id === user.id);
+      if (exists) {
+        return prev.filter(u => u.id !== user.id);
+      } else {
+        return [...prev, user];
+      }
+    });
+  };
+
+  // Create Group Chat
+  const handleCreateGroup = async () => {
+    const trimmed = newGroupName.trim();
+    if (!trimmed) {
+      alert('グループ名を入力してください');
+      return;
+    }
+    if (selectedGroupMembers.length === 0) {
+      alert('グループメンバーを1人以上選択してください');
+      return;
+    }
+
+    triggerHaptic('medium');
+    setIsCreatingGroup(true);
+
+    try {
+      const res = await fetch('/api/dm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_group',
+          senderId: currentUser.id,
+          name: trimmed,
+          icon: newGroupIcon || '👥',
+          memberIds: selectedGroupMembers.map(m => m.id)
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        triggerHaptic('success');
+        setShowNewDmModal(false);
+        setNewGroupName('');
+        setSelectedGroupMembers([]);
+        setSearchQuery('');
+        setSearchResults([]);
+
+        // Select and switch to new group
+        setActiveConversationId(data.conversationId);
+        setActivePartner({
+          id: data.conversationId,
+          username: trimmed,
+          avatar: newGroupIcon || '👥',
+          role: 'group',
+          is_group: true,
+          owner_id: currentUser.id,
+          member_count: selectedGroupMembers.length + 1
+        });
+        await fetchConversations(true);
+        fetchMessages(data.conversationId);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'グループの作成に失敗しました');
+      }
+    } catch (e) {
+      console.error('Create group error:', e);
+      alert('通信エラーが発生しました');
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  };
+
+  // Update Group Info (Name / Icon)
+  const handleSaveGroupInfo = async () => {
+    if (!activeConversationId || !editGroupName.trim()) return;
+    setIsSavingGroupInfo(true);
+    triggerHaptic('medium');
+
+    try {
+      const res = await fetch('/api/dm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_group',
+          conversationId: activeConversationId,
+          senderId: currentUser.id,
+          name: editGroupName.trim(),
+          icon: editGroupIcon.trim() || '👥'
+        })
+      });
+
+      if (res.ok) {
+        triggerHaptic('success');
+        setActivePartner((prev: any) => prev ? { ...prev, username: editGroupName.trim(), avatar: editGroupIcon.trim() || '👥' } : prev);
+        setShowGroupInfoModal(false);
+        fetchConversations(true);
+        fetchMessages(activeConversationId, true);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'グループ情報の更新に失敗しました');
+      }
+    } catch (e) {
+      alert('通信エラーが発生しました');
+    } finally {
+      setIsSavingGroupInfo(false);
+    }
+  };
+
+  // Leave Group
+  const handleLeaveGroup = async () => {
+    if (!activeConversationId) return;
+    if (!window.confirm('本当にこのグループを退出しますか？\n退出後はメッセージの送受信ができなくなります。')) return;
+
+    triggerHaptic('medium');
+    try {
+      const res = await fetch('/api/dm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'leave_group',
+          conversationId: activeConversationId,
+          senderId: currentUser.id
+        })
+      });
+
+      if (res.ok) {
+        triggerHaptic('success');
+        setShowGroupInfoModal(false);
+        setActiveConversationId(null);
+        setActivePartner(null);
+        fetchConversations(true);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'グループの退出に失敗しました');
+      }
+    } catch (e) {
+      alert('通信エラーが発生しました');
+    }
+  };
+
+  // Search users to add to existing group
+  const handleSearchAddMembers = async (q: string) => {
+    setAddMemberQuery(q);
+    if (!q.trim()) {
+      setAddMemberResults([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/dm?action=search_users&query=${encodeURIComponent(q)}&currentUserId=${currentUser?.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Filter out users already in group
+        const existingIds = new Set(groupMembers.map(m => m.id));
+        setAddMemberResults((data.users || []).filter((u: any) => !existingIds.has(u.id)));
+      }
+    } catch (e) {}
+  };
+
+  // Add selected members to existing group
+  const handleAddMembersToGroup = async () => {
+    if (!activeConversationId || selectedAddMembers.length === 0) return;
+    setIsAddingMembers(true);
+    triggerHaptic('medium');
+
+    try {
+      const res = await fetch('/api/dm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_group_members',
+          conversationId: activeConversationId,
+          senderId: currentUser.id,
+          newMemberIds: selectedAddMembers.map(m => m.id)
+        })
+      });
+
+      if (res.ok) {
+        triggerHaptic('success');
+        setShowAddMembersModal(false);
+        setSelectedAddMembers([]);
+        setAddMemberQuery('');
+        setAddMemberResults([]);
+        fetchMessages(activeConversationId, true);
+        fetchConversations(true);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'メンバーの追加に失敗しました');
+      }
+    } catch (e) {
+      alert('通信エラーが発生しました');
+    } finally {
+      setIsAddingMembers(false);
+    }
+  };
+
 
   return (
     <div style={{
@@ -999,12 +1259,28 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     }}
                   >
                     <div style={{ position: 'relative' }}>
-                      <img
-                        src={conv.partner_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.partner_username)}&background=2563eb&color=fff`}
-                        alt={conv.partner_username}
-                        onError={(e) => handleAvatarError(e, conv.partner_username)}
-                        style={{ width: '46px', height: '46px', borderRadius: '50%', objectFit: 'cover' }}
-                      />
+                      {conv.is_group === 1 && (!conv.partner_avatar || (!conv.partner_avatar.startsWith('http') && !conv.partner_avatar.startsWith('data:'))) ? (
+                        <div style={{
+                          width: '46px',
+                          height: '46px',
+                          borderRadius: '16px',
+                          background: theme === 'dark' ? 'rgba(10, 132, 255, 0.18)' : 'rgba(37, 99, 235, 0.12)',
+                          border: '1px solid var(--primary-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.4rem'
+                        }}>
+                          {conv.partner_avatar || '👥'}
+                        </div>
+                      ) : (
+                        <img
+                          src={conv.partner_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.partner_username)}&background=2563eb&color=fff`}
+                          alt={conv.partner_username}
+                          onError={(e) => handleAvatarError(e, conv.partner_username)}
+                          style={{ width: '46px', height: '46px', borderRadius: conv.is_group === 1 ? '16px' : '50%', objectFit: 'cover' }}
+                        />
+                      )}
                       {conv.unread_count > 0 && (
                         <div style={{
                           position: 'absolute',
@@ -1041,9 +1317,21 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                           }}>
                             {conv.partner_username}
                           </span>
-                          {conv.partner_role === 'admin' && (
+                          {conv.is_group === 1 ? (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              padding: '1px 6px',
+                              borderRadius: '999px',
+                              background: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+                              color: 'var(--text-muted)',
+                              fontWeight: 600,
+                              flexShrink: 0
+                            }}>
+                              👥 {conv.member_count || ''}
+                            </span>
+                          ) : conv.partner_role === 'admin' ? (
                             <ShieldCheck size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                          )}
+                          ) : null}
                         </div>
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0 }}>
                           {formatTime(conv.last_message_at || conv.updated_at)}
@@ -1148,43 +1436,94 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                       <ArrowLeft size={20} />
                     </button>
                   )}
-                  <img
-                    src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=2563eb&color=fff`}
-                    alt={activePartner.username}
-                    onError={(e) => handleAvatarError(e, activePartner.username)}
-                    style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-                  />
+                  {activePartner.is_group && (!activePartner.avatar || (!activePartner.avatar.startsWith('http') && !activePartner.avatar.startsWith('data:'))) ? (
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '12px',
+                      background: theme === 'dark' ? 'rgba(10, 132, 255, 0.2)' : 'rgba(37, 99, 235, 0.12)',
+                      border: '1px solid var(--primary-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.25rem'
+                    }}>
+                      {activePartner.avatar || '👥'}
+                    </div>
+                  ) : (
+                    <img
+                      src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=2563eb&color=fff`}
+                      alt={activePartner.username}
+                      onError={(e) => handleAvatarError(e, activePartner.username)}
+                      style={{ width: '40px', height: '40px', borderRadius: activePartner.is_group ? '12px' : '50%', objectFit: 'cover' }}
+                    />
+                  )}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)' }}>
                         {activePartner.username}
                       </span>
-                      {activePartner.role === 'admin' && (
+                      {!activePartner.is_group && activePartner.role === 'admin' && (
                         <ShieldCheck size={14} style={{ color: 'var(--primary)' }} />
                       )}
                     </div>
-                    {activePartner.roblox_username && (
+                    {activePartner.is_group ? (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        👥 {groupMembers.length || activePartner.member_count || 1}人のメンバー
+                      </span>
+                    ) : activePartner.roblox_username ? (
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                         @{activePartner.roblox_username}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
-                <button
-                  onClick={() => fetchMessages(activeConversationId!, true)}
-                  title="メッセージを更新"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    padding: '8px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  <RefreshCw size={18} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {activePartner.is_group && (
+                    <button
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setEditGroupName(activePartner.username || '');
+                        setEditGroupIcon(activePartner.avatar || '👥');
+                        setShowGroupInfoModal(true);
+                      }}
+                      title="グループ情報・メンバー管理"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: '10px',
+                        background: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Users size={16} style={{ color: 'var(--primary)' }} />
+                      <span>メンバー</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => fetchMessages(activeConversationId!, true)}
+                    title="メッセージを更新"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '8px',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    <RefreshCw size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Messages Timeline Container */}
@@ -1215,6 +1554,37 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                     const isMine = msg.sender_id === currentUser.id;
                     const isHighlighted = highlightedMsgId === msg.id;
                     const isHoveredOrActive = hoveredMessageId === msg.id || activeActionMessageId === msg.id;
+
+                    // Centered System message for group actions
+                    const isSystemMsg = msg.recipient_id === 'group' && (
+                      msg.content?.includes('グループを作成しました') ||
+                      msg.content?.includes('さんを追加しました') ||
+                      msg.content?.includes('グループを退出しました') ||
+                      msg.content?.includes('グループ情報を変更しました')
+                    );
+
+                    if (isSystemMsg) {
+                      return (
+                        <div key={msg.id || index} style={{ display: 'flex', justifyContent: 'center', margin: '6px 0', width: '100%' }}>
+                          <div style={{
+                            padding: '4px 14px',
+                            borderRadius: '999px',
+                            background: theme === 'dark' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.05)',
+                            border: '1px solid var(--glass-border)',
+                            fontSize: '0.76rem',
+                            fontWeight: 600,
+                            color: 'var(--text-muted)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                          }}>
+                            <span>{msg.content}</span>
+                            <span style={{ fontSize: '0.7rem', opacity: 0.65 }}>{formatTime(msg.created_at)}</span>
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div
@@ -1390,9 +1760,9 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
                         {!isMine && (
                           <img
-                            src={activePartner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activePartner.username)}&background=2563eb&color=fff`}
+                            src={(activePartner.is_group ? msg.sender_avatar : activePartner.avatar) || `https://ui-avatars.com/api/?name=${encodeURIComponent((activePartner.is_group ? msg.sender_username : activePartner.username) || '市民')}&background=2563eb&color=fff`}
                             alt="avatar"
-                            onError={(e) => handleAvatarError(e, activePartner.username)}
+                            onError={(e) => handleAvatarError(e, (activePartner.is_group ? msg.sender_username : activePartner.username) || '市民')}
                             style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                           />
                         )}
@@ -1403,6 +1773,23 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                           flexDirection: 'column',
                           alignItems: isMine ? 'flex-end' : 'flex-start'
                         }}>
+                          {/* Sender Name above bubble in Group Chat */}
+                          {activePartner.is_group && !isMine && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              marginBottom: '3px',
+                              marginLeft: '4px'
+                            }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                {msg.sender_username || '市民'}
+                              </span>
+                              {msg.sender_role === 'admin' && (
+                                <ShieldCheck size={12} style={{ color: 'var(--primary)' }} />
+                              )}
+                            </div>
+                          )}
                           {/* Chat Bubble (Apple iOS Asymmetrical Squircle) */}
                           <div className={isMine ? 'bubble-mine' : 'bubble-other'} style={{
                             padding: '10px 16px',
@@ -1823,30 +2210,40 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
           MODAL: Start New DM (新規メッセージ相手検索)
           ────────────────────────────────────────────────────────── */}
       {showNewDmModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px'
-        }}>
-          <div style={{
-            width: '100%',
-            maxWidth: '440px',
-            background: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 20, 30, 0.95)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: '20px',
-            overflow: 'hidden',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)'
-          }} className="animate-scale">
-            
+        <div 
+          onClick={() => setShowNewDmModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              maxHeight: '85vh',
+              background: theme === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(18, 24, 38, 0.98)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)'
+            }} 
+            className="animate-scale"
+          >
+            {/* Modal Header */}
             <div style={{
               padding: '16px 20px',
               display: 'flex',
@@ -1857,91 +2254,367 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>新規メッセージ作成</h3>
               <button
                 onClick={() => setShowNewDmModal(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div style={{ padding: '16px 20px' }}>
-              <div style={{ position: 'relative', marginBottom: '14px' }}>
-                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearchUsers(e.target.value)}
-                  placeholder="ユーザー名やRoblox名で検索..."
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '10px 20px 10px 42px',
-                    borderRadius: '999px',
-                    background: 'var(--input-bg)',
-                    border: 'none',
-                    color: 'var(--input-text)',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                {isSearching ? (
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
-                    <Loader2 size={24} className="animate-spin" style={{ color: 'var(--primary)' }} />
-                  </div>
-                ) : searchResults.length > 0 ? (
-                  searchResults.map(user => (
-                    <div
-                      key={user.id}
-                      onClick={() => handleStartChatWithUser(user)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s',
-                        marginBottom: '4px'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img
-                          src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=2563eb&color=fff`}
-                          alt={user.username}
-                          onError={(e) => handleAvatarError(e, user.username)}
-                          style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-                        />
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)' }}>{user.username}</span>
-                            {user.role === 'admin' && <ShieldCheck size={12} style={{ color: 'var(--primary)' }} />}
-                          </div>
-                          {user.roblox_username && (
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>@{user.roblox_username}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>チャット開始</span>
-                    </div>
-                  ))
-                ) : searchQuery ? (
-                  <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    該当する市民が見つかりませんでした
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                    メッセージを送りたい市民の名前を入力してください
-                  </div>
-                )}
-              </div>
+            {/* Tab Switcher: 1対1チャット / グループ作成 */}
+            <div style={{
+              display: 'flex',
+              padding: '6px',
+              margin: '12px 20px 0',
+              borderRadius: '12px',
+              background: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+              gap: '6px'
+            }}>
+              <button
+                type="button"
+                onClick={() => { triggerHaptic('light'); setNewDmTab('direct'); }}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '8px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: newDmTab === 'direct' ? 'var(--primary)' : 'transparent',
+                  color: newDmTab === 'direct' ? '#ffffff' : 'var(--text-muted)',
+                  boxShadow: newDmTab === 'direct' ? '0 2px 8px rgba(37, 99, 235, 0.3)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <MessageSquare size={15} /> 1対1チャット
+              </button>
+              <button
+                type="button"
+                onClick={() => { triggerHaptic('light'); setNewDmTab('group'); }}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '8px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: newDmTab === 'group' ? 'var(--primary)' : 'transparent',
+                  color: newDmTab === 'group' ? '#ffffff' : 'var(--text-muted)',
+                  boxShadow: newDmTab === 'group' ? '0 2px 8px rgba(37, 99, 235, 0.3)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Users size={15} /> 👥 グループ作成
+              </button>
             </div>
 
+            {/* TAB 1: 1対1チャット */}
+            {newDmTab === 'direct' && (
+              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                <div style={{ position: 'relative', marginBottom: '14px' }}>
+                  <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchUsers(e.target.value)}
+                    placeholder="ユーザー名やRoblox名で検索..."
+                    autoFocus
+                    style={{
+                      width: '100%',
+                      padding: '10px 20px 10px 42px',
+                      borderRadius: '999px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--input-text)',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ flex: 1, maxHeight: '280px', overflowY: 'auto' }}>
+                  {isSearching ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+                      <Loader2 size={24} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    searchResults.map(user => (
+                      <div
+                        key={user.id}
+                        onClick={() => handleStartChatWithUser(user)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          transition: 'background 0.2s',
+                          marginBottom: '4px'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <img
+                            src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=2563eb&color=fff`}
+                            alt={user.username}
+                            onError={(e) => handleAvatarError(e, user.username)}
+                            style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)' }}>{user.username}</span>
+                              {user.role === 'admin' && <ShieldCheck size={12} style={{ color: 'var(--primary)' }} />}
+                            </div>
+                            {user.roblox_username && (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>@{user.roblox_username}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>チャット開始</span>
+                      </div>
+                    ))
+                  ) : searchQuery ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      該当する市民が見つかりませんでした
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                      メッセージを送りたい市民の名前を入力してください
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: 👥 グループ作成 */}
+            {newDmTab === 'group' && (
+              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, minHeight: 0 }}>
+                {/* Group Name & Icon Input */}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={newGroupIcon}
+                    onChange={(e) => setNewGroupIcon(e.target.value)}
+                    maxLength={4}
+                    title="グループアイコン絵文字"
+                    style={{
+                      width: '46px',
+                      height: '42px',
+                      textAlign: 'center',
+                      fontSize: '1.3rem',
+                      borderRadius: '12px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-main)',
+                      outline: 'none'
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    placeholder="グループ名を入力 (例: ツーリング仲間)..."
+                    maxLength={30}
+                    autoFocus
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--input-text)',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                {/* Quick Icon Selector */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {['👥', '🚗', '🏎️', '🚓', '🚑', '🛠️', '☕', '🎉', '🏢', '⭐'].map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setNewGroupIcon(emoji)}
+                      style={{
+                        background: newGroupIcon === emoji ? 'var(--primary-subtle)' : 'transparent',
+                        border: newGroupIcon === emoji ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        padding: '4px 6px',
+                        fontSize: '1.1rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Member Search Input */}
+                <div style={{ position: 'relative' }}>
+                  <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchUsers(e.target.value)}
+                    placeholder="参加させる市民を検索して選択..."
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px 10px 40px',
+                      borderRadius: '999px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--input-text)',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {/* Selected Members Chips */}
+                {selectedGroupMembers.length > 0 && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxHeight: '64px', overflowY: 'auto' }}>
+                    {selectedGroupMembers.map(user => (
+                      <div
+                        key={user.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '3px 8px',
+                          borderRadius: '999px',
+                          background: 'var(--primary-subtle)',
+                          border: '1px solid var(--primary-border)',
+                          color: 'var(--primary)',
+                          fontSize: '0.78rem',
+                          fontWeight: 700
+                        }}
+                      >
+                        <span>{user.username}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleGroupMember(user)}
+                          style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, display: 'flex' }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Member Candidate Results */}
+                <div style={{ flex: 1, maxHeight: '180px', overflowY: 'auto' }}>
+                  {isSearching ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '16px' }}>
+                      <Loader2 size={20} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    searchResults.map(user => {
+                      const isSelected = selectedGroupMembers.some(u => u.id === user.id);
+                      return (
+                        <div
+                          key={user.id}
+                          onClick={() => handleToggleGroupMember(user)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 10px',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            background: isSelected ? 'var(--primary-subtle)' : 'transparent',
+                            marginBottom: '4px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <img
+                              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=2563eb&color=fff`}
+                              alt={user.username}
+                              onError={(e) => handleAvatarError(e, user.username)}
+                              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{user.username}</span>
+                                {user.role === 'admin' && <ShieldCheck size={12} style={{ color: 'var(--primary)' }} />}
+                              </div>
+                              {user.roblox_username && (
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>@{user.roblox_username}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '6px',
+                            border: isSelected ? 'none' : '2px solid var(--text-muted)',
+                            background: isSelected ? 'var(--primary)' : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff'
+                          }}>
+                            {isSelected && <Check size={14} />}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : searchQuery ? (
+                    <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                      該当する市民が見つかりませんでした
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      名前を入力してメンバーを検索してください
+                    </div>
+                  )}
+                </div>
+
+                {/* Create Group Action Button */}
+                <button
+                  type="button"
+                  onClick={handleCreateGroup}
+                  disabled={!newGroupName.trim() || selectedGroupMembers.length === 0 || isCreatingGroup}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    background: 'var(--primary)',
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
+                    cursor: !newGroupName.trim() || selectedGroupMembers.length === 0 || isCreatingGroup ? 'not-allowed' : 'pointer',
+                    opacity: !newGroupName.trim() || selectedGroupMembers.length === 0 || isCreatingGroup ? 0.6 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)'
+                  }}
+                >
+                  {isCreatingGroup ? <Loader2 size={18} className="animate-spin" /> : <Users size={18} />}
+                  <span>グループを作成 ({selectedGroupMembers.length}名)</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2133,6 +2806,498 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────
+          MODAL: Group Info & Member Management
+          ────────────────────────────────────────────────────────── */}
+      {showGroupInfoModal && activePartner?.is_group && (
+        <div
+          onClick={() => setShowGroupInfoModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '440px',
+              maxHeight: '85vh',
+              background: theme === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(18, 24, 38, 0.98)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)'
+            }}
+            className="animate-scale"
+          >
+            {/* Header */}
+            <div style={{
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid var(--glass-border)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={18} style={{ color: 'var(--primary)' }} />
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>グループ情報</h3>
+              </div>
+              <button
+                onClick={() => setShowGroupInfoModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* Group Name & Icon Edit Card */}
+              <div style={{
+                padding: '16px',
+                borderRadius: '16px',
+                background: theme === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+                border: '1px solid var(--glass-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>グループ名・アイコンの変更</div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={editGroupIcon}
+                    onChange={(e) => setEditGroupIcon(e.target.value)}
+                    maxLength={4}
+                    style={{
+                      width: '48px',
+                      height: '42px',
+                      textAlign: 'center',
+                      fontSize: '1.3rem',
+                      borderRadius: '12px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-main)',
+                      outline: 'none'
+                    }}
+                    title="アイコン絵文字"
+                  />
+                  <input
+                    type="text"
+                    value={editGroupName}
+                    onChange={(e) => setEditGroupName(e.target.value)}
+                    placeholder="グループ名"
+                    maxLength={30}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--input-text)',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                {/* Quick Emoji Bar for Edit */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {['👥', '🚗', '🏎️', '🚓', '🚑', '🛠️', '☕', '🎉', '🏢', '⭐'].map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setEditGroupIcon(emoji)}
+                      style={{
+                        background: editGroupIcon === emoji ? 'var(--primary-subtle)' : 'transparent',
+                        border: editGroupIcon === emoji ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        padding: '4px 6px',
+                        fontSize: '1.1rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveGroupInfo}
+                  disabled={isSavingGroupInfo || !editGroupName.trim()}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    background: 'var(--primary)',
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: isSavingGroupInfo || !editGroupName.trim() ? 'not-allowed' : 'pointer',
+                    opacity: isSavingGroupInfo || !editGroupName.trim() ? 0.6 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {isSavingGroupInfo ? <Loader2 size={16} className="animate-spin" /> : <Edit3 size={15} />}
+                  <span>変更を保存</span>
+                </button>
+              </div>
+
+              {/* Members Section */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    👥 メンバー ({groupMembers.length}名)
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSelectedAddMembers([]);
+                      setAddMemberQuery('');
+                      setAddMemberResults([]);
+                      setShowAddMembersModal(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: 'var(--primary-subtle)',
+                      border: '1px solid var(--primary-border)',
+                      color: 'var(--primary)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <UserPlus size={14} /> メンバーを追加
+                  </button>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  maxHeight: '220px',
+                  overflowY: 'auto'
+                }}>
+                  {groupMembers.map((m) => (
+                    <div
+                      key={m.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        background: theme === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                        border: '1px solid var(--glass-border)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <img
+                          src={m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.username)}&background=2563eb&color=fff`}
+                          alt={m.username}
+                          onError={(e) => handleAvatarError(e, m.username)}
+                          style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                              {m.username}
+                            </span>
+                            {m.id === currentUser.id && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(あなた)</span>
+                            )}
+                            {m.user_role === 'admin' && (
+                              <ShieldCheck size={12} style={{ color: 'var(--primary)' }} />
+                            )}
+                          </div>
+                          {m.roblox_username && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>@{m.roblox_username}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {m.role === 'owner' ? (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                          background: 'rgba(234, 179, 8, 0.15)',
+                          color: '#eab308',
+                          fontSize: '0.72rem',
+                          fontWeight: 800
+                        }}>
+                          <Crown size={12} /> オーナー
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          メンバー
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Danger Zone: Leave Group */}
+              <div style={{ paddingTop: '8px', borderTop: '1px solid var(--glass-border)' }}>
+                <button
+                  type="button"
+                  onClick={handleLeaveGroup}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <LogOut size={16} /> グループを退出する
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────
+          MODAL: Add Members to Existing Group
+          ────────────────────────────────────────────────────────── */}
+      {showAddMembersModal && (
+        <div
+          onClick={() => setShowAddMembersModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              maxHeight: '80vh',
+              background: theme === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(18, 24, 38, 0.98)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)'
+            }}
+            className="animate-scale"
+          >
+            {/* Header */}
+            <div style={{
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid var(--glass-border)'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>メンバーを追加</h3>
+              <button
+                onClick={() => setShowAddMembersModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, minHeight: 0 }}>
+              {/* Search Input */}
+              <div style={{ position: 'relative' }}>
+                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  value={addMemberQuery}
+                  onChange={(e) => handleSearchAddMembers(e.target.value)}
+                  placeholder="追加する市民を検索..."
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '10px 16px 10px 40px',
+                    borderRadius: '999px',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--input-text)',
+                    fontSize: '0.88rem',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Selected Chips */}
+              {selectedAddMembers.length > 0 && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxHeight: '70px', overflowY: 'auto' }}>
+                  {selectedAddMembers.map(user => (
+                    <div
+                      key={user.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '3px 8px',
+                        borderRadius: '999px',
+                        background: 'var(--primary-subtle)',
+                        border: '1px solid var(--primary-border)',
+                        color: 'var(--primary)',
+                        fontSize: '0.78rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      <span>{user.username}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAddMembers(prev => prev.filter(u => u.id !== user.id))}
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, display: 'flex' }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Candidate Results */}
+              <div style={{ flex: 1, overflowY: 'auto', minHeight: '150px' }}>
+                {addMemberResults.length > 0 ? (
+                  addMemberResults.map(user => {
+                    const isSelected = selectedAddMembers.some(u => u.id === user.id);
+                    return (
+                      <div
+                        key={user.id}
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setSelectedAddMembers(prev => 
+                            prev.some(u => u.id === user.id) ? prev.filter(u => u.id !== user.id) : [...prev, user]
+                          );
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          cursor: 'pointer',
+                          background: isSelected ? 'var(--primary-subtle)' : 'transparent',
+                          marginBottom: '4px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img
+                            src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=2563eb&color=fff`}
+                            alt={user.username}
+                            onError={(e) => handleAvatarError(e, user.username)}
+                            style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{user.username}</span>
+                              {user.role === 'admin' && <ShieldCheck size={12} style={{ color: 'var(--primary)' }} />}
+                            </div>
+                            {user.roblox_username && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>@{user.roblox_username}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '6px',
+                          border: isSelected ? 'none' : '2px solid var(--text-muted)',
+                          background: isSelected ? 'var(--primary)' : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff'
+                        }}>
+                          {isSelected && <Check size={14} />}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : addMemberQuery ? (
+                  <div style={{ textAlign: 'center', padding: '24px 10px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                    追加可能な市民が見つかりませんでした
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '24px 10px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                    追加したい市民の名前を入力して検索してください
+                  </div>
+                )}
+              </div>
+
+              {/* Add Button */}
+              <button
+                type="button"
+                onClick={handleAddMembersToGroup}
+                disabled={selectedAddMembers.length === 0 || isAddingMembers}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  background: 'var(--primary)',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  cursor: selectedAddMembers.length === 0 || isAddingMembers ? 'not-allowed' : 'pointer',
+                  opacity: selectedAddMembers.length === 0 || isAddingMembers ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)'
+                }}
+              >
+                {isAddingMembers ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
+                <span>追加する ({selectedAddMembers.length}名)</span>
+              </button>
             </div>
           </div>
         </div>
