@@ -1595,6 +1595,9 @@ export default function App() {
     }
   }, [showAddModal]);
 
+  // Track whether history.back() was invoked programmatically by a modal close
+  const isProgrammaticBackRef = useRef(false);
+
   // 各モーダルの開閉状態を window.history と同期
   useEffect(() => {
     if (showAddModal) {
@@ -1603,6 +1606,7 @@ export default function App() {
       }
     } else {
       if (window.history.state?.modal === 'add') {
+        isProgrammaticBackRef.current = true;
         window.history.back();
       }
     }
@@ -1615,6 +1619,7 @@ export default function App() {
       }
     } else {
       if (window.history.state?.modal === 'trailer') {
+        isProgrammaticBackRef.current = true;
         window.history.back();
       }
     }
@@ -1627,6 +1632,7 @@ export default function App() {
       }
     } else {
       if (window.history.state?.modal === 'autofill') {
+        isProgrammaticBackRef.current = true;
         window.history.back();
       }
     }
@@ -1639,6 +1645,7 @@ export default function App() {
       }
     } else {
       if (window.history.state?.modal === 'reject') {
+        isProgrammaticBackRef.current = true;
         window.history.back();
       }
     }
@@ -1651,37 +1658,36 @@ export default function App() {
       }
     } else {
       if (window.history.state?.modal === 'update') {
+        isProgrammaticBackRef.current = true;
         window.history.back();
       }
     }
   }, [updateState.isOpen]);
 
-  // popstate イベント監視（履歴が戻った際にモーダルが開いていれば閉じる）
+  // popstate イベント監視（履歴が戻った際にモーダルが開いていれば最前面のモーダルを1つだけ閉じる）
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
-      let modalClosed = false;
-      if (showAddModal) {
-        setShowAddModal(false);
-        modalClosed = true;
+      // プログラム起因の history.back() による popstate の場合は他のモーダルを巻き込まない
+      if (isProgrammaticBackRef.current) {
+        isProgrammaticBackRef.current = false;
+        return;
       }
-      if (showTrailerModal) {
-        setShowTrailerModal(false);
-        modalClosed = true;
-      }
-      if (showBetaAutoFillModal) {
-        setShowBetaAutoFillModal(false);
-        modalClosed = true;
-      }
-      if (rejectModal.isOpen) {
-        setRejectModal(prev => ({ ...prev, isOpen: false }));
-        modalClosed = true;
-      }
+
+      // ユーザーの物理戻るボタン / ブラウザ戻る操作の場合: 最前面のモーダルのみ1つ閉じる
       if (updateState.isOpen) {
         setUpdateState(prev => ({ ...prev, isOpen: false }));
-        modalClosed = true;
-      }
-      // モーダルが閉じられた場合は振動を軽めに発生させる
-      if (modalClosed) {
+        triggerHaptic('light');
+      } else if (rejectModal.isOpen) {
+        setRejectModal(prev => ({ ...prev, isOpen: false }));
+        triggerHaptic('light');
+      } else if (showBetaAutoFillModal) {
+        setShowBetaAutoFillModal(false);
+        triggerHaptic('light');
+      } else if (showTrailerModal) {
+        setShowTrailerModal(false);
+        triggerHaptic('light');
+      } else if (showAddModal) {
+        setShowAddModal(false);
         triggerHaptic('light');
       }
     };
@@ -4383,7 +4389,13 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowAddModal(false);
+                    triggerHaptic('light');
+                    if (!currentUser.roblox_username) { 
+                      alert("ユーザー名を設定してください"); 
+                      setShowAddModal(false);
+                      setView('profile'); 
+                      return; 
+                    }
                     setShowBetaAutoFillModal(true);
                   }}
                   className="btn btn-secondary"
