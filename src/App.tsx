@@ -3637,7 +3637,7 @@ export default function App() {
                           width: '92px',
                           height: '92px',
                           borderRadius: '50%',
-                          border: '2px solid #ffffff',
+                          border: theme === 'dark' ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid #ffffff',
                           objectFit: 'cover',
                           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
                         }}
@@ -3647,7 +3647,7 @@ export default function App() {
                           position: 'absolute',
                           bottom: '-4px',
                           right: '-4px',
-                          background: '#2d6a4f',
+                          background: theme === 'dark' ? '#16a34a' : '#2d6a4f',
                           color: '#ffffff',
                           borderRadius: '50%',
                           width: '22px',
@@ -3668,15 +3668,15 @@ export default function App() {
                       padding: '5px 12px',
                       borderRadius: '20px',
                       background: myApplication?.status === 'approved'
-                        ? 'rgba(45, 106, 79, 0.12)'
+                        ? (theme === 'dark' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(45, 106, 79, 0.12)')
                         : myApplication?.status === 'pending'
-                        ? 'rgba(180, 83, 9, 0.12)'
-                        : 'rgba(107, 114, 128, 0.12)',
+                        ? (theme === 'dark' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(180, 83, 9, 0.12)')
+                        : (theme === 'dark' ? 'rgba(156, 163, 175, 0.15)' : 'rgba(107, 114, 128, 0.12)'),
                       color: myApplication?.status === 'approved'
-                        ? '#2d6a4f'
+                        ? (theme === 'dark' ? '#4ade80' : '#2d6a4f')
                         : myApplication?.status === 'pending'
-                        ? '#b45309'
-                        : '#4b5563',
+                        ? (theme === 'dark' ? '#fbbf24' : '#b45309')
+                        : (theme === 'dark' ? '#9ca3af' : '#4b5563'),
                       display: 'flex',
                       alignItems: 'center',
                       gap: '5px',
@@ -3699,7 +3699,7 @@ export default function App() {
                       <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         NAME / 市民名
                       </div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#111827', lineHeight: 1.2, fontFamily: 'var(--font-heading)' }}>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: theme === 'dark' ? '#f4f4f5' : '#111827', lineHeight: 1.2, fontFamily: 'var(--font-heading)' }}>
                         {currentUser.roblox_username || currentUser.username}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -3714,7 +3714,7 @@ export default function App() {
                       <div style={{ 
                         fontSize: '1.5rem', 
                         fontWeight: 700, 
-                        color: '#1e3a8a', 
+                        color: theme === 'dark' ? '#60a5fa' : '#1e3a8a', 
                         fontFamily: 'var(--font-plate)', 
                         letterSpacing: '0.12em',
                         lineHeight: 1.2
@@ -3724,8 +3724,8 @@ export default function App() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', justifyContent: isMobile ? 'center' : 'flex-start', flexWrap: 'wrap' }}>
-                      <div>管轄: <strong style={{ color: '#1f2937' }}>Greenview / Rensselaer</strong></div>
-                      <div>種別: <strong style={{ color: '#1f2937' }}>一般市民権 (Class R)</strong></div>
+                      <div>管轄: <strong style={{ color: theme === 'dark' ? '#f4f4f5' : '#1f2937' }}>Greenview / Rensselaer</strong></div>
+                      <div>種別: <strong style={{ color: theme === 'dark' ? '#f4f4f5' : '#1f2937' }}>一般市民権 (Class R)</strong></div>
                     </div>
                   </div>
                 </div>
@@ -3775,15 +3775,15 @@ export default function App() {
 
                 {/* Status counts pills */}
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ flex: 1, background: 'rgba(45, 106, 79, 0.08)', border: '1px solid rgba(45, 106, 79, 0.15)', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#2d6a4f', fontWeight: 600, marginBottom: '2px' }}>有効・承認済</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2d6a4f', fontFamily: 'var(--font-heading)' }}>
+                  <div style={{ flex: 1, background: theme === 'dark' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(45, 106, 79, 0.08)', border: theme === 'dark' ? '1px solid rgba(74, 222, 128, 0.25)' : '1px solid rgba(45, 106, 79, 0.15)', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.72rem', color: theme === 'dark' ? '#4ade80' : '#2d6a4f', fontWeight: 600, marginBottom: '2px' }}>有効・承認済</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: theme === 'dark' ? '#4ade80' : '#2d6a4f', fontFamily: 'var(--font-heading)' }}>
                       {vehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length}
                     </div>
                   </div>
-                  <div style={{ flex: 1, background: 'rgba(180, 83, 9, 0.08)', border: '1px solid rgba(180, 83, 9, 0.15)', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 600, marginBottom: '2px' }}>審査・審査中</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#b45309', fontFamily: 'var(--font-heading)' }}>
+                  <div style={{ flex: 1, background: theme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(180, 83, 9, 0.08)', border: theme === 'dark' ? '1px solid rgba(251, 191, 36, 0.25)' : '1px solid rgba(180, 83, 9, 0.15)', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.72rem', color: theme === 'dark' ? '#fbbf24' : '#b45309', fontWeight: 600, marginBottom: '2px' }}>審査・審査中</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: theme === 'dark' ? '#fbbf24' : '#b45309', fontFamily: 'var(--font-heading)' }}>
                       {vehicles.filter(v => v.status === 'pending').length}
                     </div>
                   </div>
@@ -5819,7 +5819,7 @@ export default function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: inAppToast.type === 'success' ? '#2d6a4f' :
+            color: inAppToast.type === 'success' ? (theme === 'dark' ? '#4ade80' : '#2d6a4f') :
                    inAppToast.type === 'warning' ? '#ffb142' :
                    inAppToast.type === 'error' ? '#ff5252' :
                    '#00d2fc',
@@ -5834,7 +5834,7 @@ export default function App() {
             <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inAppToast.title}</div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>{inAppToast.desc}</div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: inAppToast.type === 'success' ? '#2d6a4f' :
+          <div style={{ fontSize: '0.75rem', color: inAppToast.type === 'success' ? (theme === 'dark' ? '#4ade80' : '#2d6a4f') :
                                                       inAppToast.type === 'warning' ? '#ffb142' :
                                                       inAppToast.type === 'error' ? '#ff5252' :
                                                       '#00d2fc', fontWeight: 700, flexShrink: 0 }}>

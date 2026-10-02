@@ -752,7 +752,7 @@ export const AdminDashboardView = ({
             {(allSearchVehicles.length > 0 || !isLoading) && (
               <>
                 <DashboardCharts 
-                  vehicles={allSearchVehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter)} 
+                  vehicles={filteredChartVehicles} 
                   isMobile={isMobile}
                   onMakerClick={(maker) => {
                     if (maker === 'その他') return;
@@ -774,7 +774,7 @@ export const AdminDashboardView = ({
                 {/* 最近のアクティビティ・タイムライン */}
                 <div className="glass card" style={{ padding: isMobile ? '16px 14px' : '28px 32px', borderRadius: isMobile ? '16px' : '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', marginTop: isMobile ? '16px' : '24px' }}>
                   <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.25rem', fontWeight: 800, marginBottom: isMobile ? '12px' : '24px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: isMobile ? '30px' : '36px', height: isMobile ? '30px' : '36px', borderRadius: '10px', background: 'rgba(0, 193, 102, 0.12)', border: '1px solid rgba(0, 193, 102, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: isMobile ? '30px' : '36px', height: isMobile ? '30px' : '36px', borderRadius: '10px', background: 'rgba(37, 99, 235, 0.12)', border: '1px solid rgba(37, 99, 235, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Activity size={isMobile ? 16 : 20} color="var(--primary)" />
                     </div>
                     <span>最近のアクティビティ</span>
@@ -804,8 +804,8 @@ export const AdminDashboardView = ({
                           icon = <CheckCircle2 size={14} color="var(--success)" />;
                           dotColor = 'var(--success)';
                           badgeText = act.type === 'app_approved' ? '市民権承認' : '承認';
-                          badgeBg = 'rgba(0, 193, 102, 0.12)';
-                          badgeBorder = 'rgba(0, 193, 102, 0.3)';
+                          badgeBg = 'rgba(16, 185, 129, 0.12)';
+                          badgeBorder = 'rgba(16, 185, 129, 0.3)';
                         } else if (act.type === 'vehicle_warning') {
                           icon = <AlertTriangle size={14} color="#f59e0b" />;
                           dotColor = '#f59e0b';

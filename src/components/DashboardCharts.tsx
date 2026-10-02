@@ -15,7 +15,7 @@ interface DashboardChartsProps {
   isMobile?: boolean;
 }
 
-export const DashboardCharts: React.FC<DashboardChartsProps> = ({ 
+export const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ 
   vehicles,
   onMakerClick,
   onStatusClick,
@@ -30,9 +30,9 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
     if (total === 0) return [];
 
     const counts: Record<string, { count: number; color: string; label: string }> = {
-      approved: { count: 0, color: 'var(--success, #00c166)', label: '承認済み' },
+      approved: { count: 0, color: '#10b981', label: '承認済み' },
       pending: { count: 0, color: '#f59e0b', label: '審査中' },
-      rejected: { count: 0, color: 'var(--error, #ff3838)', label: '却下' },
+      rejected: { count: 0, color: '#ef4444', label: '却下' },
       temp: { count: 0, color: '#3b82f6', label: '仮承認' },
     };
 
@@ -46,7 +46,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
       } else if (v.status === 'temp_approved') {
         counts.temp.count++;
       } else {
-        counts.pending.count++; // フォールバック
+        counts.pending.count++;
       }
     });
 
@@ -61,15 +61,17 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
       .filter((d) => d.count > 0);
   }, [vehicles]);
 
-  // ドーナツチャートの計算用
+  // ドーナツチャートの計算用（幾何学的重複とガビガビを完全排除）
   const donutSlices = useMemo(() => {
     const radius = 38;
-    const circumference = 2 * Math.PI * radius; // 238.76
+    const circumference = 2 * Math.PI * radius; // 約238.76
     let accumulatedPercentage = 0;
+    const gap = statusData.length > 1 ? 1.5 : 0; // スライス間の微小セパレータギャップ
 
     return statusData.map((item) => {
       const slicePercentage = item.percentage;
-      const strokeLength = (slicePercentage / 100) * circumference;
+      const rawLength = (slicePercentage / 100) * circumference;
+      const strokeLength = Math.max(0.5, rawLength - gap);
       const strokeOffset = - (accumulatedPercentage / 100) * circumference;
       accumulatedPercentage += slicePercentage;
 
@@ -83,7 +85,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
     });
   }, [statusData]);
 
-  // 2. メーカー別シェアの集集計 (上位5つ/10個 + その他)
+  // 2. メーカー別シェアの集計 (上位5つ/10個 + その他)
   const makerData = useMemo(() => {
     const total = vehicles.length;
     if (total === 0) return [];
@@ -132,7 +134,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
       percentage: 100,
       color: 'var(--text-main, #ffffff)',
     };
-  }, [hoveredStatusIndex, statusData, vehicles]);
+  }, [hoveredStatusIndex, statusData, vehicles.length]);
 
   if (vehicles.length === 0) {
     return (
@@ -159,20 +161,26 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
         
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: isMobile ? '12px' : '20px', flex: 1 }}>
           {/* SVG Donut */}
-          <div style={{ position: 'relative', width: isMobile ? '130px' : '180px', height: isMobile ? '130px' : '180px' }}>
-            <svg width="100%" height="100%" viewBox="0 0 100 100">
+          <div style={{ position: 'relative', width: isMobile ? '140px' : '180px', height: isMobile ? '140px' : '180px' }}>
+            <svg 
+              width="100%" 
+              height="100%" 
+              viewBox="0 0 100 100"
+              style={{ overflow: 'visible' }}
+            >
               {/* 背景の薄い円 */}
               <circle
                 cx="50"
                 cy="50"
                 r="38"
                 fill="transparent"
-                stroke="rgba(255,255,255,0.03)"
+                stroke="rgba(255,255,255,0.06)"
                 strokeWidth="8"
               />
               
               {donutSlices.map((slice, index) => {
                 const isHovered = hoveredStatusIndex === index;
+                const isDimmed = hoveredStatusIndex !== null && !isHovered;
                 return (
                   <circle
                     key={slice.key}
@@ -181,25 +189,31 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                     r={slice.radius}
                     fill="transparent"
                     stroke={slice.color}
-                    strokeWidth={isHovered ? 10 : 8}
+                    strokeWidth={8}
                     strokeDasharray={`${slice.strokeLength} ${slice.circumference}`}
                     strokeDashoffset={slice.strokeOffset}
                     transform="rotate(-90 50 50)"
-                    strokeLinecap="round"
+                    strokeLinecap="butt"
                     style={{
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transformOrigin: '50px 50px',
+                      transform: isHovered ? 'rotate(-90deg) scale(1.045)' : 'rotate(-90deg) scale(1)',
+                      opacity: isDimmed ? 0.35 : 1,
+                      filter: isHovered ? 'brightness(1.15)' : 'none',
+                      transition: 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease',
                       cursor: 'pointer',
-                      filter: isHovered ? `drop-shadow(0 0 8px ${slice.color})` : 'none',
                     }}
                     onMouseEnter={() => setHoveredStatusIndex(index)}
                     onMouseLeave={() => setHoveredStatusIndex(null)}
-                    onClick={() => onStatusClick?.(slice.key)}
+                    onClick={() => {
+                      setHoveredStatusIndex(prev => prev === index ? null : index);
+                      onStatusClick?.(slice.key);
+                    }}
                   />
                 );
               })}
             </svg>
             
-            {/* 中央の情報テキスト */}
+            {/* 中央の情報テキスト (レイアウトシフト防止の固定高) */}
             <div style={{
               position: 'absolute',
               inset: 0,
@@ -210,47 +224,64 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
               textAlign: 'center',
               pointerEvents: 'none',
             }}>
-              <span style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>
                 {activeStatus.label}
               </span>
-              <span style={{ fontSize: isMobile ? '1.3rem' : '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+              <span style={{ fontSize: isMobile ? '1.3rem' : '1.75rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '2px', lineHeight: 1.1 }}>
                 {activeStatus.count}
                 <span style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>件</span>
               </span>
-              {hoveredStatusIndex !== null && (
-                <span style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 600, color: activeStatus.color, marginTop: '2px', background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-                  {activeStatus.percentage.toFixed(1)}%
-                </span>
-              )}
+              <div style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px' }}>
+                {hoveredStatusIndex !== null ? (
+                  <span style={{ 
+                    fontSize: isMobile ? '0.7rem' : '0.78rem', 
+                    fontWeight: 700, 
+                    color: activeStatus.color, 
+                    background: 'rgba(255, 255, 255, 0.08)', 
+                    padding: '2px 8px', 
+                    borderRadius: '6px' 
+                  }}>
+                    {activeStatus.percentage.toFixed(1)}%
+                  </span>
+                ) : (
+                  <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', color: 'var(--text-muted)', opacity: 0.65 }}>
+                    タップで詳細
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           
           {/* レジェンド（凡例リスト） */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '4px' : '10px', minWidth: '120px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '6px' : '10px', minWidth: '120px' }}>
             {donutSlices.map((slice, index) => {
               const isHovered = hoveredStatusIndex === index;
+              const isDimmed = hoveredStatusIndex !== null && !isHovered;
               return (
                 <div
                   key={slice.key}
                   onMouseEnter={() => setHoveredStatusIndex(index)}
                   onMouseLeave={() => setHoveredStatusIndex(null)}
-                  onClick={() => onStatusClick?.(slice.key)}
+                  onClick={() => {
+                    setHoveredStatusIndex(prev => prev === index ? null : index);
+                    onStatusClick?.(slice.key);
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: isMobile ? '6px' : '10px',
-                    padding: isMobile ? '4px 6px' : '6px 8px',
-                    borderRadius: '8px',
+                    gap: isMobile ? '8px' : '10px',
+                    padding: isMobile ? '4px 8px' : '6px 10px',
+                    borderRadius: '10px',
                     cursor: 'pointer',
-                    background: isHovered ? 'rgba(255,255,255,0.05)' : 'transparent',
-                    transform: isHovered ? 'translateX(2px)' : 'none',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    background: isHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    opacity: isDimmed ? 0.45 : 1,
+                    transition: 'background 0.2s ease, opacity 0.2s ease',
                   }}
                   title="クリックしてこのステータスで車両検索へ"
                 >
                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: slice.color, display: 'inline-block', flexShrink: 0 }}></span>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: isMobile ? '0.78rem' : '0.85rem', fontWeight: isHovered ? 700 : 500, color: 'var(--text-main)' }}>{slice.label}</span>
+                    <span style={{ fontSize: isMobile ? '0.78rem' : '0.85rem', fontWeight: isHovered ? 700 : 600, color: 'var(--text-main)' }}>{slice.label}</span>
                     <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)' }}>{slice.count}台 ({slice.percentage.toFixed(0)}%)</span>
                   </div>
                 </div>
@@ -281,12 +312,11 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '4px',
-                  padding: isMobile ? '1px 6px' : '2px 8px',
+                  padding: isMobile ? '2px 6px' : '4px 8px',
                   borderRadius: '8px',
-                  background: isHovered ? 'rgba(255,255,255,0.03)' : 'transparent',
+                  background: isHovered ? 'rgba(255,255,255,0.06)' : 'transparent',
                   cursor: isClickable ? 'pointer' : 'default',
-                  transform: isHovered && isClickable ? 'translateX(2px)' : 'none',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: 'background 0.2s ease',
                 }}
                 title={isClickable ? `クリックして ${item.name} で車両検索へ` : undefined}
               >
@@ -300,17 +330,16 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                 </div>
                 
                 {/* バーコンテナ */}
-                <div style={{ width: '100%', height: isMobile ? '6px' : '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ width: '100%', height: isMobile ? '6px' : '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
                   <div
                     style={{
                       height: '100%',
                       width: `${item.percentage}%`,
                       background: isHovered 
-                       ? 'linear-gradient(90deg, #00ff88 0%, #00c166 100%)' 
-                       : 'linear-gradient(90deg, var(--primary) 0%, rgba(0, 193, 102, 0.7) 100%)',
+                       ? 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)' 
+                       : 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)',
                       borderRadius: '4px',
-                      transition: 'width 1s cubic-bezier(0.1, 0.8, 0.3, 1), background 0.3s ease',
-                      boxShadow: isHovered ? '0 0 6px rgba(0,255,136,0.6)' : 'none',
+                      transition: 'background 0.2s ease, width 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   />
                 </div>
@@ -322,4 +351,5 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
 
     </div>
   );
-};
+});
+DashboardCharts.displayName = 'DashboardCharts';
