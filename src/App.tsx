@@ -50,7 +50,8 @@ import {
 import { isNative, pickImagesNative, pickImageFilesNative } from './utils/native';
 import { 
   checkLatestRelease, 
-  downloadAndInstallApk, 
+  downloadAndInstallApk,
+  downloadAndInstallUpdate, 
   isNewerVersion, 
   CURRENT_VERSION 
 } from './utils/updater';
@@ -2183,9 +2184,10 @@ export default function App() {
 
   // 手動 / 自動アップデート確認ロジック
   const handleCheckUpdate = async (isManual = false) => {
-    if (!isNative) {
+    const isDesktop = !!window.electronAPI?.isDesktop;
+    if (!isNative && !isDesktop) {
       if (isManual) {
-        alert('ブラウザ環境です。アップデート確認は実機（ネイティブアプリ）環境でのみ有効です。');
+        alert('ブラウザ環境です。アップデート確認はアプリ（Windowsデスクトップ版またはAndroid版）環境でのみ有効です。');
         triggerHaptic('warning');
       }
       return;
@@ -2286,7 +2288,7 @@ export default function App() {
     triggerHaptic('medium');
 
     try {
-      const result = await downloadAndInstallApk(updateState.apkUrl, (progress) => {
+      const result = await downloadAndInstallUpdate(updateState.apkUrl, (progress) => {
         setUpdateState(prev => ({
           ...prev,
           downloadProgress: progress
@@ -2340,7 +2342,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (isNative && autoCheckUpdates && !hasCheckedAutoUpdate.current) {
+    const isDesktop = !!window.electronAPI?.isDesktop;
+    if ((isNative || isDesktop) && autoCheckUpdates && !hasCheckedAutoUpdate.current) {
       hasCheckedAutoUpdate.current = true;
       const timer = setTimeout(() => {
         handleCheckUpdate(false);

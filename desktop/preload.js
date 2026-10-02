@@ -14,6 +14,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // System Idle Time (for Discord-style presence detection)
   getIdleTime: () => ipcRenderer.invoke('desktop:get-idle-time'),
 
+  // Auto Update
+  installUpdate: (downloadUrl) => ipcRenderer.invoke('desktop:install-update', downloadUrl),
+  onUpdateProgress: (callback) => {
+    const handler = (_event, progress) => callback(progress);
+    ipcRenderer.on('desktop:update-progress', handler);
+    return () => ipcRenderer.removeListener('desktop:update-progress', handler);
+  },
+
   // Settings: Autostart, Close to Tray, etc.
   getSettings: () => ipcRenderer.invoke('desktop:get-settings'),
   setSetting: (key, val) => ipcRenderer.invoke('desktop:set-setting', key, val),

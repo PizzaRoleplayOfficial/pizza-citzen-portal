@@ -1,3 +1,6 @@
+const { spawn } = require('child_process');
+const https = require('https');
+const http = require('http');
 // desktop/main.js - Discord-style Windows Desktop Shell (Optimized & Silent)
 const { app, BrowserWindow, ipcMain, Notification, session, powerMonitor } = require('electron');
 const path = require('path');
@@ -167,6 +170,78 @@ ipcMain.handle('desktop:update-badge', (event, count) => {
     trayController.updateBadge(count);
   }
   return true;
+});
+
+
+// Auto Update Downloader with redirect follow & progress
+function downloadUpdateFile(url, destPath, onProgress) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? https : http;
+    const req = client.get(url, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        downloadUpdateFile(res.headers.location, destPath, onProgress).then(resolve).catch(reject);
+        return;
+      }
+      if (res.statusCode !== 200) {
+        reject(new Error(`Download failed with status code ${res.statusCode}`));
+        return;
+      }
+      const totalBytes = parseInt(res.headers['content-length'] || '0', 10);
+      let receivedBytes = 0;
+      const fileStream = fs.createWriteStream(destPath);
+      res.on('data', (chunk) => {
+        receivedBytes += chunk.length;
+        if (totalBytes > 0) {
+          const pct = Math.min(100, Math.round((receivedBytes / totalBytes) * 100));
+          onProgress(pct);
+        }
+      });
+      res.pipe(fileStream);
+      fileStream.on('finish', () => {
+        fileStream.close(() => resolve(destPath));
+      });
+      fileStream.on('error', (err) => {
+        fs.unlink(destPath, () => {});
+        reject(err);
+      });
+    });
+    req.on('error', (err) => {
+      fs.unlink(destPath, () => {});
+      reject(err);
+    });
+  });
+}
+
+ipcMain.handle('desktop:install-update', async (event, downloadUrl) => {
+  try {
+    const tempDir = app.getPath('temp');
+    const installerPath = path.join(tempDir, 'PizzaPortal-Setup-update.exe');
+    await downloadUpdateFile(downloadUrl, installerPath, (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('desktop:update-progress', progress);
+      }
+    });
+
+    // Launch the downloaded setup silently or in one-click mode to update and restart
+    setTimeout(() => {
+      try {
+        const child = spawn(installerPath, ['/S'], {
+          detached: true,
+          stdio: 'ignore'
+        });
+        child.unref();
+        app.isQuitting = true;
+        app.quit();
+      } catch (spawnErr) {
+        console.error('Failed to launch updater:', spawnErr);
+      }
+    }, 600);
+
+    return { success: true };
+  } catch (err) {
+    console.error('Desktop install-update error:', err);
+    return { success: false, error: err.message };
+  }
 });
 
 ipcMain.handle('desktop:get-idle-time', () => {

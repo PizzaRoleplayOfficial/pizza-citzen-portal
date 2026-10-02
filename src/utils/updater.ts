@@ -70,17 +70,20 @@ export async function checkLatestRelease(): Promise<GitHubRelease | null> {
 
     const data = releases[0];
 
-    // APKファイルのアセット（.apkで終わるもの）を探す
+    const isDesktop = typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop;
     const apkAsset = data.assets?.find((asset: any) => asset.name.endsWith('.apk'));
-    if (!apkAsset) {
-      console.warn('No APK asset found in the latest release.');
+    const exeAsset = data.assets?.find((asset: any) => asset.name.endsWith('.exe'));
+
+    const targetAsset = isDesktop ? exeAsset : apkAsset;
+    if (!targetAsset) {
+      console.warn(isDesktop ? 'No EXE asset found in the latest release.' : 'No APK asset found in the latest release.');
       return null;
     }
 
     return {
       version: data.tag_name,
       notes: data.body || '',
-      apkUrl: apkAsset.browser_download_url
+      apkUrl: targetAsset.browser_download_url
     };
   } catch (err) {
     console.error('Failed to check latest release:', err);
@@ -148,4 +151,34 @@ export async function downloadAndInstallApk(
     }
     throw err;
   }
+}
+
+
+/**
+ * プラットフォーム（Android / Windowsデスクトップ）に応じた自動アップデートを実行します
+ */
+export async function downloadAndInstallUpdate(
+  downloadUrl: string,
+  onProgress: (percentage: number) => void
+): Promise<{ isBackground: boolean }> {
+  const isDesktop = typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop;
+  if (isDesktop && (window as any).electronAPI?.installUpdate) {
+    let unsub: (() => void) | null = null;
+    if ((window as any).electronAPI?.onUpdateProgress) {
+      unsub = (window as any).electronAPI.onUpdateProgress((pct: number) => {
+        onProgress(pct);
+      });
+    }
+    try {
+      const res = await (window as any).electronAPI.installUpdate(downloadUrl);
+      if (!res.success) {
+        throw new Error(res.error || 'デスクトップ版のアップデートに失敗しました');
+      }
+      return { isBackground: false };
+    } finally {
+      if (unsub) unsub();
+    }
+  }
+
+  return downloadAndInstallApk(downloadUrl, onProgress);
 }

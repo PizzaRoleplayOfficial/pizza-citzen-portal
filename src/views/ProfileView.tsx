@@ -937,7 +937,7 @@ export const ProfileView = ({
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>現在のバージョン</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px' }}>v{appVersion}</div>
           </div>
-          {isNative && (
+          {(isNative || window.electronAPI?.isDesktop) && (
             <button
               type="button"
               onClick={onCheckUpdate}
