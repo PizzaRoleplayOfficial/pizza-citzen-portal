@@ -557,10 +557,11 @@ export const registerPushNotifications = async (
         // データが存在する場合、カスタム DOM イベントを発火して React アプリに通知
         const data = notification.data;
         if (data) {
-          if (data.updateType) {
-            console.log('FCM updateType detected, dispatching status update event:', data);
+          if (data.updateType || data.action === 'admin' || data.channelId?.includes('admin') || data.tab === 'applications' || data.tab === 'vehicles') {
+            console.log('FCM updateType/admin event detected, dispatching status update event:', data);
             const event = new CustomEvent('gvvr-fcm-status-update', { detail: data });
             window.dispatchEvent(event);
+            window.dispatchEvent(new CustomEvent('gv-notifications-refresh'));
           }
 
           // Direct Message (DM) 即時受信イベント

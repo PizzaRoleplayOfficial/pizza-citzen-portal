@@ -360,6 +360,9 @@ export default function App() {
     const handleNotifRefresh = () => {
       fetchUnreadDmCount();
       fetchNotifications();
+      if (currentUser?.role === 'admin') {
+        fetchAdminPendingCounts();
+      }
     };
     window.addEventListener('gv-notifications-refresh', handleNotifRefresh);
     window.addEventListener('gvvr-dm-received', handleNotifRefresh);
@@ -777,6 +780,15 @@ export default function App() {
   // Application state
   const [myApplication, setMyApplication] = useState<any>(null);
   const [allApplications, setAllApplications] = useState<any[]>([]);
+
+  // Admin pending application counts & dynamic badge indicator
+  const adminPendingAppsCount = currentUser?.role === 'admin'
+    ? allApplications.filter(a => a.status === 'pending').length
+    : 0;
+  const adminPendingVehiclesCount = currentUser?.role === 'admin'
+    ? (view === 'admin' ? vehicles : allSearchVehicles).filter(v => v.status === 'pending').length
+    : 0;
+  const totalAdminPending = adminPendingAppsCount + adminPendingVehiclesCount;
   const [questions, setQuestions] = useState<any[]>([]);
   const [usersViewMode, setUsersViewMode] = useState<'grid' | 'list'>('grid');
   
@@ -1397,6 +1409,44 @@ export default function App() {
     } catch (e) { console.error('Fetch all applications failed:', e); }
   };
 
+  const fetchAdminPendingCounts = async () => {
+    if (currentUser?.role !== 'admin') return;
+    try {
+      const [appsRes, vehRes] = await Promise.all([
+        fetch('/api/applications?admin=true'),
+        fetch('/api/vehicles?admin=true')
+      ]);
+      let appsCount = 0;
+      let vehsCount = 0;
+      if (appsRes.ok) {
+        const apps = await appsRes.json();
+        if (Array.isArray(apps)) {
+          setAllApplications(apps);
+          appsCount = apps.filter((a: any) => a.status === 'pending').length;
+        }
+      }
+      if (vehRes.ok) {
+        const vList = await vehRes.json();
+        if (Array.isArray(vList)) {
+          setAllSearchVehicles(vList);
+          vehsCount = vList.filter((v: any) => v.status === 'pending').length;
+          if (view === 'admin') {
+            setVehicles(vList.filter((v: any) => v.status === 'pending'));
+          }
+        }
+      }
+      const newTotal = appsCount + vehsCount;
+      const lastTotalStr = localStorage.getItem('gvvr_last_admin_pending_total');
+      const lastTotal = lastTotalStr !== null ? parseInt(lastTotalStr, 10) : null;
+      if (lastTotal !== null && newTotal > lastTotal) {
+        triggerHaptic('medium');
+      }
+      localStorage.setItem('gvvr_last_admin_pending_total', String(newTotal));
+    } catch (e) {
+      console.error('Fetch admin pending counts failed:', e);
+    }
+  };
+
   const fetchQuestions = async (adminMode = false) => {
     try {
       const res = await fetch(adminMode ? '/api/questions?admin=true' : '/api/questions');
@@ -1528,6 +1578,13 @@ export default function App() {
     // Redundant loadCatalog('gv') call removed for startup performance. Catalog is dynamically loaded when opening the Add Vehicle Modal.
   }, []);
 
+  // Periodic & initial check for admin pending tasks
+  useEffect(() => {
+    if (isLoggedIn && currentUser?.role === 'admin') {
+      fetchAdminPendingCounts();
+    }
+  }, [isLoggedIn, currentUser?.role]);
+
   // ログイン状態に応じてバックグラウンドポーリングを開始・停止、およびFCMリアルタイムプッシュ通知の登録・解除、さらにオフライン自動同期監視 (v2.3.0)
   useEffect(() => {
     let statusUpdateListener: ((e: Event) => void) | null = null;
@@ -1551,6 +1608,9 @@ export default function App() {
         } else if (detail && detail.updateType === 'vehicle_application') {
           console.log('FCM trigger: Fetching updated vehicles...');
           fetchVehicles(false);
+        }
+        if (currentUser?.role === 'admin' || detail?.action === 'admin' || detail?.channelId?.includes('admin')) {
+          fetchAdminPendingCounts();
         }
       };
       window.addEventListener('gvvr-fcm-status-update', statusUpdateListener);
@@ -1806,6 +1866,9 @@ export default function App() {
     setIsLoading(true);
     fetchVehicles(true);
     fetchApplication();
+    if (currentUser?.role === 'admin') {
+      fetchAdminPendingCounts();
+    }
     if (view === 'admin') {
       fetchUsers();
       fetchAllApplications();
@@ -1819,6 +1882,9 @@ export default function App() {
     const refreshData = (showLoading = false) => {
       fetchVehicles(showLoading);
       fetchApplication();
+      if (currentUser?.role === 'admin') {
+        fetchAdminPendingCounts();
+      }
       if (view === 'admin') {
         fetchUsers();
         fetchAllApplications();
@@ -1835,7 +1901,7 @@ export default function App() {
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [isLoggedIn, view]);
+  }, [isLoggedIn, view, currentUser?.role]);
 
   // 市民申請画面 (apply) が開かれたタイミングで、設問データを遅延ロードする (起動速度改善)
   useEffect(() => {
@@ -3231,12 +3297,43 @@ export default function App() {
             {currentUser.role === 'admin' && (
               <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
                 {!sidebarCollapsed && (
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 10px 6px' }}>
-                    ADMIN / 管理
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 10px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>ADMIN / 管理</span>
+                    {totalAdminPending > 0 && (
+                      <span style={{ fontSize: '0.62rem', color: '#ef4444', fontWeight: 900 }}>
+                        {totalAdminPending}件の申請あり
+                      </span>
+                    )}
                   </div>
                 )}
-                <button className={`btn-sidebar ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
-                  <ShieldCheck size={18} fill={view === 'admin' ? 'currentColor' : 'none'} strokeWidth={view === 'admin' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>管理パネル</span>}
+                <button 
+                  className={`btn-sidebar ${view === 'admin' ? 'active' : ''} ${totalAdminPending > 0 ? 'has-pending-admin' : ''}`} 
+                  onClick={() => { triggerHaptic('light'); setView('admin'); }} 
+                  title={totalAdminPending > 0 ? `管理パネル (審査待ち: 車両 ${adminPendingVehiclesCount}件 / 市民申請 ${adminPendingAppsCount}件)` : '管理パネル'}
+                  style={{ 
+                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start', 
+                    padding: sidebarCollapsed ? '12px 0' : undefined,
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldCheck size={18} fill={view === 'admin' ? 'currentColor' : 'none'} strokeWidth={view === 'admin' ? 2.4 : 1.8} />
+                    {sidebarCollapsed && totalAdminPending > 0 && (
+                      <span className="admin-icon-badge-dot">
+                        {totalAdminPending > 9 ? '9+' : totalAdminPending}
+                      </span>
+                    )}
+                  </div>
+                  {!sidebarCollapsed && (
+                    <>
+                      <span style={{ flex: 1, textAlign: 'left' }}>管理パネル</span>
+                      {totalAdminPending > 0 && (
+                        <span className="admin-sidebar-badge">
+                          {totalAdminPending > 99 ? '99+' : totalAdminPending}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -3438,7 +3535,27 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* Header Quick Admin Button with dynamic pulse badge */}
+              {currentUser.role === 'admin' && (
+                <button
+                  onClick={() => { triggerHaptic('light'); setView('admin'); }}
+                  title={totalAdminPending > 0 ? `管理パネル (審査待ち: 車両 ${adminPendingVehiclesCount}件 / 市民申請 ${adminPendingAppsCount}件)` : "管理パネル"}
+                  className={`header-admin-btn ${view === 'admin' ? 'active' : ''} ${totalAdminPending > 0 ? 'has-pending' : ''}`}
+                >
+                  <ShieldCheck 
+                    size={20} 
+                    color={totalAdminPending > 0 ? '#ef4444' : (view === 'admin' ? 'var(--primary)' : (theme === 'dark' ? '#ffffff' : '#1f2937'))} 
+                    strokeWidth={view === 'admin' || totalAdminPending > 0 ? 2.3 : 1.9} 
+                  />
+                  {totalAdminPending > 0 && (
+                    <span className="header-admin-badge">
+                      {totalAdminPending > 9 ? '9+' : totalAdminPending}
+                    </span>
+                  )}
+                </button>
+              )}
+
               <button
                 onClick={() => { triggerHaptic('light'); setShowNotifications(!showNotifications); }}
                 title="通知センター"
@@ -3529,8 +3646,34 @@ export default function App() {
                     <ClipboardList size={14} /> 市民申請
                   </button>
                   {currentUser.role === 'admin' && (
-                    <button onClick={() => { triggerHaptic('light'); setView('admin'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(30,58,138,0.06)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                      <ShieldCheck size={14} /> 管理パネル
+                    <button 
+                      onClick={() => { triggerHaptic('light'); setView('admin'); setShowProfileMenu(false); }} 
+                      style={{ 
+                        background: totalAdminPending > 0 ? 'rgba(239, 68, 68, 0.08)' : 'none', 
+                        border: totalAdminPending > 0 ? '1px solid rgba(239, 68, 68, 0.25)' : 'none', 
+                        padding: '10px 12px', 
+                        borderRadius: '8px', 
+                        color: totalAdminPending > 0 ? '#ef4444' : 'var(--primary)', 
+                        fontWeight: 700, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        fontSize: '0.85rem', 
+                        cursor: 'pointer', 
+                        width: '100%', 
+                        textAlign: 'left', 
+                        transition: 'background 0.2s' 
+                      }} 
+                      onMouseEnter={e => e.currentTarget.style.background = totalAdminPending > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(30,58,138,0.06)'} 
+                      onMouseLeave={e => e.currentTarget.style.background = totalAdminPending > 0 ? 'rgba(239, 68, 68, 0.08)' : 'none'}
+                    >
+                      <ShieldCheck size={14} /> 
+                      <span style={{ flex: 1 }}>管理パネル</span>
+                      {totalAdminPending > 0 && (
+                        <span className="admin-sidebar-badge" style={{ margin: 0, fontSize: '0.62rem', padding: '2px 6px' }}>
+                          {totalAdminPending}
+                        </span>
+                      )}
                     </button>
                   )}
                   <button onClick={() => { triggerHaptic('light'); setView('profile'); setShowProfileMenu(false); }} style={{ background: 'none', border: 'none', padding: '10px 12px', borderRadius: '8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
@@ -5904,6 +6047,24 @@ export default function App() {
                 <h4>{view === 'garage' ? 'ガレージアクション' : '新規登録・投稿'}</h4>
                 <p>{view === 'garage' ? '登録方法を選択してください' : '行いたい操作を選択してください'}</p>
               </div>
+
+              {currentUser.role === 'admin' && (
+                <button className="mobile-action-button" onClick={() => {
+                  triggerHaptic('light');
+                  setShowQuickActionSheet(false);
+                  setView('admin');
+                }} style={{ borderBottom: '1px solid var(--border)', background: totalAdminPending > 0 ? 'rgba(239, 68, 68, 0.06)' : undefined }}>
+                  <ShieldCheck size={20} color={totalAdminPending > 0 ? '#ef4444' : 'var(--primary)'} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span style={{ fontWeight: 700, color: totalAdminPending > 0 ? '#ef4444' : undefined }}>管理パネルを開く</span>
+                    {totalAdminPending > 0 && (
+                      <span className="admin-pending-badge-sm">
+                        審査待ち {totalAdminPending}件
+                      </span>
+                    )}
+                  </div>
+                </button>
+              )}
 
               {view === 'garage' ? (
                 <>
