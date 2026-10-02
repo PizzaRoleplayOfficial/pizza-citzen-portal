@@ -540,7 +540,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                 prev[i].id !== nextMessages[i].id ||
                 prev[i].content !== nextMessages[i].content ||
                 prev[i].is_read !== nextMessages[i].is_read ||
-                prev[i].image_url !== nextMessages[i].image_url
+                prev[i].image_data !== nextMessages[i].image_data
               ) {
                 isIdentical = false;
                 break;

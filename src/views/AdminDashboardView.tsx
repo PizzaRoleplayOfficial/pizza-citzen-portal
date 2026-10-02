@@ -241,6 +241,12 @@ export const AdminDashboardView = ({
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
 
+  // メモ化されたチャート用車両リスト（ホバー時の親コンポーネント再計算・グラフガビガビちらつき防止）
+  const filteredChartVehicles = React.useMemo(() => {
+    if (!Array.isArray(allSearchVehicles)) return [];
+    return allSearchVehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter);
+  }, [allSearchVehicles, adminGameFilter]);
+
   const activities = React.useMemo(() => {
     const list: Array<{
       id: string;
