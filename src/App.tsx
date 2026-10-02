@@ -375,17 +375,48 @@ export default function App() {
     };
   }, [currentUser?.id]);
 
-  // PC/Web利用時のリアルタイム存在検知 (PC操作中にスマホアプリへ二重プッシュ通知を送らない制御)
+  // PC/Web/Desktop用のリアルタイム在席検知 (PC操作中にスマホアプリへ二重プッシュ通知を送らない)
   useEffect(() => {
     if (!currentUser?.id || isNative) return;
 
-    const pingPresence = (status = 'online') => {
-      if (document.hidden && status === 'online') return;
+    let lastUserActivity = Date.now();
+    const markActivity = () => {
+      lastUserActivity = Date.now();
+    };
+
+    window.addEventListener('mousemove', markActivity, { passive: true });
+    window.addEventListener('keydown', markActivity, { passive: true });
+    window.addEventListener('mousedown', markActivity, { passive: true });
+    window.addEventListener('touchstart', markActivity, { passive: true });
+
+    const pingPresence = async (status = 'online') => {
+      const isDesktop = !!window.electronAPI?.isDesktop;
+      const platform = isDesktop ? 'desktop' : 'web';
+
+      if (status === 'online') {
+        if (document.hidden) return;
+
+        // Desktop: Check system-wide idle time (keyboard/mouse idle on Windows)
+        if (window.electronAPI?.getIdleTime) {
+          try {
+            const idleSec = await window.electronAPI.getIdleTime();
+            if (idleSec > 90) {
+              return;
+            }
+          } catch {}
+        } else {
+          // Web browser: Check in-page activity within last 90 seconds
+          if (Date.now() - lastUserActivity > 90000) {
+            return;
+          }
+        }
+      }
+
       try {
         fetch('/api/user-presence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUser.id, platform: 'web', status }),
+          body: JSON.stringify({ userId: currentUser.id, platform, status }),
           keepalive: true
         }).catch(() => {});
       } catch {}
@@ -397,14 +428,19 @@ export default function App() {
     }, 35000);
 
     const handleVis = () => {
-      if (!document.hidden) pingPresence('online');
+      if (!document.hidden) {
+        lastUserActivity = Date.now();
+        pingPresence('online');
+      }
     };
 
     const handleBeforeUnload = () => {
+      const isDesktop = !!window.electronAPI?.isDesktop;
+      const platform = isDesktop ? 'desktop' : 'web';
       if (navigator.sendBeacon) {
         navigator.sendBeacon(
           '/api/user-presence',
-          new Blob([JSON.stringify({ userId: currentUser.id, platform: 'web', status: 'offline' })], { type: 'application/json' })
+          new Blob([JSON.stringify({ userId: currentUser.id, platform, status: 'offline' })], { type: 'application/json' })
         );
       }
     };
@@ -414,6 +450,10 @@ export default function App() {
 
     return () => {
       clearInterval(presenceTimer);
+      window.removeEventListener('mousemove', markActivity);
+      window.removeEventListener('keydown', markActivity);
+      window.removeEventListener('mousedown', markActivity);
+      window.removeEventListener('touchstart', markActivity);
       document.removeEventListener('visibilitychange', handleVis);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };

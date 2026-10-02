@@ -279,26 +279,36 @@ export async function sendFcmNotificationToUser(
       console.error('Failed to save in-app notification, but proceeding to FCM send:', saveErr);
     }
 
-    // PC/Web active check: If recipient is actively using PC/Web (active within last 45s), suppress mobile push
-    // NOTE: Direct Messages (DM) are NEVER suppressed by web presence (direct messages should always reach the user's mobile device)
-    const isDmMessage = payload.channelId === 'dm_messages_channel';
-    if (!isDmMessage) {
-      try {
-        const webActive = await env.D1_DB.prepare(`
+    // PC/Desktop active check (Discord-style Push Notification Inactive Timeout)
+    // If recipient is actively using PC/Desktop within the configured timeout (e.g. 5 minutes), suppress mobile push
+    try {
+      const userSetting = await env.D1_DB.prepare(
+        "SELECT mobile_push_timeout_minutes FROM users WHERE id = ?"
+      ).bind(userId).first();
+
+      const timeoutMinutes = userSetting?.mobile_push_timeout_minutes !== undefined && userSetting?.mobile_push_timeout_minutes !== null
+        ? Number(userSetting.mobile_push_timeout_minutes)
+        : 5; // Default 5 minutes (Discord standard)
+
+      // If timeoutMinutes > 0, check if active on PC/Desktop
+      // If timeoutMinutes === 0 ("なし / 常にスマホにも送信"), suppression is disabled
+      if (timeoutMinutes > 0) {
+        const windowSql = `-${timeoutMinutes} minutes`;
+        const pcActive = await env.D1_DB.prepare(`
           SELECT 1 FROM user_presence 
           WHERE user_id = ? 
-            AND platform = 'web' 
-            AND last_active_at > datetime('now', '-45 seconds')
+            AND platform IN ('web', 'desktop') 
+            AND last_active_at > datetime('now', ?)
           LIMIT 1
-        `).bind(userId).first();
+        `).bind(userId, windowSql).first();
 
-        if (webActive) {
-          console.log(`[FCM] Suppressed mobile push notification for user ${userId} because user is actively using PC/Web.`);
+        if (pcActive) {
+          console.log(`[FCM] Suppressed mobile push notification for user ${userId} because PC/Desktop was active within ${timeoutMinutes} minutes.`);
           return 0;
         }
-      } catch (presenceErr) {
-        // Table might not exist yet or minor error, proceed normally
       }
+    } catch (presenceErr) {
+      // Table or column might not exist yet or minor error, proceed normally
     }
 
     // チャンネル種別に応じて購読トグルのフィルタリングを変更 (v2.2.2)

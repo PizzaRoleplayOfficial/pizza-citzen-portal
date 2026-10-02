@@ -1,5 +1,5 @@
 import React from 'react';
-import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info, Key, Trash2, RefreshCw, Monitor } from 'lucide-react';
+import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info, Key, Trash2, RefreshCw, Monitor, ChevronDown, ChevronUp } from 'lucide-react';
 import { triggerHaptic, scheduleLocalNotification, isNative, getLiveProgress } from '../utils/native';
 import { CURRENT_VERSION, getLiveUpdate } from '../utils/updater';
 import { startRegistration } from '@simplewebauthn/browser';
@@ -82,6 +82,30 @@ export const ProfileView = ({
   const [passkeys, setPasskeys] = React.useState<{ credential_id: string, key_name: string | null, created_at: string }[]>([]);
   const [devices, setDevices] = React.useState<any[]>([]);
   const [devicesLoading, setDevicesLoading] = React.useState(false);
+  const [showAdvancedPushSettings, setShowAdvancedPushSettings] = React.useState(false);
+  const [mobilePushTimeout, setMobilePushTimeout] = React.useState<number>(() => {
+    const cached = typeof localStorage !== 'undefined' ? localStorage.getItem('gvvr_mobile_push_timeout') : null;
+    return cached !== null ? Number(cached) : 5;
+  });
+
+  const handleMobilePushTimeoutChange = async (val: number) => {
+    setMobilePushTimeout(val);
+    localStorage.setItem('gvvr_mobile_push_timeout', String(val));
+    triggerHaptic('light');
+    if (!currentUser?.id) return;
+    try {
+      await fetch('/api/push-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          mobilePushTimeoutMinutes: val
+        })
+      });
+    } catch (e) {
+      console.error('Failed to save mobile push timeout:', e);
+    }
+  };
   const currentDeviceId = typeof localStorage !== 'undefined' ? localStorage.getItem('gvvr_device_id') : null;
 
   const fetchDevices = async () => {
@@ -92,6 +116,10 @@ export const ProfileView = ({
       if (res.ok) {
         const data = await res.json();
         setDevices(data.devices || []);
+        if (data.mobilePushTimeoutMinutes !== undefined) {
+          setMobilePushTimeout(Number(data.mobilePushTimeoutMinutes));
+          localStorage.setItem('gvvr_mobile_push_timeout', String(data.mobilePushTimeoutMinutes));
+        }
       }
     } catch (e) {
       console.error('Failed to fetch push devices:', e);
@@ -627,6 +655,85 @@ export const ProfileView = ({
             </div>
 
             {/* 登録中の通知デバイス一覧 */}
+            {/* Discord-style Advanced Notification Settings */}
+            <div style={{ marginTop: '12px', borderTop: '1px solid var(--glass-border)', paddingTop: '14px' }}>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedPushSettings(!showAdvancedPushSettings)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '6px 2px',
+                  cursor: 'pointer',
+                  color: 'var(--text-main)',
+                  textAlign: 'left'
+                }}
+              >
+                <span style={{ fontSize: '15px', fontWeight: 600 }}>
+                  {showAdvancedPushSettings ? '詳細通知設定を非表示' : '詳細通知設定を表示'}
+                </span>
+                {showAdvancedPushSettings ? (
+                  <ChevronUp size={20} style={{ color: 'var(--text-muted)' }} />
+                ) : (
+                  <ChevronDown size={20} style={{ color: 'var(--text-muted)' }} />
+                )}
+              </button>
+
+              {showAdvancedPushSettings && (
+                <div style={{
+                  marginTop: '12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '16px',
+                  background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--glass-border)',
+                  flexWrap: 'wrap'
+                }}>
+                  <div style={{ flex: '1 1 280px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main)' }}>モバイル通知の一時的な停止</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
+                      パソコンでご利用中はモバイルデバイスにプッシュ通知が送信されません。この設定では、デスクトップが休止状態になってからモバイル通知が再開されるまでの時間を選択できます。
+                    </div>
+                  </div>
+
+                  <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                    <select
+                      value={mobilePushTimeout}
+                      onChange={(e) => handleMobilePushTimeoutChange(Number(e.target.value))}
+                      style={{
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        backgroundColor: theme === 'light' ? '#f8fafc' : '#14171f',
+                        color: 'var(--text-main)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        padding: '10px 36px 10px 16px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        outline: 'none',
+                        minWidth: '110px'
+                      }}
+                    >
+                      <option value={1}>1分</option>
+                      <option value={2}>2分</option>
+                      <option value={5}>5分</option>
+                      <option value={10}>10分</option>
+                      <option value={0}>なし（常にスマホにも送信）</option>
+                    </select>
+                    <ChevronDown size={16} style={{ position: 'absolute', right: '12px', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div style={{ marginTop: '16px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>

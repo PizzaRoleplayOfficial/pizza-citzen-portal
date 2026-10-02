@@ -6,6 +6,7 @@ interface Window {
     platform: string;
     showNotification: (options: { title: string; body: string; action?: string; param?: string; sound?: boolean }) => Promise<boolean>;
     updateBadge: (count: number) => Promise<boolean>;
+    getIdleTime?: () => Promise<number>;
     getSettings: () => Promise<{ openAtLogin: boolean; closeToTray: boolean }>;
     setSetting: (key: string, val: any) => Promise<boolean>;
     minimizeWindow: () => Promise<void>;

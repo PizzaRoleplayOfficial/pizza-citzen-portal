@@ -49,6 +49,15 @@ export const ensurePushTokenTable = async (db: any) => {
       console.log("Migration: Adding column 'device_name' to 'user_push_tokens' table...");
       await db.prepare("ALTER TABLE user_push_tokens ADD COLUMN device_name TEXT").run();
     }
+    try {
+      const { results: userCols } = await db.prepare("PRAGMA table_info(users)").all();
+      if (userCols && !(userCols as any[]).some(c => c.name === 'mobile_push_timeout_minutes')) {
+        console.log("Migration: Adding column 'mobile_push_timeout_minutes' to 'users' table...");
+        await db.prepare("ALTER TABLE users ADD COLUMN mobile_push_timeout_minutes INTEGER DEFAULT 5").run();
+      }
+    } catch (ue: any) {
+      console.error("Users table migration for push timeout failed:", ue.message);
+    }
   } catch (e: any) {
     console.error("FCM Token table migration check failed:", e.message);
   }
@@ -72,7 +81,18 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         ORDER BY updated_at DESC
       `).bind(userId).all();
 
-      return new Response(JSON.stringify({ devices: results || [] }), {
+      let timeoutMinutes = 5;
+      try {
+        const userRow = await env.D1_DB.prepare("SELECT mobile_push_timeout_minutes FROM users WHERE id = ?").bind(userId).first();
+        if (userRow && userRow.mobile_push_timeout_minutes !== undefined && userRow.mobile_push_timeout_minutes !== null) {
+          timeoutMinutes = Number(userRow.mobile_push_timeout_minutes);
+        }
+      } catch {}
+
+      return new Response(JSON.stringify({ 
+        devices: results || [],
+        mobilePushTimeoutMinutes: timeoutMinutes
+      }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -113,10 +133,33 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       adminEditEnabled,
       timelineLikeEnabled,
       timelineCommentEnabled,
-      timelineNewPostEnabled
+      timelineNewPostEnabled,
+      mobilePushTimeoutMinutes
     } = body;
 
-    if (!userId || !token || !platform) {
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Missing required field: userId' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (mobilePushTimeoutMinutes !== undefined && mobilePushTimeoutMinutes !== null) {
+      try {
+        await env.D1_DB.prepare("UPDATE users SET mobile_push_timeout_minutes = ? WHERE id = ?").bind(Number(mobilePushTimeoutMinutes), userId).run();
+      } catch (err: any) {
+        console.error('Failed to update users mobile_push_timeout_minutes:', err.message);
+      }
+    }
+
+    // If only updating preferences without token (e.g. from desktop or web UI)
+    if (!token) {
+      return new Response(JSON.stringify({ success: true, message: 'Push settings updated successfully', mobilePushTimeoutMinutes }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!platform) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }

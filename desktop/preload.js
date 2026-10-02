@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Update System Tray Badge (Count & Icon)
   updateBadge: (count) => ipcRenderer.invoke('desktop:update-badge', count),
 
+  // System Idle Time (for Discord-style presence detection)
+  getIdleTime: () => ipcRenderer.invoke('desktop:get-idle-time'),
+
   // Settings: Autostart, Close to Tray, etc.
   getSettings: () => ipcRenderer.invoke('desktop:get-settings'),
   setSetting: (key, val) => ipcRenderer.invoke('desktop:set-setting', key, val),

@@ -1,5 +1,5 @@
 // desktop/main.js - Discord-style Windows Desktop Shell (Optimized & Silent)
-const { app, BrowserWindow, ipcMain, Notification, session } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, session, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { createTray } = require('./tray');
@@ -167,6 +167,14 @@ ipcMain.handle('desktop:update-badge', (event, count) => {
     trayController.updateBadge(count);
   }
   return true;
+});
+
+ipcMain.handle('desktop:get-idle-time', () => {
+  try {
+    return powerMonitor.getSystemIdleTime();
+  } catch {
+    return 0;
+  }
 });
 
 ipcMain.handle('desktop:get-settings', () => {
