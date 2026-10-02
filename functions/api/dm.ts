@@ -567,7 +567,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     const body = await request.json() as any;
-    const { action = 'send', senderId } = body;
+    const { action = 'send', senderId, content, imageData } = body;
     let { conversationId } = body;
 
     if (!senderId) {

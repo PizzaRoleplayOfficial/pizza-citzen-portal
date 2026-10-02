@@ -1557,10 +1557,11 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
 
                     // Centered System message for group actions
                     const isSystemMsg = msg.recipient_id === 'group' && (
-                      msg.content?.includes('グループを作成しました') ||
-                      msg.content?.includes('さんを追加しました') ||
+                      msg.content?.includes('を作成しました') ||
+                      msg.content?.includes('を追加しました') ||
                       msg.content?.includes('グループを退出しました') ||
-                      msg.content?.includes('グループ情報を変更しました')
+                      msg.content?.includes('グループ情報を変更しました') ||
+                      msg.content?.startsWith('システム:')
                     );
 
                     if (isSystemMsg) {
