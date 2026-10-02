@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import Tesseract from 'tesseract.js';
 import { LandingView } from './views/LandingView';
@@ -1596,7 +1596,7 @@ export default function App() {
   }, [showAddModal]);
 
   // Track whether history.back() was invoked programmatically by a modal close
-  const isProgrammaticBackRef = useRef(false);
+  const isProgrammaticBackRef = React.useRef(false);
 
   // 各モーダルの開閉状態を window.history と同期
   useEffect(() => {
