@@ -2752,3 +2752,100 @@ button:not(:disabled) {
 :root[data-theme='dark'] .mobile-nav-plus-btn {
   box-shadow: 0 4px 18px rgba(10, 132, 255, 0.45) !important;
 }
+
+/* ==========================================================================
+   5. アイコン単体ボタン・再読み込みボタン（Dark/Light最適化 & 高コントラスト視認性）
+   ========================================================================== */
+.btn-icon,
+button.btn-icon,
+.icon-btn,
+button.icon-btn,
+button.icon-button,
+button[title="再読み込み"],
+button[title="更新"],
+button[title="メッセージを更新"] {
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+}
+
+.btn-icon svg,
+button.btn-icon svg,
+.icon-btn svg,
+button.icon-btn svg,
+button.icon-button svg,
+button[title="再読み込み"] svg,
+button[title="更新"] svg,
+button[title="メッセージを更新"] svg {
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
+/* ライトモード: クリーンなウォームグレー背景とダークテキスト */
+:root[data-theme='light'] button[title="再読み込み"],
+:root[data-theme='light'] .btn-icon.btn-secondary,
+:root:not([data-theme='dark']) button[title="再読み込み"] {
+  background: #f3f4f6 !important;
+  color: #1f2937 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-theme='light'] button[title="再読み込み"]:hover,
+:root[data-theme='light'] .btn-icon.btn-secondary:hover,
+:root:not([data-theme='dark']) button[title="再読み込み"]:hover {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+}
+
+:root[data-theme='light'] button[title="再読み込み"] svg,
+:root[data-theme='light'] .btn-icon.btn-secondary svg,
+:root:not([data-theme='dark']) button[title="再読み込み"] svg {
+  stroke: #1f2937 !important;
+  color: #1f2937 !important;
+}
+
+/* ダークモード: 暗闇に溶け込まないハイコントラストな白アイコン & ガラスモーフィズム背景 */
+:root[data-theme='dark'] button[title="再読み込み"],
+:root[data-theme='dark'] .btn-icon.btn-secondary,
+:root[data-theme='dark'] button.btn-secondary[title="再読み込み"] {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+:root[data-theme='dark'] button[title="再読み込み"]:hover,
+:root[data-theme='dark'] .btn-icon.btn-secondary:hover,
+:root[data-theme='dark'] button.btn-secondary[title="再読み込み"]:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.30) !important;
+}
+
+:root[data-theme='dark'] button[title="再読み込み"] svg,
+:root[data-theme='dark'] .btn-icon.btn-secondary svg,
+:root[data-theme='dark'] button.btn-secondary[title="再読み込み"] svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)) !important;
+}
+
+/* DMの更新ボタン */
+:root[data-theme='dark'] button[title="メッセージを更新"] {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+:root[data-theme='dark'] button[title="メッセージを更新"]:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+
+:root[data-theme='dark'] button[title="メッセージを更新"] svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}

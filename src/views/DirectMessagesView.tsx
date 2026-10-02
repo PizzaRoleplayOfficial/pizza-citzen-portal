@@ -1512,16 +1512,23 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
                   <button
                     onClick={() => fetchMessages(activeConversationId!, true)}
                     title="メッセージを更新"
+                    className="btn-icon"
                     style={{
-                      background: 'none',
+                      background: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'none',
                       border: 'none',
-                      color: 'var(--text-muted)',
+                      color: theme === 'dark' ? '#ffffff' : 'var(--text-main)',
                       cursor: 'pointer',
                       padding: '8px',
-                      borderRadius: '8px'
+                      borderRadius: '50%',
+                      width: '36px',
+                      height: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}
                   >
-                    <RefreshCw size={18} />
+                    <RefreshCw size={18} style={{ color: theme === 'dark' ? '#ffffff' : 'currentColor', stroke: theme === 'dark' ? '#ffffff' : 'currentColor', flexShrink: 0 }} />
                   </button>
                 </div>
               </div>

@@ -111,6 +111,7 @@ interface MyGarageViewProps {
   setShowTrailerModal: (b: boolean) => void;
   handleStartEdit: (v: any) => void;
   handleDeleteVehicle: (id: string) => void;
+  theme?: 'dark' | 'light';
   isMobile?: boolean;
   dataSaverEnabled?: boolean;
 }
@@ -136,6 +137,7 @@ export const MyGarageView = ({
   setShowTrailerModal,
   handleStartEdit,
   handleDeleteVehicle,
+  theme = 'light',
   isMobile = false,
   dataSaverEnabled = false
 }: MyGarageViewProps) => {
@@ -250,13 +252,29 @@ export const MyGarageView = ({
             <div style={{ display: 'flex', gap: '12px' }}>
               {!isMobile && (
                 <button 
-                  className="btn btn-secondary" 
+                  className="btn-icon btn-secondary" 
                   onClick={() => { triggerHaptic('medium'); handleManualRefresh(); }} 
-                  style={{ width: '38px', height: '38px', minWidth: '38px', minHeight: '38px', borderRadius: '50%', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} 
+                  style={{ 
+                    width: '38px', 
+                    height: '38px', 
+                    minWidth: '38px', 
+                    minHeight: '38px', 
+                    borderRadius: '50%', 
+                    padding: 0, 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: theme === 'dark' ? '#ffffff' : 'var(--text-main)',
+                    background: theme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'var(--btn-secondary-bg)',
+                    border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid var(--glass-border)',
+                    boxShadow: theme === 'dark' ? '0 2px 10px rgba(0, 0, 0, 0.4)' : undefined,
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    flexShrink: 0
+                  }} 
                   disabled={isLoading}
                   title="再読み込み"
                 >
-                  <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
+                  <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} style={{ color: theme === 'dark' ? '#ffffff' : 'currentColor', stroke: theme === 'dark' ? '#ffffff' : 'currentColor', flexShrink: 0 }} />
                 </button>
               )}
               {/* Auto-fill beta button: desktop only, in header */}

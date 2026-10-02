@@ -4154,6 +4154,7 @@ export default function App() {
           />
         ) : view === 'garage' ? (
           <MyGarageView
+            theme={theme}
             myApplication={myApplication}
             vehicles={vehicles}
             isLoading={isLoading}

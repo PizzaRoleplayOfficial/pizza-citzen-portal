@@ -3258,11 +3258,27 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             <button 
               onClick={() => { triggerHaptic('light'); fetchPosts(); }} 
               disabled={isLoading}
-              className="btn btn-secondary"
-              style={{ width: '38px', height: '38px', minWidth: '38px', minHeight: '38px', borderRadius: '50%', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              className="btn-icon btn-secondary"
+              style={{ 
+                width: '38px', 
+                height: '38px', 
+                minWidth: '38px', 
+                minHeight: '38px', 
+                borderRadius: '50%', 
+                padding: 0, 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: theme === 'dark' ? '#ffffff' : 'var(--text-main)',
+                background: theme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'var(--btn-secondary-bg)',
+                border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid var(--glass-border)',
+                boxShadow: theme === 'dark' ? '0 2px 10px rgba(0, 0, 0, 0.4)' : undefined,
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                flexShrink: 0
+              }}
               title="再読み込み"
             >
-              <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} />
+              <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} style={{ color: theme === 'dark' ? '#ffffff' : 'currentColor', stroke: theme === 'dark' ? '#ffffff' : 'currentColor', flexShrink: 0 }} />
             </button>
           )}
         </div>
