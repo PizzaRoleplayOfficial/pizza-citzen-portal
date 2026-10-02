@@ -1,5 +1,5 @@
 import React from 'react';
-import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info, Key, Trash2, RefreshCw } from 'lucide-react';
+import { User as UserIcon, Palette, Smartphone, Vibrate, Bell, Info, Key, Trash2, RefreshCw, Monitor } from 'lucide-react';
 import { triggerHaptic, scheduleLocalNotification, isNative, getLiveProgress } from '../utils/native';
 import { CURRENT_VERSION, getLiveUpdate } from '../utils/updater';
 import { startRegistration } from '@simplewebauthn/browser';
@@ -56,6 +56,28 @@ export const ProfileView = ({
   onToggleDataSaver
 }: ProfileViewProps) => {
   const [passkeyLoading, setPasskeyLoading] = React.useState(false);
+  const [desktopAutostart, setDesktopAutostart] = React.useState(false);
+  const [desktopCloseToTray, setDesktopCloseToTray] = React.useState(true);
+
+  React.useEffect(() => {
+    if (window.electronAPI?.getSettings) {
+      window.electronAPI.getSettings().then(settings => {
+        if (settings) {
+          setDesktopAutostart(!!settings.openAtLogin);
+          setDesktopCloseToTray(settings.closeToTray !== false);
+        }
+      });
+    }
+  }, []);
+
+  const handleToggleDesktopSetting = async (key: string, val: boolean) => {
+    triggerHaptic('light');
+    if (key === 'openAtLogin') setDesktopAutostart(val);
+    if (key === 'closeToTray') setDesktopCloseToTray(val);
+    if (window.electronAPI?.setSetting) {
+      await window.electronAPI.setSetting(key, val);
+    }
+  };
   const [passkeyMessage, setPasskeyMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [passkeys, setPasskeys] = React.useState<{ credential_id: string, key_name: string | null, created_at: string }[]>([]);
   const [devices, setDevices] = React.useState<any[]>([]);
@@ -288,6 +310,81 @@ export const ProfileView = ({
         </div>
         <button type="submit" className="btn btn-primary" style={{ padding: '16px', borderRadius: '12px', fontSize: '1rem', justifyContent: 'center' }}>設定を保存</button>
       </form>
+
+      {/* Windows Desktop Discord-style App Settings Card */}
+      {window.electronAPI?.isDesktop && (
+        <div className="glass card settings-card" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', background: 'rgba(59, 130, 246, 0.15)', borderRadius: '12px' }}>
+              <Monitor size={24} style={{ color: 'var(--primary)' }} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Windows デスクトップ設定</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Discordスタイルの常駐・システムトレイ・自動起動の動作を設定します。</p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Setting 1: Autostart */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>Windows 起動時に自動起動</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>PC起動時に自動で立ち上がり、タスクトレイにサイレント常駐します。</div>
+              </div>
+              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+                <input 
+                  type="checkbox" 
+                  checked={desktopAutostart} 
+                  onChange={(e) => handleToggleDesktopSetting('openAtLogin', e.target.checked)} 
+                  style={{ opacity: 0, width: 0, height: 0 }}
+                />
+                <span className="slider" style={{
+                  position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                  backgroundColor: desktopAutostart ? 'var(--primary)' : '#444',
+                  transition: '.4s', borderRadius: '34px'
+                }}>
+                  <span style={{
+                    position: 'absolute', height: '20px', width: '20px',
+                    left: desktopAutostart ? '26px' : '4px',
+                    bottom: '4px',
+                    backgroundColor: desktopAutostart ? '#000' : '#fff',
+                    transition: '.4s', borderRadius: '50%'
+                  }} />
+                </span>
+              </label>
+            </div>
+
+            {/* Setting 2: Close to Tray */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>閉じるボタン（×）でトレイへ最小化</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>ウィンドウを閉じてもアプリを終了せず、タスクトレイで省電力待機します。</div>
+              </div>
+              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', minWidth: '50px', height: '28px', cursor: 'pointer', flexShrink: 0 }}>
+                <input 
+                  type="checkbox" 
+                  checked={desktopCloseToTray} 
+                  onChange={(e) => handleToggleDesktopSetting('closeToTray', e.target.checked)} 
+                  style={{ opacity: 0, width: 0, height: 0 }}
+                />
+                <span className="slider" style={{
+                  position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                  backgroundColor: desktopCloseToTray ? 'var(--primary)' : '#444',
+                  transition: '.4s', borderRadius: '34px'
+                }}>
+                  <span style={{
+                    position: 'absolute', height: '20px', width: '20px',
+                    left: desktopCloseToTray ? '26px' : '4px',
+                    bottom: '4px',
+                    backgroundColor: desktopCloseToTray ? '#000' : '#fff',
+                    transition: '.4s', borderRadius: '50%'
+                  }} />
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification Settings Section (v2.0.2) - Only visible in native app version */}
       {isNative && (

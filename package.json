@@ -10,7 +10,10 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "pages:dev": "wrangler pages dev --compatibility-date=2024-04-01 --d1 D1_DB --proxy 5173 npm run dev",
-    "pages:deploy": "npm run build && wrangler pages deploy dist --branch main"
+    "pages:deploy": "npm run build && wrangler pages deploy dist --branch main",
+    "desktop": "electron ./desktop",
+    "desktop:dev": "electron ./desktop --dev",
+    "desktop:build": "npm run build && cd desktop && npm run build:win"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",

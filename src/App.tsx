@@ -3109,13 +3109,37 @@ export default function App() {
   const isAnyModalOpen = showAddModal || showTrailerModal || showBetaAutoFillModal || rejectModal.isOpen || updateState.isOpen;
 
   return (
-    <div className="app-wrapper" style={{
+    <div className={`app-wrapper ${window.electronAPI?.isDesktop ? 'platform-desktop' : ''}`} style={{
       maxWidth: isMobile ? '100%' : '2000px',
       margin: '0 auto',
       width: '100%',
       minHeight: '100vh',
       position: 'relative'
     }}>
+      {/* Discord-style custom window drag bar for Windows Desktop */}
+      {window.electronAPI?.isDesktop && (
+        <div className="desktop-titlebar" style={{
+          height: '34px',
+          minHeight: '34px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+          background: theme === 'dark' ? 'rgba(9, 10, 15, 0.95)' : 'rgba(245, 247, 250, 0.95)',
+          borderBottom: '1px solid var(--border)',
+          userSelect: 'none',
+          WebkitAppRegion: 'drag' as any,
+          position: 'sticky',
+          top: 0,
+          zIndex: 99999
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src="/pizza.webp" alt="" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>ぴっざぁ市民ポータル</span>
+          </div>
+          <div style={{ width: '140px', WebkitAppRegion: 'no-drag' as any }} />
+        </div>
+      )}
       {!isMobile && isMaintenanceActive && isAdmin && (
         <div style={{
           position: 'sticky',

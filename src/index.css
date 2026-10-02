@@ -2997,3 +2997,12 @@ button[title="メッセージを更新"] svg {
   border: 1px solid rgba(239, 68, 68, 0.3);
   animation: adminBadgePing 2s infinite ease-in-out;
 }
+
+/* Windows Desktop Mode (Discord-style custom titlebar & drag) */
+body.is-desktop .desktop-titlebar {
+  -webkit-app-region: drag;
+}
+
+body.is-desktop .desktop-titlebar * {
+  -webkit-app-region: no-drag;
+}

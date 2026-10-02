@@ -1,0 +1,240 @@
+// desktop/main.js - Discord-style Windows Desktop Shell
+const { app, BrowserWindow, ipcMain, Notification } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const { createTray } = require('./tray');
+
+// Set Application User Model ID for Windows Action Center Toast Notifications
+const AUMID = 'jp.pizzaroleplay.citizenportal';
+app.setAppUserModelId(AUMID);
+
+// Simple file-based config store for desktop preferences
+const configPath = path.join(app.getPath('userData'), 'desktop_config.json');
+const store = {
+  get(key, defaultValue) {
+    try {
+      if (fs.existsSync(configPath)) {
+        const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        return data[key] !== undefined ? data[key] : defaultValue;
+      }
+    } catch {}
+    return defaultValue;
+  },
+  set(key, value) {
+    try {
+      let data = {};
+      if (fs.existsSync(configPath)) {
+        data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      }
+      data[key] = value;
+      fs.writeFileSync(configPath, JSON.stringify(data, null, 2), 'utf8');
+    } catch (e) {
+      console.error('Failed to write desktop config:', e);
+    }
+  }
+};
+
+let mainWindow = null;
+let trayController = null;
+let hasShownTrayBalloon = false;
+
+// Enforce single instance lock (just like Discord)
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on('second-instance', (event, commandLine, workingDirectory) => {
+  // If someone tried to run a second instance, focus our window
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
+function createWindow() {
+  const isDev = process.argv.includes('--dev');
+  const isHiddenStartup = process.argv.includes('--hidden');
+
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 820,
+    minWidth: 800,
+    minHeight: 600,
+    show: false, // Don't show until ready-to-show
+    backgroundColor: '#0a0d14',
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
+    // Discord-like integrated titlebar with native Windows 11 controls
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#090a0f',
+      symbolColor: '#94a3b8',
+      height: 34
+    },
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      backgroundThrottling: true, // Discord power saving: throttle JS timers when hidden
+      spellcheck: true
+    }
+  });
+
+  // Create Discord-style System Tray
+  trayController = createTray(mainWindow, store, (actionData) => {
+    mainWindow.webContents.send('desktop:navigate', actionData);
+  });
+
+  // Load target URL: Dev server, Cloudflare production deployment, or local dist fallback
+  let targetUrl = 'https://pizza-citzen-portal.pages.dev';
+  if (isDev) {
+    targetUrl = 'http://localhost:5173';
+  } else if (process.argv.includes('--local')) {
+    const distHtml = path.join(__dirname, '..', 'dist', 'index.html');
+    if (fs.existsSync(distHtml)) {
+      targetUrl = `file://${distHtml}`;
+    }
+  }
+
+  mainWindow.loadURL(targetUrl).catch((err) => {
+    console.error('Failed to load target URL:', err);
+    // Fallback to local dist if available
+    const localHtml = path.join(__dirname, '..', 'dist', 'index.html');
+    if (fs.existsSync(localHtml)) {
+      mainWindow.loadFile(localHtml);
+    }
+  });
+
+  // Ready to show
+  mainWindow.once('ready-to-show', () => {
+    if (!isHiddenStartup) {
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
+      console.log('Started silently in system tray (--hidden)');
+    }
+  });
+
+  // Discord behavior: Close to Tray
+  mainWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      const closeToTray = store.get('closeToTray', true);
+      if (closeToTray) {
+        event.preventDefault();
+        mainWindow.hide();
+
+        // First time hint balloon (Windows native notification)
+        if (!hasShownTrayBalloon && process.platform === 'win32') {
+          hasShownTrayBalloon = true;
+          if (trayController && trayController.tray) {
+            trayController.tray.displayBalloon({
+              title: 'ぴっざぁ市民ポータル',
+              content: 'アプリはタスクトレイに常駐しています。通知は引き続き届きます。'
+            });
+          }
+        }
+      }
+    }
+  });
+
+  // Discord Power Saving: Emit sleep/active signals when hidden/shown
+  mainWindow.on('hide', () => {
+    mainWindow.webContents.send('desktop:power-mode', 'sleep');
+  });
+
+  mainWindow.on('show', () => {
+    mainWindow.webContents.send('desktop:power-mode', 'active');
+  });
+}
+
+// IPC Handlers
+ipcMain.handle('desktop:show-notification', (event, { title, body, action, param, sound = true }) => {
+  if (!Notification.isSupported()) return false;
+
+  const notif = new Notification({
+    title: title || 'ぴっざぁ市民ポータル',
+    body: body || '',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
+    silent: !sound,
+    urgency: 'high'
+  });
+
+  notif.on('click', () => {
+    if (mainWindow) {
+      if (!mainWindow.isVisible()) mainWindow.show();
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      if (action) {
+        mainWindow.webContents.send('desktop:navigate', { action, param });
+      }
+    }
+  });
+
+  notif.show();
+  return true;
+});
+
+ipcMain.handle('desktop:update-badge', (event, count) => {
+  if (trayController) {
+    trayController.updateBadge(count);
+  }
+  return true;
+});
+
+ipcMain.handle('desktop:get-settings', () => {
+  return {
+    openAtLogin: app.getLoginItemSettings().openAtLogin,
+    closeToTray: store.get('closeToTray', true)
+  };
+});
+
+ipcMain.handle('desktop:set-setting', (event, key, val) => {
+  store.set(key, val);
+  if (key === 'openAtLogin') {
+    app.setLoginItemSettings({
+      openAtLogin: !!val,
+      args: ['--hidden']
+    });
+  }
+  if (trayController) {
+    trayController.updateMenu();
+  }
+  return true;
+});
+
+ipcMain.handle('desktop:window-minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.handle('desktop:window-maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+  }
+});
+
+ipcMain.handle('desktop:window-close', () => {
+  if (mainWindow) mainWindow.close();
+});
+
+// App Lifecycle
+app.whenReady().then(() => {
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  // On Windows, keep running in tray unless explicit quit
+  if (process.platform !== 'win32' || app.isQuitting) {
+    app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  app.isQuitting = true;
+});
