@@ -1,9 +1,13 @@
 // desktop/preload.js
 const { contextBridge, ipcRenderer } = require('electron');
 
+const pkg = require('./package.json');
+
 contextBridge.exposeInMainWorld('electronAPI', {
   isDesktop: true,
   platform: process.platform,
+  appVersion: pkg.version,
+  getAppVersion: () => ipcRenderer.invoke('desktop:get-app-version'),
 
   // Windows Native Toast Notification
   showNotification: (options) => ipcRenderer.invoke('desktop:show-notification', options),

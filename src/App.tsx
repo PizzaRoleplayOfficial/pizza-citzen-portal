@@ -928,7 +928,12 @@ export default function App() {
     downloadProgress: 0,
     status: 'idle'
   });
-  const [appVersion, setAppVersion] = useState<string>(CURRENT_VERSION);
+  const [appVersion, setAppVersion] = useState<string>(() => {
+    if (typeof window !== 'undefined' && (window as any).electronAPI?.appVersion) {
+      return (window as any).electronAPI.appVersion;
+    }
+    return CURRENT_VERSION;
+  });
   const [autoCheckUpdates, setAutoCheckUpdates] = useState<boolean>(() => {
     return localStorage.getItem('auto_check_updates') !== 'false';
   });
@@ -1568,7 +1573,19 @@ export default function App() {
     requestNotificationPermission();
 
     // Deep Link handling in Capacitor native app
-    if (Capacitor.isNativePlatform()) {
+    // Dynamically retrieve the real installed native app version (Android Capacitor / Windows Electron)
+    if (window.electronAPI?.getAppVersion) {
+      window.electronAPI.getAppVersion().then((ver) => {
+        if (ver) {
+          setAppVersion(ver);
+          console.log('Desktop native app version:', ver);
+        }
+      }).catch((err) => {
+        console.error('Failed to get desktop app version:', err);
+      });
+    } else if (window.electronAPI?.appVersion) {
+      setAppVersion(window.electronAPI.appVersion);
+    } else if (Capacitor.isNativePlatform()) {
       // Get the native version from the device dynamically
       if (CapApp && typeof CapApp.getInfo === 'function') {
         CapApp.getInfo().then((info) => {

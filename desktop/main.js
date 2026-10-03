@@ -280,6 +280,10 @@ ipcMain.handle('desktop:get-idle-time', () => {
   }
 });
 
+ipcMain.handle('desktop:get-app-version', () => {
+  return app.getVersion();
+});
+
 ipcMain.handle('desktop:get-settings', () => {
   return {
     openAtLogin: app.getLoginItemSettings().openAtLogin,
