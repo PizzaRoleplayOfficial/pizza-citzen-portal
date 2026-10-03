@@ -40,6 +40,7 @@ function createTray(mainWindow, store, onAction) {
       {
         label: '🍕 ぴっざぁ市民ポータルを開く',
         click: () => {
+          if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
           mainWindow.focus();
         }
@@ -47,6 +48,7 @@ function createTray(mainWindow, store, onAction) {
       {
         label: currentBadgeCount > 0 ? `🛡️ 管理パネルを開く (${currentBadgeCount}件の申請)` : '🛡️ 管理パネルを開く',
         click: () => {
+          if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
           mainWindow.focus();
           onAction({ action: 'admin' });
@@ -55,6 +57,7 @@ function createTray(mainWindow, store, onAction) {
       {
         label: '💬 メッセージを開く',
         click: () => {
+          if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
           mainWindow.focus();
           onAction({ action: 'messages' });

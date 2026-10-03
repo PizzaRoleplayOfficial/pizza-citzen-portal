@@ -483,31 +483,73 @@ export default function App() {
     }
   };
 
-  const handlePushNotificationAction = (data: { action: string; tab?: string }) => {
-    console.log('Push notification redirect action:', data);
+  const handlePushNotificationAction = (data: { action: string; tab?: string; param?: string }) => {
+    console.log('Navigation redirect action:', data);
     triggerHaptic('medium');
 
     if (data.action === 'admin') {
       setView('admin');
+      window.location.hash = data.tab ? `admin/${data.tab}` : 'admin';
       if (data.tab) {
         setAdminTabPersist(data.tab as any);
       }
+    } else if (data.action === 'messages' || (data.action && data.action.startsWith('dm'))) {
+      setView('messages');
+      window.location.hash = 'messages';
+      if (data.param) {
+        setDmTargetConversationId(data.param);
+      } else {
+        const convMatch = data.action.match(/conversationId=([^&]+)/);
+        const partnerMatch = data.action.match(/partnerId=([^&]+)/);
+        if (convMatch) setDmTargetConversationId(convMatch[1]);
+        if (partnerMatch) setDmTargetUserId(partnerMatch[1]);
+      }
     } else if (data.action === 'garage') {
       setView('garage');
+      window.location.hash = 'garage';
     } else if (data.action === 'apply') {
       setView('apply');
+      window.location.hash = 'apply';
     } else if (data.action === 'home') {
       setView('home');
+      window.location.hash = 'home';
     } else if (data.action === 'timeline') {
       setView('timeline');
-    } else if (data.action && data.action.startsWith('dm')) {
-      setView('messages');
-      const convMatch = data.action.match(/conversationId=([^&]+)/);
-      const partnerMatch = data.action.match(/partnerId=([^&]+)/);
-      if (convMatch) setDmTargetConversationId(convMatch[1]);
-      if (partnerMatch) setDmTargetUserId(partnerMatch[1]);
+      window.location.hash = 'timeline';
+    } else if (data.action === 'profile') {
+      setView('profile');
+      window.location.hash = 'profile';
     }
   };
+
+  // Windows Desktop navigation listener (tray context menu & native toast click)
+  useEffect(() => {
+    if (!window.electronAPI?.onNavigate) return;
+    const unsub = window.electronAPI.onNavigate((data: { action: string; tab?: string; param?: string }) => {
+      console.log('Desktop navigation received:', data);
+      if (!data) return;
+      triggerHaptic('light');
+
+      // Close any open modals
+      setShowAddModal(false);
+      setShowTrailerModal(false);
+      setShowBetaAutoFillModal(false);
+      setShowQuickActionSheet(false);
+
+      handlePushNotificationAction(data);
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Desktop system tray badge sync (pending applications & unread DMs)
+  useEffect(() => {
+    if (!window.electronAPI?.updateBadge) return;
+    const totalCount = (currentUser?.role === 'admin' ? totalAdminPending : 0) + (unreadDmCount || 0);
+    window.electronAPI.updateBadge(totalCount);
+  }, [totalAdminPending, unreadDmCount, currentUser?.role]);
 
   const [wikiPreviewUrl, setWikiPreviewUrl] = useState<string | null>(null);
   const [wikiSyncProgress, setWikiSyncProgress] = useState<string | null>(null);

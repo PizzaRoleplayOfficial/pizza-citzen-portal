@@ -89,7 +89,14 @@ function createWindow() {
 
   // Create Discord-style System Tray
   trayController = createTray(mainWindow, store, (actionData) => {
-    mainWindow.webContents.send('desktop:navigate', actionData);
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.webContents.isLoading()) {
+      mainWindow.webContents.once('did-finish-load', () => {
+        mainWindow.webContents.send('desktop:navigate', actionData);
+      });
+    } else {
+      mainWindow.webContents.send('desktop:navigate', actionData);
+    }
   });
 
   // Enable HTTP cache for fast instant loads
