@@ -194,39 +194,70 @@ ipcMain.handle('desktop:update-badge', (event, badgeData) => {
 // Auto Update Downloader with redirect follow & progress
 function downloadUpdateFile(url, destPath, onProgress) {
   return new Promise((resolve, reject) => {
-    const client = url.startsWith('https') ? https : http;
-    const req = client.get(url, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        downloadUpdateFile(res.headers.location, destPath, onProgress).then(resolve).catch(reject);
+    // Delete existing installer if present to ensure clean fresh download
+    if (fs.existsSync(destPath)) {
+      try {
+        fs.unlinkSync(destPath);
+      } catch (e) {
+        console.warn('Could not remove existing update file before download:', e);
+      }
+    }
+
+    function doDownload(curUrl, redirectCount = 0) {
+      if (redirectCount > 10) {
+        reject(new Error('リダイレクト回数が多すぎます'));
         return;
       }
-      if (res.statusCode !== 200) {
-        reject(new Error(`Download failed with status code ${res.statusCode}`));
-        return;
-      }
-      const totalBytes = parseInt(res.headers['content-length'] || '0', 10);
-      let receivedBytes = 0;
-      const fileStream = fs.createWriteStream(destPath);
-      res.on('data', (chunk) => {
-        receivedBytes += chunk.length;
-        if (totalBytes > 0) {
-          const pct = Math.min(100, Math.round((receivedBytes / totalBytes) * 100));
-          onProgress(pct);
+
+      const client = curUrl.startsWith('https') ? https : http;
+      const options = {
+        headers: {
+          'User-Agent': 'PizzaPortal-Desktop-Updater'
         }
+      };
+
+      const req = client.get(curUrl, options, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          doDownload(res.headers.location, redirectCount + 1);
+          return;
+        }
+
+        if (res.statusCode !== 200) {
+          reject(new Error(`ダウンロードに失敗しました (HTTP ${res.statusCode})`));
+          return;
+        }
+
+        const totalBytes = parseInt(res.headers['content-length'] || '0', 10);
+        let receivedBytes = 0;
+        const fileStream = fs.createWriteStream(destPath, { flags: 'w' });
+
+        res.on('data', (chunk) => {
+          receivedBytes += chunk.length;
+          if (totalBytes > 0) {
+            const pct = Math.min(100, Math.round((receivedBytes / totalBytes) * 100));
+            onProgress(pct);
+          }
+        });
+
+        res.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+          fileStream.close(() => resolve(destPath));
+        });
+
+        fileStream.on('error', (err) => {
+          try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath); } catch (_) {}
+          reject(err);
+        });
       });
-      res.pipe(fileStream);
-      fileStream.on('finish', () => {
-        fileStream.close(() => resolve(destPath));
-      });
-      fileStream.on('error', (err) => {
-        fs.unlink(destPath, () => {});
+
+      req.on('error', (err) => {
+        try { if (fs.existsSync(destPath)) fs.unlinkSync(destPath); } catch (_) {}
         reject(err);
       });
-    });
-    req.on('error', (err) => {
-      fs.unlink(destPath, () => {});
-      reject(err);
-    });
+    }
+
+    doDownload(url, 0);
   });
 }
 
@@ -247,20 +278,53 @@ ipcMain.handle('desktop:install-update', async (event, downloadUrl) => {
       }
     });
 
-    // Launch the downloaded setup silently or in one-click mode to update and restart
+    let appExePath = process.execPath;
+    if (appExePath.toLowerCase().endsWith('electron.exe')) {
+      const fallback = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'pizza-citzen-portal-desktop', 'PizzaPortal.exe');
+      if (fs.existsSync(fallback)) {
+        appExePath = fallback;
+      }
+    }
+
+    const runnerPath = path.join(tempDir, 'pizzaportal_update_runner.bat');
+    const scriptContent = [
+      '@echo off',
+      'setlocal',
+      'chcp 65001 > nul',
+      'timeout /t 2 /nobreak > nul',
+      'taskkill /f /im PizzaPortal.exe > nul 2>&1',
+      'timeout /t 1 /nobreak > nul',
+      'start /wait "" "%~1" /S',
+      'timeout /t 2 /nobreak > nul',
+      'if exist "%~2" (',
+      '    start "" "%~2"',
+      ') else (',
+      '    set "FALLBACK_PATH=%LOCALAPPDATA%\\Programs\\pizza-citzen-portal-desktop\\PizzaPortal.exe"',
+      '    if exist "%FALLBACK_PATH%" (',
+      '        start "" "%FALLBACK_PATH%"',
+      '    )',
+      ')',
+      'timeout /t 2 /nobreak > nul',
+      'del "%~1" > nul 2>&1',
+      '(goto) 2>nul & del "%~f0"'
+    ].join('\r\n');
+
+    fs.writeFileSync(runnerPath, scriptContent, 'utf8');
+
     setTimeout(() => {
       try {
-        const child = spawn(installerPath, ['/S'], {
+        const child = spawn('cmd.exe', ['/c', runnerPath, installerPath, appExePath], {
           detached: true,
-          stdio: 'ignore'
+          stdio: 'ignore',
+          windowsHide: true
         });
         child.unref();
         app.isQuitting = true;
         app.quit();
       } catch (spawnErr) {
-        console.error('Failed to launch updater:', spawnErr);
+        console.error('Failed to launch updater runner:', spawnErr);
       }
-    }, 600);
+    }, 800);
 
     return { success: true };
   } catch (err) {

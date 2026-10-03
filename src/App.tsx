@@ -5884,7 +5884,9 @@ export default function App() {
               </div>
             ) : updateState.status === 'success' ? (
               <div style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', color: '#10b981', fontSize: '0.85rem', lineHeight: 1.5, textAlign: 'center' }}>
-                ダウンロードが完了しました！インストーラーが起動します。
+                {typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop
+                  ? <>ダウンロードが完了しました！<br />自動でアプリを再起動して最新バージョンを適用します...</>
+                  : 'ダウンロードが完了しました！インストーラーが起動します。'}
               </div>
             ) : updateState.status === 'background_started' ? (
               <div style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', color: '#10b981', fontSize: '0.85rem', lineHeight: 1.5, textAlign: 'center' }}>
