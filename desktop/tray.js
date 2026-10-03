@@ -38,11 +38,11 @@ function createTray(mainWindow, store, onAction) {
     const isCloseToTray = store.get('closeToTray', true);
 
     const adminLabel = currentBadge.pendingApps > 0
-      ? 🛡️ 管理パネルを開く (件の申請)
+      ? `🛡️ 管理パネルを開く (${currentBadge.pendingApps}件の申請)`
       : '🛡️ 管理パネルを開く';
 
     const messagesLabel = currentBadge.unreadMessages > 0
-      ? 💬 メッセージを開く (件の未読)
+      ? `💬 メッセージを開く (${currentBadge.unreadMessages}件の未読)`
       : '💬 メッセージを開く';
 
     const contextMenu = Menu.buildFromTemplate([
@@ -74,7 +74,7 @@ function createTray(mainWindow, store, onAction) {
       },
       { type: 'separator' },
       ...(availableUpdateVersion ? [{
-        label: 🚀 新バージョン v を更新...,
+        label: `🚀 新バージョン v${availableUpdateVersion} を更新...`,
         click: () => {
           if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
@@ -143,11 +143,11 @@ function createTray(mainWindow, store, onAction) {
       if (currentBadge.total > 0) {
         tray.setImage(iconBadgePath);
         if (currentBadge.pendingApps > 0 && currentBadge.unreadMessages > 0) {
-          tray.setToolTip(ぴっざぁ市民ポータル (申請 件, 未読メッセージ 件));
+          tray.setToolTip(`ぴっざぁ市民ポータル (申請 ${currentBadge.pendingApps}件, 未読メッセージ ${currentBadge.unreadMessages}件)`);
         } else if (currentBadge.unreadMessages > 0) {
-          tray.setToolTip(ぴっざぁ市民ポータル (件の未読メッセージ));
+          tray.setToolTip(`ぴっざぁ市民ポータル (${currentBadge.unreadMessages}件の未読メッセージ)`);
         } else {
-          tray.setToolTip(ぴっざぁ市民ポータル (件の保留申請));
+          tray.setToolTip(`ぴっざぁ市民ポータル (${currentBadge.pendingApps}件の保留申請)`);
         }
       } else {
         tray.setImage(iconNormalPath);
