@@ -104,6 +104,18 @@ function createWindow() {
     mainWindow.webContents.session.setPreloads([path.join(__dirname, 'preload.js')]);
   }
 
+  // Allow F5 / Ctrl+R to reload ignoring cache
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5') {
+      mainWindow.webContents.reloadIgnoringCache();
+    }
+  });
+
+  // Clear HTTP cache on startup to ensure instant update pickup
+  if (mainWindow.webContents.session) {
+    mainWindow.webContents.session.clearCache();
+  }
+
   // Load target URL: Dev server, Cloudflare production deployment, or local dist fallback
   let targetUrl = 'https://pizza-citzen-portal.pages.dev';
   if (isDev) {
@@ -115,7 +127,9 @@ function createWindow() {
     }
   }
 
-  mainWindow.loadURL(targetUrl).catch((err) => {
+  mainWindow.loadURL(targetUrl, {
+    extraHeaders: 'pragma: no-cache\ncache-control: no-cache\n'
+  }).catch((err) => {
     console.error('Failed to load target URL:', err);
     // Fallback to local dist if available
     const localHtml = path.join(__dirname, '..', 'dist', 'index.html');

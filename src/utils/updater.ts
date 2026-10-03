@@ -75,15 +75,13 @@ export async function checkLatestRelease(): Promise<GitHubRelease | null> {
     const exeAsset = data.assets?.find((asset: any) => asset.name.endsWith('.exe'));
 
     const targetAsset = isDesktop ? exeAsset : apkAsset;
-    if (!targetAsset) {
-      console.warn(isDesktop ? 'No EXE asset found in the latest release.' : 'No APK asset found in the latest release.');
-      return null;
-    }
 
     return {
       version: data.tag_name,
       notes: data.body || '',
-      apkUrl: targetAsset.browser_download_url
+      apkUrl: targetAsset?.browser_download_url || apkAsset?.browser_download_url || '',
+      exeUrl: exeAsset?.browser_download_url || '',
+      downloadUrl: targetAsset?.browser_download_url || ''
     };
   } catch (err) {
     console.error('Failed to check latest release:', err);

@@ -78,3 +78,48 @@ jobs:
             - **ビルド日時:** ${{ github.event.head_commit.timestamp || '不明' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-release-windows:
+    name: Build and Release Windows Desktop Setup
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          cd desktop
+          npm install
+
+      - name: Build Web Frontend
+        run: npm run build
+
+      - name: Build Windows Desktop Installer
+        run: |
+          cd desktop
+          npm run build:win
+
+      - name: Extract App Version
+        id: get_version
+        run: |
+          $ver = (Get-Content src/utils/updater.ts | Select-String "CURRENT_VERSION\s*=\s*'([^']+)'").Matches.Groups[1].Value
+          echo "VERSION=v$ver" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      - name: Upload Windows Setup to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: desktop/dist-electron/*-Setup-*.exe
+          tag_name: ${{ env.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
