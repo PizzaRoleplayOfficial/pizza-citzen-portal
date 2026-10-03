@@ -519,6 +519,8 @@ export default function App() {
     } else if (data.action === 'profile') {
       setView('profile');
       window.location.hash = 'profile';
+    } else if (data.action === 'check-update') {
+      handleCheckUpdate(true);
     }
   };
 
@@ -2254,8 +2256,21 @@ export default function App() {
             downloadProgress: 0,
             status: 'idle'
           });
+          if (window.electronAPI?.setUpdateAvailable) {
+            window.electronAPI.setUpdateAvailable(release.version);
+          }
           if (isManual) {
             triggerHaptic('success');
+          } else {
+            // Background update notification while running (Action Center toast)
+            if (window.electronAPI?.showNotification) {
+              window.electronAPI.showNotification({
+                title: '🚀 アップデートが利用可能です',
+                body: `新バージョン v${release.version} が公開されました。クリックして今すぐ更新できます。`,
+                action: 'check-update',
+                sound: true
+              });
+            }
           }
         } else {
           if (isManual) {
@@ -3221,6 +3236,53 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src="/pizza.webp" alt="" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>ぴっざぁ市民ポータル</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '4px' }}>v{appVersion}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', WebkitAppRegion: 'no-drag' as any }}>
+            {updateState.isOpen && updateState.latestVersion && (
+              <button
+                type="button"
+                onClick={() => setUpdateState(prev => ({ ...prev, isOpen: true }))}
+                style={{
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '12px',
+                  color: '#10b981',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <RefreshCw size={11} className="spin" />
+                新バージョン v{updateState.latestVersion} が利用可能
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleCheckUpdate(true)}
+              disabled={isCheckingUpdate}
+              title="アップデートを確認"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                transition: '0.2s'
+              }}
+            >
+              <RefreshCw size={12} className={isCheckingUpdate ? 'spin' : ''} />
+              <span>{isCheckingUpdate ? '確認中...' : '更新確認'}</span>
+            </button>
           </div>
           <div style={{ width: '140px', WebkitAppRegion: 'no-drag' as any }} />
         </div>

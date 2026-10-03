@@ -4,6 +4,7 @@ const path = require('path');
 
 let tray = null;
 let currentBadgeCount = 0;
+let availableUpdateVersion = null;
 
 function createTray(mainWindow, store, onAction) {
   const iconNormalPath = path.join(__dirname, 'assets', 'icon.ico');
@@ -64,6 +65,23 @@ function createTray(mainWindow, store, onAction) {
         }
       },
       { type: 'separator' },
+      ...(availableUpdateVersion ? [{
+        label: `🚀 新バージョン v${availableUpdateVersion} を更新...`,
+        click: () => {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.show();
+          mainWindow.focus();
+          onAction({ action: 'check-update' });
+        }
+      }] : [{
+        label: '🔄 アップデートを確認...',
+        click: () => {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.show();
+          mainWindow.focus();
+          onAction({ action: 'check-update' });
+        }
+      }]),
       {
         label: '⚙️ Windows 起動時に自動起動',
         type: 'checkbox',
@@ -111,7 +129,11 @@ function createTray(mainWindow, store, onAction) {
       }
       updateMenu();
     },
-    updateMenu
+    updateMenu,
+    setUpdateAvailable: (ver) => {
+      availableUpdateVersion = ver;
+      updateMenu();
+    }
   };
 }
 

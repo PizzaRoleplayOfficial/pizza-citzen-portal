@@ -219,6 +219,13 @@ function downloadUpdateFile(url, destPath, onProgress) {
   });
 }
 
+ipcMain.handle('desktop:set-update-available', (event, ver) => {
+  if (trayController && trayController.setUpdateAvailable) {
+    trayController.setUpdateAvailable(ver);
+  }
+  return true;
+});
+
 ipcMain.handle('desktop:install-update', async (event, downloadUrl) => {
   try {
     const tempDir = app.getPath('temp');

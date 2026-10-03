@@ -9,6 +9,7 @@ interface Window {
     getIdleTime?: () => Promise<number>;
     installUpdate?: (downloadUrl: string) => Promise<{ success: boolean; error?: string }>;
     onUpdateProgress?: (callback: (progress: number) => void) => () => void;
+    setUpdateAvailable?: (ver: string | null) => Promise<boolean>;
     getSettings: () => Promise<{ openAtLogin: boolean; closeToTray: boolean }>;
     setSetting: (key: string, val: any) => Promise<boolean>;
     minimizeWindow: () => Promise<void>;

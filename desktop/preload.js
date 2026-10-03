@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Auto Update
   installUpdate: (downloadUrl) => ipcRenderer.invoke('desktop:install-update', downloadUrl),
+  setUpdateAvailable: (ver) => ipcRenderer.invoke('desktop:set-update-available', ver),
   onUpdateProgress: (callback) => {
     const handler = (_event, progress) => callback(progress);
     ipcRenderer.on('desktop:update-progress', handler);
