@@ -34,7 +34,7 @@ function createTray(mainWindow, store, onAction) {
   });
 
   function updateMenu() {
-    const isAutostart = app.getLoginItemSettings().openAtLogin;
+    const isAutostart = store.get('openAtLogin', false);
     const isCloseToTray = store.get('closeToTray', true);
 
     const contextMenu = Menu.buildFromTemplate([
@@ -87,6 +87,7 @@ function createTray(mainWindow, store, onAction) {
         type: 'checkbox',
         checked: isAutostart,
         click: (item) => {
+          store.set('openAtLogin', item.checked);
           app.setLoginItemSettings({
             openAtLogin: item.checked,
             args: ['--hidden']

@@ -99,10 +99,7 @@ function createWindow() {
     }
   });
 
-  // Enable HTTP cache for fast instant loads
-  if (mainWindow.webContents.session) {
-    mainWindow.webContents.session.setPreloads([path.join(__dirname, 'preload.js')]);
-  }
+  // Single preload configured in webPreferences
 
   // Allow F5 / Ctrl+R to reload ignoring cache
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -280,13 +277,17 @@ ipcMain.handle('desktop:get-idle-time', () => {
   }
 });
 
+ipcMain.on('desktop:get-app-version-sync', (event) => {
+  event.returnValue = app.getVersion();
+});
+
 ipcMain.handle('desktop:get-app-version', () => {
   return app.getVersion();
 });
 
 ipcMain.handle('desktop:get-settings', () => {
   return {
-    openAtLogin: app.getLoginItemSettings().openAtLogin,
+    openAtLogin: store.get('openAtLogin', false),
     closeToTray: store.get('closeToTray', true)
   };
 });
@@ -322,6 +323,13 @@ ipcMain.handle('desktop:window-close', () => {
 
 // App Lifecycle
 app.whenReady().then(() => {
+  // Sync autostart setting with Windows (default: false unless user explicitly turned it ON)
+  const openAtLoginSetting = store.get('openAtLogin', false);
+  app.setLoginItemSettings({
+    openAtLogin: !!openAtLoginSetting,
+    args: ['--hidden']
+  });
+
   createWindow();
 
   app.on('activate', () => {

@@ -22,7 +22,7 @@ const pkgPath = path.join(rootDir, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 pkg.version = cleanVer;
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
-console.log(`[1/4] package.json -> ${cleanVer}`);
+console.log(`[1/5] package.json -> ${cleanVer}`);
 
 // 2. desktop/package.json
 const desktopPkgPath = path.join(rootDir, 'desktop', 'package.json');
@@ -33,7 +33,7 @@ if (fs.existsSync(desktopPkgPath)) {
     dpkg.build.artifactName = `PizzaPortal-Setup-\${version}.\${ext}`;
   }
   fs.writeFileSync(desktopPkgPath, JSON.stringify(dpkg, null, 2) + '\n', 'utf8');
-  console.log(`[2/4] desktop/package.json -> ${cleanVer}`);
+  console.log(`[2/5] desktop/package.json -> ${cleanVer}`);
 }
 
 // 3. src/utils/updater.ts
@@ -41,7 +41,7 @@ const updaterPath = path.join(rootDir, 'src', 'utils', 'updater.ts');
 let updater = fs.readFileSync(updaterPath, 'utf8');
 updater = updater.replace(/export const CURRENT_VERSION = '[^']+';/, `export const CURRENT_VERSION = '${cleanVer}';`);
 fs.writeFileSync(updaterPath, updater, 'utf8');
-console.log(`[3/4] src/utils/updater.ts -> ${cleanVer}`);
+console.log(`[3/5] src/utils/updater.ts -> ${cleanVer}`);
 
 // 4. android/app/build.gradle
 const gradlePath = path.join(rootDir, 'android', 'app', 'build.gradle');
@@ -49,6 +49,15 @@ let gradle = fs.readFileSync(gradlePath, 'utf8');
 gradle = gradle.replace(/versionCode \d+/, `versionCode ${versionCode}`);
 gradle = gradle.replace(/versionName "[^"]+"/, `versionName "${cleanVer}"`);
 fs.writeFileSync(gradlePath, gradle, 'utf8');
-console.log(`[4/4] android/app/build.gradle -> versionName "${cleanVer}", versionCode ${versionCode}`);
+console.log(`[4/5] android/app/build.gradle -> versionName "${cleanVer}", versionCode ${versionCode}`);
+
+// 5. desktop/preload.js
+const preloadPath = path.join(rootDir, 'desktop', 'preload.js');
+if (fs.existsSync(preloadPath)) {
+  let preload = fs.readFileSync(preloadPath, 'utf8');
+  preload = preload.replace(/let appVersion = '[^']+';/, `let appVersion = '${cleanVer}';`);
+  fs.writeFileSync(preloadPath, preload, 'utf8');
+  console.log(`[5/5] desktop/preload.js -> ${cleanVer}`);
+}
 
 console.log(`\nSuccessfully bumped all files to v${cleanVer}!`);
