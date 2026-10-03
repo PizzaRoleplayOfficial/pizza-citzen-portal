@@ -41,7 +41,7 @@ jobs:
 
       - name: Sync Version to Android build.gradle
         run: |
-          VERSION=$(node -e "const content = require('fs').readFileSync('src/utils/updater.ts', 'utf8'); const match = content.match(/CURRENT_VERSION\s*=\s*'([^']+)'); console.log(match ? match[1] : 'latest');")
+          VERSION=$(node -e "const content = require('fs').readFileSync('src/utils/updater.ts', 'utf8'); const match = content.match(/CURRENT_VERSION\s*=\s*'([^']+)'/); console.log(match ? match[1] : 'latest');")
           node scripts/bump_version.cjs "$VERSION"
         shell: bash
 
