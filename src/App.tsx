@@ -288,14 +288,15 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const isDesktop = typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    isNative ? localStorage.getItem('gvvr_sidebar_collapsed') === 'true' : false
+    (isNative || isDesktop) ? localStorage.getItem('gvvr_sidebar_collapsed') === 'true' : false
   );
 
   const toggleSidebar = () => {
     const nextState = !sidebarCollapsed;
     setSidebarCollapsed(nextState);
-    if (isNative) {
+    if (isNative || isDesktop) {
       localStorage.setItem('gvvr_sidebar_collapsed', String(nextState));
     }
     triggerHaptic('light');
@@ -3386,7 +3387,7 @@ export default function App() {
       )}
       {!isMobile && (
         <aside className="main-sidebar glass" style={{
-          width: sidebarCollapsed ? '80px' : '400px',
+          width: sidebarCollapsed ? '76px' : '260px',
           background: theme === 'light' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(10, 15, 25, 0.5)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
@@ -3397,20 +3398,20 @@ export default function App() {
           position: 'sticky',
           top: 'clamp(12px, 1.2vw, 24px)',
           zIndex: 100,
-          padding: sidebarCollapsed ? '32px 10px' : '32px 20px',
+          padding: sidebarCollapsed ? '24px 8px' : '24px 16px',
           flexShrink: 0,
           justifyContent: 'space-between',
           transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
           {/* Top segment: Logo + Menu */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div className="nav-logo" onClick={() => setView('home')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
               <img src="/pizza.webp" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '50%' }} />
               {!sidebarCollapsed && <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary)' }}>ぴっざぁポータル</span>}
             </div>
 
             {/* App specific sidebar toggle button */}
-            {isNative && (
+            {(isNative || isDesktop) && (
               <button 
                 onClick={toggleSidebar}
                 className="btn glass"
@@ -3647,7 +3648,7 @@ export default function App() {
         </aside>
       )}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: isMobile ? '100vh' : 'calc(100vh - 48px)', position: 'relative', zIndex: 1 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: isMobile ? '100vh' : 'calc(100vh - 48px)', position: 'relative' }}>
 
       {isMobile && (
         <div style={{ position: 'sticky', top: 0, zIndex: 100 }}>
@@ -3909,7 +3910,8 @@ export default function App() {
             <div style={{
               display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',
-              gap: '24px',
+              flexWrap: 'wrap',
+              gap: '20px',
               alignItems: 'stretch',
               width: '100%'
             }}>
@@ -3936,8 +3938,8 @@ export default function App() {
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
-                  flex: 1.35,
-                  minWidth: 0,
+                  flex: '1.2 1 340px',
+                  minWidth: 'min(100%, 300px)',
                   transformStyle: isMobile ? 'flat' : 'preserve-3d',
                   transform: isMobile ? 'none' : `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
                   transition: 'transform 0.15s ease-out, box-shadow 0.2s ease',
@@ -3947,7 +3949,9 @@ export default function App() {
                 {/* Official State Header Bar */}
                 <div style={{
                   background: 'linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%)',
-                  padding: '12px 20px',
+                  padding: '12px 18px',
+                  flexWrap: 'wrap',
+                  gap: '8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -3964,7 +3968,7 @@ export default function App() {
                   </span>
                 </div>
 
-                <div style={{ padding: isMobile ? '20px' : '24px 28px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '24px', alignItems: 'center', flex: 1 }}>
+                <div style={{ padding: isMobile ? '20px' : '20px 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap', gap: '20px', alignItems: 'center', flex: 1 }}>
                   {/* Left: Avatar & Official Badge */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                     <div style={{ position: 'relative' }}>
@@ -3973,8 +3977,8 @@ export default function App() {
                         alt="Avatar"
                         onError={(e) => handleAvatarError(e, currentUser.username)}
                         style={{
-                          width: '92px',
-                          height: '92px',
+                          width: '84px',
+                          height: '84px',
                           borderRadius: '50%',
                           border: theme === 'dark' ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid #ffffff',
                           objectFit: 'cover',
@@ -4033,7 +4037,7 @@ export default function App() {
                   </div>
 
                   {/* Right: Citizen Details & Bebas Neue ID */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1 1 180px', minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
                     <div>
                       <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         NAME / 市民名
@@ -4051,7 +4055,7 @@ export default function App() {
                         CITIZEN IDENTIFIER / 市民識別番号
                       </div>
                       <div style={{ 
-                        fontSize: '1.5rem', 
+                        fontSize: 'clamp(1.15rem, 2vw, 1.45rem)',
                         fontWeight: 700, 
                         color: theme === 'dark' ? '#60a5fa' : '#1e3a8a', 
                         fontFamily: 'var(--font-plate)', 
@@ -4076,22 +4080,22 @@ export default function App() {
                 style={{
                   background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
                   borderRadius: '26px',
-                  padding: isMobile ? '20px' : '24px 28px',
+                  padding: isMobile ? '20px' : '20px 24px',
                   border: 'none',
                   boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.4)' : '0 8px 30px rgba(0, 0, 0, 0.04)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',
-                  flex: 1,
-                  minWidth: 0
+                  flex: '1 1 300px',
+                  minWidth: 'min(100%, 280px)'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <h3 style={{ fontSize: '1.1rem', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Car size={18} style={{ color: 'var(--primary)' }} />
                     車両登録簿
                   </h3>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0, flexWrap: 'nowrap' }}>
                     <button 
                       onClick={() => handleOpenVehicleModal('gv')}
                       style={{ background: 'rgba(30, 58, 138, 0.08)', border: '1px solid rgba(30, 58, 138, 0.15)', padding: '6px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
