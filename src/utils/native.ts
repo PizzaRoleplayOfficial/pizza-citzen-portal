@@ -235,8 +235,42 @@ export const scheduleLocalNotification = async (
   title: string,
   body: string,
   delayMs: number = 0,
-  channelId?: string
+  channelId?: string,
+  action?: string,
+  param?: string
 ) => {
+  // Desktop Electron Native Windows Action Center Toast Notification
+  const isDesktop = typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop;
+  if (isDesktop && (window as any).electronAPI?.showNotification) {
+    try {
+      const defaultAction = channelId === 'admin_notifications_channel' 
+        ? 'admin' 
+        : (channelId === 'dm_messages_channel' ? 'messages' : undefined);
+      if (delayMs > 0) {
+        setTimeout(() => {
+          (window as any).electronAPI?.showNotification({
+            title,
+            body,
+            action: action || defaultAction,
+            param,
+            sound: true
+          });
+        }, delayMs);
+      } else {
+        await (window as any).electronAPI.showNotification({
+          title,
+          body,
+          action: action || defaultAction,
+          param,
+          sound: true
+        });
+      }
+      return;
+    } catch (err) {
+      console.warn('Desktop native notification error:', err);
+    }
+  }
+
   if (!isNative) {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {

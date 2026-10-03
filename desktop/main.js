@@ -9,7 +9,7 @@ const { createTray } = require('./tray');
 
 // App name and Windows Action Center AUMID
 app.name = 'ぴっざぁ市民ポータル';
-app.setAppUserModelId('ぴっざぁ市民ポータル');
+app.setAppUserModelId('jp.pizzaroleplay.citizenportal');
 
 // Fast startup & performance switches
 app.commandLine.appendSwitch('enable-gpu-rasterization');
@@ -82,7 +82,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      backgroundThrottling: true, // Discord power saving: throttle JS timers when hidden
+      backgroundThrottling: false, // Ensure timer polling runs reliably in system tray
       spellcheck: true
     }
   });
@@ -183,9 +183,9 @@ ipcMain.handle('desktop:show-notification', (event, { title, body, action, param
   return true;
 });
 
-ipcMain.handle('desktop:update-badge', (event, count) => {
+ipcMain.handle('desktop:update-badge', (event, badgeData) => {
   if (trayController) {
-    trayController.updateBadge(count);
+    trayController.updateBadge(badgeData);
   }
   return true;
 });

@@ -3,7 +3,7 @@ const { Tray, Menu, app, nativeImage } = require('electron');
 const path = require('path');
 
 let tray = null;
-let currentBadgeCount = 0;
+let currentBadge = { total: 0, pendingApps: 0, unreadMessages: 0 };
 let availableUpdateVersion = null;
 
 function createTray(mainWindow, store, onAction) {
@@ -37,6 +37,14 @@ function createTray(mainWindow, store, onAction) {
     const isAutostart = store.get('openAtLogin', false);
     const isCloseToTray = store.get('closeToTray', true);
 
+    const adminLabel = currentBadge.pendingApps > 0
+      ? 🛡️ 管理パネルを開く (件の申請)
+      : '🛡️ 管理パネルを開く';
+
+    const messagesLabel = currentBadge.unreadMessages > 0
+      ? 💬 メッセージを開く (件の未読)
+      : '💬 メッセージを開く';
+
     const contextMenu = Menu.buildFromTemplate([
       {
         label: '🍕 ぴっざぁ市民ポータルを開く',
@@ -47,7 +55,7 @@ function createTray(mainWindow, store, onAction) {
         }
       },
       {
-        label: currentBadgeCount > 0 ? `🛡️ 管理パネルを開く (${currentBadgeCount}件の申請)` : '🛡️ 管理パネルを開く',
+        label: adminLabel,
         click: () => {
           if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
@@ -56,7 +64,7 @@ function createTray(mainWindow, store, onAction) {
         }
       },
       {
-        label: '💬 メッセージを開く',
+        label: messagesLabel,
         click: () => {
           if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
@@ -66,7 +74,7 @@ function createTray(mainWindow, store, onAction) {
       },
       { type: 'separator' },
       ...(availableUpdateVersion ? [{
-        label: `🚀 新バージョン v${availableUpdateVersion} を更新...`,
+        label: 🚀 新バージョン v を更新...,
         click: () => {
           if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
@@ -119,11 +127,28 @@ function createTray(mainWindow, store, onAction) {
 
   return {
     tray,
-    updateBadge: (count) => {
-      currentBadgeCount = count;
-      if (count > 0) {
+    updateBadge: (data) => {
+      if (typeof data === 'number') {
+        currentBadge = { total: data, pendingApps: data, unreadMessages: 0 };
+      } else if (data && typeof data === 'object') {
+        currentBadge = {
+          total: Number(data.total) || 0,
+          pendingApps: Number(data.pendingApps) || 0,
+          unreadMessages: Number(data.unreadMessages) || 0
+        };
+      } else {
+        currentBadge = { total: 0, pendingApps: 0, unreadMessages: 0 };
+      }
+
+      if (currentBadge.total > 0) {
         tray.setImage(iconBadgePath);
-        tray.setToolTip(`ぴっざぁ市民ポータル (${count}件の未読/保留)`);
+        if (currentBadge.pendingApps > 0 && currentBadge.unreadMessages > 0) {
+          tray.setToolTip(ぴっざぁ市民ポータル (申請 件, 未読メッセージ 件));
+        } else if (currentBadge.unreadMessages > 0) {
+          tray.setToolTip(ぴっざぁ市民ポータル (件の未読メッセージ));
+        } else {
+          tray.setToolTip(ぴっざぁ市民ポータル (件の保留申請));
+        }
       } else {
         tray.setImage(iconNormalPath);
         tray.setToolTip('ぴっざぁ市民ポータル');

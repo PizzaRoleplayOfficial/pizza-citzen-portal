@@ -324,6 +324,8 @@ export default function App() {
   const [unreadDmCount, setUnreadDmCount] = useState<number>(0);
   const [isNavigatingBack, setIsNavigatingBack] = useState<boolean>(false);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState<boolean>(false);
+  const lastUnreadDmCountRef = useRef<number | null>(null);
+
   // Poll unread DM count
   const fetchUnreadDmCount = async () => {
     if (!currentUser?.id) return;
@@ -331,7 +333,54 @@ export default function App() {
       const res = await fetch(`/api/dm?action=unread_total&userId=${currentUser.id}`);
       if (res.ok) {
         const data = await res.json();
-        setUnreadDmCount(data.unread_total || 0);
+        const newTotal = data.unread_total || 0;
+
+        // If unread messages increased, notify user via Desktop Toast / Local Notification
+        if (lastUnreadDmCountRef.current !== null && newTotal > lastUnreadDmCountRef.current) {
+          try {
+            const convRes = await fetch(`/api/dm?action=conversations&userId=${currentUser.id}`);
+            if (convRes.ok) {
+              const convData = await convRes.json();
+              const convs = convData.conversations || [];
+              const latestUnreadConv = convs.find((c: any) => (c.unread_count || 0) > 0) || convs[0];
+              if (latestUnreadConv) {
+                const partnerName = latestUnreadConv.is_group 
+                  ? (latestUnreadConv.group_name || 'グループ') 
+                  : (latestUnreadConv.partner_username || 'ユーザー');
+                const title = latestUnreadConv.is_group 
+                  ? `👥 [${partnerName}] 新着メッセージ` 
+                  : `💬 ${partnerName}さんからのメッセージ`;
+                const bodyText = latestUnreadConv.last_message_text || '新しいメッセージが届きました。';
+
+                // Desktop Toast Notification (or mobile notification)
+                scheduleLocalNotification(
+                  title,
+                  bodyText,
+                  0,
+                  'dm_messages_channel',
+                  'messages',
+                  latestUnreadConv.id
+                );
+
+                // In-app sliding glassmorphic toast
+                setInAppToast({
+                  title,
+                  desc: bodyText,
+                  action: () => {
+                    triggerHaptic('medium');
+                    setView('messages');
+                    setDmTargetConversationId(latestUnreadConv.id);
+                  }
+                });
+              }
+            }
+          } catch (notifErr) {
+            console.error('Failed to trigger DM notification:', notifErr);
+          }
+        }
+
+        lastUnreadDmCountRef.current = newTotal;
+        setUnreadDmCount(newTotal);
       }
     } catch (e) {
       // silent
@@ -340,12 +389,12 @@ export default function App() {
 
   useEffect(() => {
     fetchUnreadDmCount();
-    // 高速未読数同期 (4秒間隔)
+    // 高速未読数同期 (4秒間隔) - デスクトップ環境ではバックグラウンド常駐中も動作
     const interval = setInterval(() => {
-      if (!document.hidden && currentUser?.id) {
+      if ((!document.hidden || isDesktop) && currentUser?.id) {
         fetchUnreadDmCount();
       }
-    }, 8000);
+    }, 4000);
 
     const handleOpenDmEvent = (e: any) => {
       if (e.detail?.targetUserId) {
@@ -816,9 +865,9 @@ export default function App() {
     if (isLoggedIn && currentUser?.id) {
       fetchNotifications();
       const interval = setInterval(() => {
-        if (document.hidden) return;
+        if (document.hidden && !isDesktop) return;
         fetchNotifications();
-      }, 30000);
+      }, 15000);
       return () => clearInterval(interval);
     }
   }, [isLoggedIn, currentUser?.id]);
@@ -873,8 +922,14 @@ export default function App() {
   // Desktop system tray badge sync (pending applications & unread DMs)
   useEffect(() => {
     if (!window.electronAPI?.updateBadge) return;
-    const totalCount = (currentUser?.role === 'admin' ? totalAdminPending : 0) + (unreadDmCount || 0);
-    window.electronAPI.updateBadge(totalCount);
+    const pendingCount = currentUser?.role === 'admin' ? totalAdminPending : 0;
+    const dmCount = unreadDmCount || 0;
+    const totalCount = pendingCount + dmCount;
+    window.electronAPI.updateBadge({
+      total: totalCount,
+      pendingApps: pendingCount,
+      unreadMessages: dmCount
+    } as any);
   }, [totalAdminPending, unreadDmCount, currentUser?.role]);
 
   const [questions, setQuestions] = useState<any[]>([]);
