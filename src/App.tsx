@@ -546,12 +546,6 @@ export default function App() {
     };
   }, []);
 
-  // Desktop system tray badge sync (pending applications & unread DMs)
-  useEffect(() => {
-    if (!window.electronAPI?.updateBadge) return;
-    const totalCount = (currentUser?.role === 'admin' ? totalAdminPending : 0) + (unreadDmCount || 0);
-    window.electronAPI.updateBadge(totalCount);
-  }, [totalAdminPending, unreadDmCount, currentUser?.role]);
 
   const [wikiPreviewUrl, setWikiPreviewUrl] = useState<string | null>(null);
   const [wikiSyncProgress, setWikiSyncProgress] = useState<string | null>(null);
@@ -874,6 +868,14 @@ export default function App() {
     ? (view === 'admin' ? vehicles : allSearchVehicles).filter(v => v.status === 'pending').length
     : 0;
   const totalAdminPending = adminPendingAppsCount + adminPendingVehiclesCount;
+
+  // Desktop system tray badge sync (pending applications & unread DMs)
+  useEffect(() => {
+    if (!window.electronAPI?.updateBadge) return;
+    const totalCount = (currentUser?.role === 'admin' ? totalAdminPending : 0) + (unreadDmCount || 0);
+    window.electronAPI.updateBadge(totalCount);
+  }, [totalAdminPending, unreadDmCount, currentUser?.role]);
+
   const [questions, setQuestions] = useState<any[]>([]);
   const [usersViewMode, setUsersViewMode] = useState<'grid' | 'list'>('grid');
   
