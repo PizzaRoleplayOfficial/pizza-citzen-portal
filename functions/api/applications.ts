@@ -124,19 +124,20 @@ export const onRequestPost = async ({ env, request }: { env: any; request: Reque
         reject_reason = NULL
     `).bind(id, session.id, roblox_username, discord_username, JSON.stringify(answers), score, max, now).run();
 
-    // Discord Webhook: new application notification
-    if (env.DISCORD_WEBHOOK_APPLICATIONS) {
-      const scoreText = max > 0 ? `📊 自動採点: **${score}/${max}** 問正解（筆記は別途確認）` : '';
-      await sendWebhook(env.DISCORD_WEBHOOK_APPLICATIONS, {
+    // Discord Webhook: new citizen application notification
+    const citizenWebhookUrl = env.DISCORD_WEBHOOK_CITIZEN_APPLICATIONS || env.DISCORD_WEBHOOK_APPLICATIONS || 'https://discord.com/api/webhooks/1555782067109761125/VhT5pkmitj99Kz3_EevJ4giX2kgHpaA-g4Y_Kdk7rqzsudWpAj5_mUCdLXbfN7WqxW8w';
+    if (citizenWebhookUrl) {
+      const scoreText = max > 0 ? `${score}/${max} 点（記述式は別途確認）` : '自動採点対象なし';
+      await sendWebhook(citizenWebhookUrl, {
         embeds: [{
           title: '📋 新規市民申請が届きました',
           color: 0x5865F2,
           fields: [
             { name: '👤 Discord', value: `@${discord_username}`, inline: true },
             { name: '🎮 Roblox', value: roblox_username, inline: true },
-            { name: '📊 自動採点', value: max > 0 ? `${score}/${max} 問正解（筆記は別途確認）` : '採点不可', inline: false },
+            { name: '📝 自動採点', value: scoreText, inline: false },
           ],
-          footer: { text: '管理パネルで審査してください → https://gv-vehicle-registry.pages.dev' },
+          footer: { text: '管理パネルで審査してください • https://pizza-citzen-portal.pages.dev' },
           timestamp: now,
         }],
       });

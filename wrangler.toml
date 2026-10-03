@@ -15,3 +15,4 @@ bucket_name = "pizza-portal-media"
 [vars]
 DISCORD_CLIENT_ID = "1489468404120424550"
 DISCORD_REDIRECT_URI = "https://pizza-citzen-portal.pages.dev/api/auth/callback"
+DISCORD_WEBHOOK_CITIZEN_APPLICATIONS = "https://discord.com/api/webhooks/1555782067109761125/VhT5pkmitj99Kz3_EevJ4giX2kgHpaA-g4Y_Kdk7rqzsudWpAj5_mUCdLXbfN7WqxW8w"

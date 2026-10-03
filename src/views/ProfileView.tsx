@@ -934,8 +934,17 @@ export const ProfileView = ({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
           <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>現在のバージョン</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px' }}>v{appVersion}</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              {window.electronAPI?.isDesktop ? 'デスクトップ版 (Windows)' : isNative ? 'Androidアプリ版' : 'Web版（クラウド常時最新）'}
+            </div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              v{appVersion}
+              {!window.electronAPI?.isDesktop && !isNative && (
+                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--primary)', background: 'rgba(0,193,102,0.1)', padding: '2px 8px', borderRadius: '6px' }}>
+                  常時最新
+                </span>
+              )}
+            </div>
           </div>
           {(isNative || window.electronAPI?.isDesktop) && (
             <button

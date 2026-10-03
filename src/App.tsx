@@ -933,6 +933,10 @@ export default function App() {
     if (typeof window !== 'undefined' && (window as any).electronAPI?.appVersion) {
       return (window as any).electronAPI.appVersion;
     }
+    // If running in Desktop Electron without appVersion, it is an older installed version (2.8.8)
+    if (typeof window !== 'undefined' && (window as any).electronAPI?.isDesktop) {
+      return '2.8.8';
+    }
     return CURRENT_VERSION;
   });
   const [autoCheckUpdates, setAutoCheckUpdates] = useState<boolean>(() => {
