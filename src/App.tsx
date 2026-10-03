@@ -537,22 +537,26 @@ export default function App() {
     console.log('Navigation redirect action:', data);
     triggerHaptic('medium');
 
-    if (data.action === 'admin') {
+    if (data.action === 'admin' || data.action?.startsWith('admin/')) {
       setView('admin');
-      window.location.hash = data.tab ? `admin/${data.tab}` : 'admin';
-      if (data.tab) {
-        setAdminTabPersist(data.tab as any);
+      const tab = data.tab || (data.action.includes('/') ? data.action.split('/')[1] : undefined);
+      window.location.hash = tab ? `admin/${tab}` : 'admin';
+      if (tab) {
+        setAdminTabPersist(tab as any);
       }
-    } else if (data.action === 'messages' || (data.action && data.action.startsWith('dm'))) {
+    } else if (data.action === 'messages' || data.action?.startsWith('messages') || data.action?.startsWith('dm')) {
       setView('messages');
       window.location.hash = 'messages';
       if (data.param) {
         setDmTargetConversationId(data.param);
-      } else {
+      } else if (data.action.includes('conversationId=')) {
         const convMatch = data.action.match(/conversationId=([^&]+)/);
         const partnerMatch = data.action.match(/partnerId=([^&]+)/);
         if (convMatch) setDmTargetConversationId(convMatch[1]);
         if (partnerMatch) setDmTargetUserId(partnerMatch[1]);
+      } else if (data.action.includes('/')) {
+        const targetId = data.action.split('/')[1];
+        if (targetId) setDmTargetConversationId(targetId);
       }
     } else if (data.action === 'garage') {
       setView('garage');
@@ -705,7 +709,9 @@ export default function App() {
               scheduleLocalNotification(
                 newest.title || 'ぴっざぁ市民ポータル',
                 newest.body || '新しい通知が届きました。',
-                0
+                0,
+                undefined,
+                newest.link_action || undefined
               );
             }
 
@@ -715,7 +721,11 @@ export default function App() {
               desc: newest.body || '新しい通知が届きました。',
               action: () => {
                 triggerHaptic('medium');
-                setShowNotifications(true);
+                if (newest.link_action) {
+                  handlePushNotificationAction({ action: newest.link_action });
+                } else {
+                  setShowNotifications(true);
+                }
               }
             });
           }

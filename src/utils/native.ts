@@ -514,7 +514,7 @@ export const getDeviceFriendlyName = (): string => {
  */
 export const registerPushNotifications = async (
   userId: string,
-  onAction?: (actionData: { action: string; tab?: string }) => void
+  onAction?: (actionData: { action: string; tab?: string; param?: string }) => void
 ) => {
   if (!isNative) return;
 
@@ -643,12 +643,16 @@ export const registerPushNotifications = async (
           }
 
           const data = notification.notification?.data;
-          if (data && data.action && onAction) {
-            console.log('Push Action Hook: Routing to page...', data);
-            onAction({
-              action: String(data.action),
-              tab: data.tab ? String(data.tab) : undefined
-            });
+          if (data && onAction) {
+            const actionStr = data.action ? String(data.action) : (data.conversationId ? 'messages' : '');
+            if (actionStr) {
+              console.log('Push Action Hook: Routing to page...', data);
+              onAction({
+                action: actionStr,
+                tab: data.tab ? String(data.tab) : undefined,
+                param: data.conversationId ? String(data.conversationId) : undefined
+              });
+            }
           }
         } catch (err) {
           console.error('Failed to handle push redirect action:', err);
