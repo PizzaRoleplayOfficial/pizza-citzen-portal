@@ -1,12 +1,13 @@
 {
   "name": "gv-vehicle-registry",
   "private": true,
-  "version": "2.8.10",
+  "version": "2.8.11",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "prebuild": "rimraf dist",
     "build": "vite build",
+    "bump": "node scripts/bump_version.cjs",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "pages:dev": "wrangler pages dev --compatibility-date=2024-04-01 --d1 D1_DB --proxy 5173 npm run dev",
