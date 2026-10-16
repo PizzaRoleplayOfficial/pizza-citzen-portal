@@ -1,4 +1,5 @@
 import * as jose from 'jose';
+import { invalidateUserDmCache, invalidateUserNotifCache, invalidateAdminStatsCache } from './d1Optimizer';
 
 interface ServiceAccount {
   project_id: string;
@@ -220,6 +221,7 @@ async function saveInAppNotification(
           SET title = ?, body = ?, created_at = CURRENT_TIMESTAMP 
           WHERE id = ?
         `).bind(payload.title, payload.body, existingUnread.id).run();
+        await invalidateUserDmCache(userId);
         return true;
       }
     }
@@ -246,6 +248,14 @@ async function saveInAppNotification(
       INSERT INTO notifications (id, user_id, title, body, type, link_action)
       VALUES (?, ?, ?, ?, ?, ?)
     `).bind(id, userId, payload.title, payload.body, type, linkAction).run();
+    if (payload.channelId === 'dm_messages_channel') {
+      await invalidateUserDmCache(userId);
+    } else {
+      await Promise.all([
+        invalidateUserNotifCache(userId),
+        invalidateAdminStatsCache()
+      ]);
+    }
     console.log(`Saved in-app notification for user ${userId}: ${payload.title}`);
     return true;
   } catch (err) {

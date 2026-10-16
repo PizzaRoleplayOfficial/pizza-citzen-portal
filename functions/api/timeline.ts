@@ -1,6 +1,7 @@
 // API for Timeline (Twitter-like SNS) Management
 // Path: functions/api/timeline.ts
 import { sendFcmNotificationToUser } from '../utils/fcm';
+import { ensureAllD1Indexes } from '../utils/d1Optimizer';
 
 const ensureTimelineTables = async (db: any) => {
   console.log("Ensuring timeline database schema is up-to-date...");
@@ -144,7 +145,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   const lowConnection = url.searchParams.get('lowConnection') === 'true';
 
   try {
-    // ensureTimelineTables skipped on GET for performance
+    await ensureAllD1Indexes(env.D1_DB);
 
     const postId = url.searchParams.get('postId') || '';
     
@@ -187,17 +188,17 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         ) THEN 1 ELSE 0 END as is_bookmarked,
         -- Pinned status
         CASE WHEN pin.post_id IS NOT NULL THEN 1 ELSE 0 END as is_pinned,
-        -- Poll data
+        -- Poll data (only evaluated when poll exists)
         poll.options as poll_options,
         poll.expires_at as poll_expires_at,
         poll.allow_multiple as poll_allow_multiple,
-        (SELECT option_index FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND user_id = ? LIMIT 1) as user_voted_option,
-        (SELECT GROUP_CONCAT(option_index) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND user_id = ?) as user_voted_options,
-        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id)) as poll_total_votes,
-        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 0) as poll_option_0_votes,
-        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 1) as poll_option_1_votes,
-        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 2) as poll_option_2_votes,
-        (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = COALESCE(p.repost_id, p.id) AND option_index = 3) as poll_option_3_votes
+        CASE WHEN poll.post_id IS NOT NULL THEN (SELECT option_index FROM timeline_poll_votes WHERE post_id = poll.post_id AND user_id = ? LIMIT 1) ELSE NULL END as user_voted_option,
+        CASE WHEN poll.post_id IS NOT NULL THEN (SELECT GROUP_CONCAT(option_index) FROM timeline_poll_votes WHERE post_id = poll.post_id AND user_id = ?) ELSE NULL END as user_voted_options,
+        CASE WHEN poll.post_id IS NOT NULL THEN (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = poll.post_id) ELSE 0 END as poll_total_votes,
+        CASE WHEN poll.post_id IS NOT NULL THEN (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = poll.post_id AND option_index = 0) ELSE 0 END as poll_option_0_votes,
+        CASE WHEN poll.post_id IS NOT NULL THEN (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = poll.post_id AND option_index = 1) ELSE 0 END as poll_option_1_votes,
+        CASE WHEN poll.post_id IS NOT NULL THEN (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = poll.post_id AND option_index = 2) ELSE 0 END as poll_option_2_votes,
+        CASE WHEN poll.post_id IS NOT NULL THEN (SELECT COUNT(*) FROM timeline_poll_votes WHERE post_id = poll.post_id AND option_index = 3) ELSE 0 END as poll_option_3_votes
       FROM timeline_posts p
       LEFT JOIN users u ON p.user_id = u.id
       LEFT JOIN timeline_posts orig ON p.repost_id = orig.id

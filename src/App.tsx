@@ -326,7 +326,7 @@ export default function App() {
   const [isSyncingOutbox, setIsSyncingOutbox] = useState<boolean>(false);
   const lastUnreadDmCountRef = useRef<number | null>(null);
 
-  // Poll unread DM count
+  // Poll unread DM count (real-time 4s interval, edge-cached & indexed)
   const fetchUnreadDmCount = async () => {
     if (!currentUser?.id) return;
     try {
@@ -338,41 +338,44 @@ export default function App() {
         // If unread messages increased, notify user via Desktop Toast / Local Notification
         if (lastUnreadDmCountRef.current !== null && newTotal > lastUnreadDmCountRef.current) {
           try {
-            const convRes = await fetch(`/api/dm?action=conversations&userId=${currentUser.id}`);
-            if (convRes.ok) {
-              const convData = await convRes.json();
-              const convs = convData.conversations || [];
-              const latestUnreadConv = convs.find((c: any) => (c.unread_count || 0) > 0) || convs[0];
-              if (latestUnreadConv) {
-                const partnerName = latestUnreadConv.is_group 
-                  ? (latestUnreadConv.group_name || 'グループ') 
-                  : (latestUnreadConv.partner_username || 'ユーザー');
-                const title = latestUnreadConv.is_group 
-                  ? `👥 [${partnerName}] 新着メッセージ` 
-                  : `💬 ${partnerName}さんからのメッセージ`;
-                const bodyText = latestUnreadConv.last_message_text || '新しいメッセージが届きました。';
-
-                // Desktop Toast Notification (or mobile notification)
-                scheduleLocalNotification(
-                  title,
-                  bodyText,
-                  0,
-                  'dm_messages_channel',
-                  'messages',
-                  latestUnreadConv.id
-                );
-
-                // In-app sliding glassmorphic toast
-                setInAppToast({
-                  title,
-                  desc: bodyText,
-                  action: () => {
-                    triggerHaptic('medium');
-                    setView('messages');
-                    setDmTargetConversationId(latestUnreadConv.id);
-                  }
-                });
+            let latestUnreadConv = data.latest_unread || null;
+            if (!latestUnreadConv) {
+              const convRes = await fetch(`/api/dm?action=conversations&userId=${currentUser.id}`);
+              if (convRes.ok) {
+                const convData = await convRes.json();
+                const convs = convData.conversations || [];
+                latestUnreadConv = convs.find((c: any) => (c.unread_count || 0) > 0) || convs[0];
               }
+            }
+            if (latestUnreadConv) {
+              const partnerName = latestUnreadConv.is_group 
+                ? (latestUnreadConv.group_name || 'グループ') 
+                : (latestUnreadConv.partner_username || 'ユーザー');
+              const title = latestUnreadConv.is_group 
+                ? `👥 [${partnerName}] 新着メッセージ` 
+                : `💬 ${partnerName}さんからのメッセージ`;
+              const bodyText = latestUnreadConv.last_message_text || '新しいメッセージが届きました。';
+
+              // Desktop Toast Notification (or mobile notification)
+              scheduleLocalNotification(
+                title,
+                bodyText,
+                0,
+                'dm_messages_channel',
+                'messages',
+                latestUnreadConv.id
+              );
+
+              // In-app sliding glassmorphic toast
+              setInAppToast({
+                title,
+                desc: bodyText,
+                action: () => {
+                  triggerHaptic('medium');
+                  setView('messages');
+                  setDmTargetConversationId(latestUnreadConv.id);
+                }
+              });
             }
           } catch (notifErr) {
             console.error('Failed to trigger DM notification:', notifErr);
@@ -389,12 +392,26 @@ export default function App() {
 
   useEffect(() => {
     fetchUnreadDmCount();
-    // 高速未読数同期 (4秒間隔) - デスクトップ環境ではバックグラウンド常駐中も動作
+    // 高速未読数同期 (4秒間隔) - デスクトップ環境ではバックグラウンド常駐中もリアルタイム動作
     const interval = setInterval(() => {
       if ((!document.hidden || isDesktop) && currentUser?.id) {
         fetchUnreadDmCount();
       }
     }, 4000);
+
+    // Desktop Tray Power Mode: pause heavy UI polling while hidden in tray, instant sync on restore
+    const unsubPower = window.electronAPI?.onPowerModeChange
+      ? window.electronAPI.onPowerModeChange((mode) => {
+          (window as any).__pizzaDesktopHidden = (mode === 'sleep');
+          if (mode === 'active' && currentUser?.id) {
+            fetchUnreadDmCount();
+            fetchNotifications();
+            if (currentUser?.role === 'admin') {
+              fetchAdminPendingCounts(true);
+            }
+          }
+        })
+      : undefined;
 
     const handleOpenDmEvent = (e: any) => {
       if (e.detail?.targetUserId) {
@@ -420,6 +437,7 @@ export default function App() {
 
     return () => {
       clearInterval(interval);
+      if (unsubPower) unsubPower();
       window.removeEventListener('gv-open-dm', handleOpenDmEvent);
       window.removeEventListener('gv-notifications-refresh', handleNotifRefresh);
       window.removeEventListener('gvvr-dm-received', handleNotifRefresh);
@@ -1571,9 +1589,23 @@ export default function App() {
     } catch (e) { console.error('Fetch all applications failed:', e); }
   };
 
-  const fetchAdminPendingCounts = async () => {
+  const fetchAdminPendingCounts = async (lightweightCheck = false) => {
     if (currentUser?.role !== 'admin') return;
     try {
+      const lastTotalStr = localStorage.getItem('gvvr_last_admin_pending_total');
+      const lastTotal = lastTotalStr !== null ? parseInt(lastTotalStr, 10) : null;
+
+      // When polling in the background outside the admin view, first do a 54-byte edge-cached count check
+      if (lightweightCheck && view !== 'admin' && allSearchVehicles.length > 0 && lastTotal !== null) {
+        const statsRes = await fetch('/api/admin-stats');
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          if (typeof stats.totalPending === 'number' && stats.totalPending === lastTotal) {
+            return; // No change in pending items -> skip downloading full tables
+          }
+        }
+      }
+
       const [appsRes, vehRes] = await Promise.all([
         fetch('/api/applications?admin=true'),
         fetch('/api/vehicles?admin=true')
@@ -1598,8 +1630,6 @@ export default function App() {
         }
       }
       const newTotal = appsCount + vehsCount;
-      const lastTotalStr = localStorage.getItem('gvvr_last_admin_pending_total');
-      const lastTotal = lastTotalStr !== null ? parseInt(lastTotalStr, 10) : null;
       if (lastTotal !== null && newTotal > lastTotal) {
         triggerHaptic('medium');
       }
@@ -1637,7 +1667,10 @@ export default function App() {
     };
     checkLogin();
     fetchSystemStatus();
-    const maintInterval = setInterval(fetchSystemStatus, 30000);
+    const maintInterval = setInterval(() => {
+      if (document.hidden || (window as any).__pizzaDesktopHidden) return;
+      fetchSystemStatus();
+    }, 30000);
 
     // アプリ初回起動時に通知などの必要な権限をリクエスト
     requestNotificationPermission();
@@ -2053,25 +2086,27 @@ export default function App() {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    const refreshData = (showLoading = false) => {
+    const refreshData = (showLoading = false, isBackgroundTick = false) => {
       fetchVehicles(showLoading);
       fetchApplication();
       if (currentUser?.role === 'admin') {
-        fetchAdminPendingCounts();
+        fetchAdminPendingCounts(isBackgroundTick);
       }
       if (view === 'admin') {
         fetchUsers();
-        fetchAllApplications();
+        if (currentUser?.role !== 'admin') {
+          fetchAllApplications();
+        }
         fetchQuestions(true);
       }
     };
 
-    refreshData(vehicles.length === 0);
+    refreshData(vehicles.length === 0, false);
 
-    // 30 Seconds background polling (pause when document is hidden)
+    // 30 Seconds background polling (pause when document is hidden or minimized to desktop tray)
     const intervalId = setInterval(() => {
-      if (document.hidden) return;
-      refreshData(false);
+      if (document.hidden || (window as any).__pizzaDesktopHidden) return;
+      refreshData(false, true);
     }, 30000);
 
     return () => clearInterval(intervalId);

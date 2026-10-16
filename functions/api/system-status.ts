@@ -1,5 +1,6 @@
 // Path: functions/api/system-status.ts
 // Handles system status, including Maintenance Mode for large updates
+import { ensureAllD1Indexes, getEdgeCachedJson, invalidateEdgeCache } from '../utils/d1Optimizer';
 
 const NO_CACHE = {
   'Content-Type': 'application/json',
@@ -54,14 +55,20 @@ const getAdminStatus = async (env: any, request: Request, adminIdFallback?: stri
 
 export const onRequestGet = async ({ env }: { env: any }) => {
   try {
-    const row = await env.D1_DB.prepare("SELECT value, updated_at FROM system_settings WHERE key = 'maintenance'").first() as any;
-    let maintenance = DEFAULT_MAINTENANCE;
-    if (row && row.value) {
-      try {
-        maintenance = { ...DEFAULT_MAINTENANCE, ...JSON.parse(row.value), updatedAt: row.updated_at };
-      } catch {}
-    }
-    return new Response(JSON.stringify({ maintenance }), { headers: NO_CACHE });
+    await ensureAllD1Indexes(env.D1_DB);
+
+    const payload = await getEdgeCachedJson('sys_status', 30, async () => {
+      const row = await env.D1_DB.prepare("SELECT value, updated_at FROM system_settings WHERE key = 'maintenance'").first() as any;
+      let maintenance = DEFAULT_MAINTENANCE;
+      if (row && row.value) {
+        try {
+          maintenance = { ...DEFAULT_MAINTENANCE, ...JSON.parse(row.value), updatedAt: row.updated_at };
+        } catch {}
+      }
+      return { maintenance };
+    });
+
+    return new Response(JSON.stringify(payload), { headers: NO_CACHE });
   } catch (err: any) {
     return new Response(JSON.stringify({ maintenance: DEFAULT_MAINTENANCE, error: err.message }), { headers: NO_CACHE });
   }
@@ -75,6 +82,31 @@ export const onRequestPost = async ({ env, request }: { env: any; request: Reque
     const isAdmin = await getAdminStatus(env, request, adminId);
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Unauthorized. Admin role required.' }), { status: 403, headers: NO_CACHE });
+    }
+
+    if (action === 'export_backup') {
+      await ensureAllD1Indexes(env.D1_DB, true);
+      const { results: schemaRows } = await env.D1_DB.prepare(
+        "SELECT type, name, tbl_name, sql FROM sqlite_master WHERE type IN ('table', 'index') AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY tbl_name, type"
+      ).all();
+
+      const tables: Record<string, any[]> = {};
+      for (const item of (schemaRows || []) as any[]) {
+        if (item.type === 'table') {
+          try {
+            const { results: rows } = await env.D1_DB.prepare(`SELECT * FROM "${item.name}"`).all();
+            tables[item.name] = rows || [];
+          } catch (tblErr: any) {
+            tables[item.name] = [{ error: tblErr.message }];
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({
+        exportedAt: new Date().toISOString(),
+        schema: schemaRows || [],
+        tables
+      }), { headers: NO_CACHE });
     }
 
     await ensureSettingsTable(env.D1_DB);
@@ -99,6 +131,8 @@ export const onRequestPost = async ({ env, request }: { env: any; request: Reque
       VALUES ('maintenance', ?, CURRENT_TIMESTAMP)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
     `).bind(JSON.stringify(updatedObj)).run();
+
+    await invalidateEdgeCache('sys_status');
 
     return new Response(JSON.stringify({ success: true, maintenance: updatedObj }), { headers: NO_CACHE });
   } catch (err: any) {

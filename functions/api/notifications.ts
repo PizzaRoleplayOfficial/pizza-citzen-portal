@@ -1,5 +1,6 @@
 // API for Notifications Management
 // Path: functions/api/notifications.ts
+import { ensureAllD1Indexes, getEdgeCachedJson, invalidateUserNotifCache } from '../utils/d1Optimizer';
 
 const getUserSession = (request: Request) => {
   const cookieHeader = request.headers.get('Cookie');
@@ -23,21 +24,6 @@ const NO_CACHE = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' 
 };
 
-const ensureNotificationsTable = async (db: any) => {
-  await db.prepare(`
-    CREATE TABLE IF NOT EXISTS notifications (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      title TEXT NOT NULL,
-      body TEXT NOT NULL,
-      type TEXT NOT NULL,
-      link_action TEXT,
-      is_read INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `).run();
-};
-
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const session = getUserSession(request);
   const url = new URL(request.url);
@@ -48,82 +34,104 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   }
 
   try {
-    // ensureNotificationsTable skipped on GET for performance
+    await ensureAllD1Indexes(env.D1_DB);
 
-    // Auto-mark handled vehicle application notifications as read (最適化済み: 全件スキャン排除)
-    try {
-      const { results: unreadVehicleNotifs } = await env.D1_DB.prepare(`
-        SELECT id, body FROM notifications 
-        WHERE user_id = ? AND is_read = 0 
-          AND (type IN ('admin_notifications_channel', 'admin_edit_notifications_channel') 
-               OR title LIKE '%新規車両登録%' OR title LIKE '%新規トレーラー%' OR title LIKE '%車両編集%' OR title LIKE '%トレーラー編集%')
-        LIMIT 20
+    const payload = await getEdgeCachedJson(`notifs:${userId}`, 15, async () => {
+      // 1. Fetch latest 40 notifications using idx_notifications_user_created
+      const { results: rawNotifications } = await env.D1_DB.prepare(`
+        SELECT * FROM notifications 
+        WHERE user_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT 40
       `).bind(userId).all();
 
-      if (unreadVehicleNotifs && unreadVehicleNotifs.length > 0) {
-        // Query pending plates in 1 single fast query instead of looping table scans
-        const { results: pendingRows } = await env.D1_DB.prepare(
-          "SELECT REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') as p FROM vehicles WHERE status = 'pending'"
-        ).all();
-        const pendingSet = new Set((pendingRows || []).map((r: any) => r.p));
+      const notifications: any[] = Array.isArray(rawNotifications) ? [...rawNotifications] : [];
 
-        const handledIds: string[] = [];
-        for (const row of unreadVehicleNotifs as any[]) {
-          const m = (row.body || '').match(/ナンバー[:：]\s*([^)）]+)[)）]/);
-          if (m) {
-            const cleanPlate = m[1].replace(/[\s\-]/g, '').toLowerCase().trim();
-            if (!pendingSet.has(cleanPlate)) {
-              handledIds.push(row.id);
+      // 2. Only check pending vehicles if there are actually unread vehicle admin notifications
+      const unreadVehicleNotifs = notifications.filter((n: any) =>
+        n.is_read === 0 &&
+        (n.type === 'admin_notifications_channel' ||
+         n.type === 'admin_edit_notifications_channel' ||
+         (n.title && (
+           n.title.includes('新規車両登録') ||
+           n.title.includes('新規トレーラー') ||
+           n.title.includes('車両編集') ||
+           n.title.includes('トレーラー編集')
+         )))
+      );
+
+      if (unreadVehicleNotifs.length > 0) {
+        try {
+          const { results: pendingRows } = await env.D1_DB.prepare(
+            "SELECT REPLACE(REPLACE(LOWER(TRIM(plate)), ' ', ''), '-', '') as p FROM vehicles WHERE status = 'pending'"
+          ).all();
+          const pendingSet = new Set((pendingRows || []).map((r: any) => r.p));
+
+          const handledIds: string[] = [];
+          for (const row of unreadVehicleNotifs) {
+            const m = (row.body || '').match(/ナンバー[:：]\s*([^)）]+)[)）]/);
+            if (m) {
+              const cleanPlate = m[1].replace(/[\s\-]/g, '').toLowerCase().trim();
+              if (!pendingSet.has(cleanPlate)) {
+                handledIds.push(row.id);
+                row.is_read = 1;
+              }
             }
           }
-        }
 
-        if (handledIds.length > 0) {
-          const placeholders = handledIds.map(() => '?').join(',');
-          await env.D1_DB.prepare(
-            `UPDATE notifications SET is_read = 1 WHERE id IN (${placeholders})`
-          ).bind(...handledIds).run();
+          if (handledIds.length > 0) {
+            const placeholders = handledIds.map(() => '?').join(',');
+            await env.D1_DB.prepare(
+              `UPDATE notifications SET is_read = 1 WHERE id IN (${placeholders})`
+            ).bind(...handledIds).run();
+          }
+        } catch (cleanErr) {
+          console.error("Auto-mark handled vehicle notifications failed:", cleanErr);
         }
       }
-    } catch (cleanErr) {
-      console.error("Auto-mark handled vehicle notifications failed:", cleanErr);
-    }
 
-    // Auto-mark DM notifications as read if all DM messages are read
-    try {
-      const unreadDm = await env.D1_DB.prepare(
-        "SELECT COUNT(*) as count FROM dm_messages WHERE recipient_id = ? AND is_read = 0"
-      ).bind(userId).first() as any;
+      // 3. Only check DM unread state if there is actually an unread dm_messages_channel notification
+      const hasUnreadDmNotif = notifications.some(
+        (n: any) => n.is_read === 0 && n.type === 'dm_messages_channel'
+      );
 
-      if (unreadDm && unreadDm.count === 0) {
-        await env.D1_DB.prepare(
-          "UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0 AND type = 'dm_messages_channel'"
-        ).bind(userId).run();
+      if (hasUnreadDmNotif) {
+        try {
+          const hasUnreadDmMsg = await env.D1_DB.prepare(
+            "SELECT 1 FROM dm_messages WHERE recipient_id = ? AND is_read = 0 LIMIT 1"
+          ).bind(userId).first();
+
+          if (!hasUnreadDmMsg) {
+            await env.D1_DB.prepare(
+              "UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0 AND type = 'dm_messages_channel'"
+            ).bind(userId).run();
+            for (const n of notifications) {
+              if (n.type === 'dm_messages_channel') n.is_read = 1;
+            }
+          }
+        } catch (dmSyncErr) {
+          console.error("Auto-sync DM notifications read state failed:", dmSyncErr);
+        }
       }
-    } catch (dmSyncErr) {
-      console.error("Auto-sync DM notifications read state failed:", dmSyncErr);
-    }
 
-    // Fetch latest 50 notifications
-    const notificationsQuery = `
-      SELECT * FROM notifications 
-      WHERE user_id = ? 
-      ORDER BY created_at DESC 
-      LIMIT 50
-    `;
-    const { results: notifications } = await env.D1_DB.prepare(notificationsQuery).bind(userId).all();
+      // 4. Compute unreadCount without extra query when total notifications < 40
+      let unreadCount = 0;
+      if (notifications.length < 40) {
+        unreadCount = notifications.filter((n: any) => n.is_read === 0).length;
+      } else {
+        const unread = await env.D1_DB.prepare(
+          "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0"
+        ).bind(userId).first() as any;
+        unreadCount = unread?.count || 0;
+      }
 
-    // Fetch unread count
-    const countQuery = `
-      SELECT COUNT(*) as count FROM notifications 
-      WHERE user_id = ? AND is_read = 0
-    `;
-    const unread = await env.D1_DB.prepare(countQuery).bind(userId).first() as any;
+      return {
+        notifications,
+        unreadCount
+      };
+    });
 
-    return new Response(JSON.stringify({
-      notifications: notifications || [],
-      unreadCount: unread?.count || 0
-    }), { headers: NO_CACHE });
+    return new Response(JSON.stringify(payload), { headers: NO_CACHE });
   } catch (e: any) {
     console.error("Notifications GET Error:", e.message);
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: NO_CACHE });
@@ -143,21 +151,19 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       return new Response(JSON.stringify({ error: "Missing user ID or unauthorized" }), { status: 401, headers: NO_CACHE });
     }
 
-    // ensureNotificationsTable skipped on GET for performance
-
     if (markAll) {
-      // Mark all notifications as read for this user
       await env.D1_DB.prepare(
-        "UPDATE notifications SET is_read = 1 WHERE user_id = ?"
+        "UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0"
       ).bind(userId).run();
     } else if (id) {
-      // Mark specific notification as read
       await env.D1_DB.prepare(
         "UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?"
       ).bind(id, userId).run();
     } else {
       return new Response(JSON.stringify({ error: "Missing parameter 'id' or 'markAll'" }), { status: 400, headers: NO_CACHE });
     }
+
+    await invalidateUserNotifCache(userId);
 
     return new Response(JSON.stringify({ success: true }), { headers: NO_CACHE });
   } catch (e: any) {

@@ -635,7 +635,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     // - Completely suspended when document is hidden (screen off / other tab)
     const scheduleNextCheck = () => {
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-      if (document.hidden || !activeConversationId) return;
+      if (document.hidden || (window as any).__pizzaDesktopHidden || !activeConversationId) return;
 
       const idleSec = (Date.now() - lastInteractionRef.current) / 1000;
       let interval = 15000;
@@ -646,7 +646,7 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
       }
 
       pollTimerRef.current = setTimeout(async () => {
-        if (!document.hidden && activeConversationId) {
+        if (!document.hidden && !(window as any).__pizzaDesktopHidden && activeConversationId) {
           await checkForUpdates(activeConversationId);
         }
         scheduleNextCheck();
@@ -685,13 +685,13 @@ export const DirectMessagesView: React.FC<DirectMessagesViewProps> = ({
     };
   }, [activeConversationId]);
 
-  // 会話一覧画面の定期ポーリング (2.5秒間隔)
+  // 会話一覧画面の定期ポーリング
   useEffect(() => {
     if (activeConversationId) return;
 
     fetchConversations(true);
     const listTimer = setInterval(() => {
-      if (!document.hidden && !activeConversationId) {
+      if (!document.hidden && !(window as any).__pizzaDesktopHidden && !activeConversationId) {
         fetchConversations(true);
       }
     }, 15000);

@@ -1,4 +1,5 @@
 import { sendFcmNotificationToUser } from '../utils/fcm';
+import { ensureAllD1Indexes, getEdgeCachedJson, invalidateUserDmCache } from '../utils/d1Optimizer';
 
 /**
  * Cloudflare D1: Ensure DM tables and indexes exist
@@ -125,25 +126,69 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
   }
 
   try {
-    // 1. Get total unread count for badge (1-on-1 + group unread count)
+    await ensureAllD1Indexes(env.D1_DB);
+
+    // 1. Get total unread count for badge (1-on-1 + group unread count) with Edge Cache & instant invalidation
     if (action === 'unread_total') {
-      const oneOnOneRow = await env.D1_DB.prepare(
-        "SELECT COUNT(*) as count FROM dm_messages WHERE recipient_id = ? AND is_read = 0"
-      ).bind(userId).first() as any;
+      const payload = await getEdgeCachedJson(`dm_unread:${userId}`, 15, async () => {
+        const oneOnOneRow = await env.D1_DB.prepare(
+          "SELECT COUNT(*) as count FROM dm_messages WHERE recipient_id = ? AND is_read = 0"
+        ).bind(userId).first() as any;
 
-      const groupRow = await env.D1_DB.prepare(`
-        SELECT COUNT(*) as count
-        FROM dm_messages m
-        JOIN dm_conversation_members cm ON m.conversation_id = cm.conversation_id
-        WHERE cm.user_id = ? AND cm.is_left = 0
-          AND m.recipient_id = 'group'
-          AND m.created_at > COALESCE(cm.last_read_at, '1970-01-01')
-          AND m.sender_id != ?
-      `).bind(userId, userId).first() as any;
+        const groupRow = await env.D1_DB.prepare(`
+          SELECT COUNT(*) as count
+          FROM dm_conversation_members cm
+          JOIN dm_messages m ON m.conversation_id = cm.conversation_id AND m.recipient_id = 'group'
+          WHERE cm.user_id = ? AND cm.is_left = 0
+            AND m.created_at > COALESCE(cm.last_read_at, '1970-01-01')
+            AND m.sender_id != ?
+        `).bind(userId, userId).first() as any;
 
-      const totalUnread = (oneOnOneRow?.count || 0) + (groupRow?.count || 0);
+        const oneCount = oneOnOneRow?.count || 0;
+        const grpCount = groupRow?.count || 0;
+        const totalUnread = oneCount + grpCount;
 
-      return new Response(JSON.stringify({ unread_total: totalUnread }), {
+        let latestUnread: any = null;
+        if (totalUnread > 0) {
+          if (oneCount > 0) {
+            const latestDirect = await env.D1_DB.prepare(`
+              SELECT m.conversation_id as id, 0 as is_group, NULL as group_name,
+                     u.username as partner_username, c.last_message_text, m.created_at
+              FROM dm_messages m
+              JOIN dm_conversations c ON c.id = m.conversation_id
+              LEFT JOIN users u ON u.id = m.sender_id
+              WHERE m.recipient_id = ? AND m.is_read = 0
+              ORDER BY m.created_at DESC
+              LIMIT 1
+            `).bind(userId).first().catch(() => null) as any;
+            if (latestDirect) latestUnread = latestDirect;
+          }
+          if (grpCount > 0) {
+            const latestGrp = await env.D1_DB.prepare(`
+              SELECT c.id, 1 as is_group, c.name as group_name,
+                     c.name as partner_username, c.last_message_text, m.created_at
+              FROM dm_conversation_members cm
+              JOIN dm_conversations c ON c.id = cm.conversation_id
+              JOIN dm_messages m ON m.conversation_id = cm.conversation_id AND m.recipient_id = 'group'
+              WHERE cm.user_id = ? AND cm.is_left = 0
+                AND m.created_at > COALESCE(cm.last_read_at, '1970-01-01')
+                AND m.sender_id != ?
+              ORDER BY m.created_at DESC
+              LIMIT 1
+            `).bind(userId, userId).first().catch(() => null) as any;
+            if (latestGrp && (!latestUnread || (latestGrp.created_at > latestUnread.created_at))) {
+              latestUnread = latestGrp;
+            }
+          }
+        }
+
+        return {
+          unread_total: totalUnread,
+          latest_unread: latestUnread
+        };
+      });
+
+      return new Response(JSON.stringify(payload), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -404,6 +449,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         WHERE user_id = ? AND is_read = 0 
           AND instr(link_action, ?) > 0
       `).bind(userId, conversationId).run().catch(() => {});
+      await invalidateUserDmCache(userId);
 
       // Fetch messages with sender details (for group avatar & name display)
       const limitParam = Math.min(parseInt(url.searchParams.get('limit') || '500', 10), 1000);
@@ -935,6 +981,7 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
         WHERE user_id = ? AND is_read = 0 
           AND instr(link_action, ?) > 0
       `).bind(senderId, conversationId).run().catch(() => {});
+      await invalidateUserDmCache(senderId);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { 'Content-Type': 'application/json' }
@@ -1010,6 +1057,11 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       INSERT INTO dm_messages (id, conversation_id, sender_id, recipient_id, content, image_data, reply_to_id, is_read, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
     `).bind(messageId, conversationId, senderId, actualRecipientId, trimmedContent, imageData || null, replyToId).run();
+
+    // Immediately invalidate recipient cache so 4s polling delivers instant real-time notification
+    if (!isGroupConv && actualRecipientId) {
+      await invalidateUserDmCache(actualRecipientId);
+    }
 
     // If sender in group, also update sender last_read_at
     if (isGroupConv) {

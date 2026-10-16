@@ -1232,7 +1232,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
   useEffect(() => {
     fetchTrends();
     const interval = setInterval(() => {
-      if (document.hidden) return;
+      if (document.hidden || (window as any).__pizzaDesktopHidden) return;
       fetchTrends();
     }, 60000); // refresh every 60s
     return () => clearInterval(interval);
@@ -1823,13 +1823,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     };
   }, [hasMore, isLoading, isNewLoading, posts]);
 
-  // Poll timeline posts every 15 seconds (pause when tab is hidden to save requests)
+  // Poll timeline posts every 15 seconds (pause when tab is hidden or minimized to tray to save requests)
   useEffect(() => {
     setPosts([]);
     setHasMore(true);
     fetchPosts();
     const interval = setInterval(() => {
-      if (document.hidden) return;
+      if (document.hidden || (window as any).__pizzaDesktopHidden) return;
       fetchPosts(true);
     }, 15000);
 
@@ -1858,7 +1858,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
     fetchComments(expandedPostId);
 
     const interval = setInterval(() => {
-      if (document.hidden) return;
+      if (document.hidden || (window as any).__pizzaDesktopHidden) return;
       // Fetch in background to prevent flickering or losing focus
       fetchComments(expandedPostId, true);
     }, 8000);
