@@ -244,3 +244,68 @@ export const compressDualImage = async (file: File): Promise<{ high: string; low
   ]);
   return { high, low };
 };
+
+export const MULTI_WORD_BRANDS: { pattern: string; canonical: string }[] = [
+  { pattern: 'Fox Mountain Motors', canonical: 'Fox Mountain Motors' },
+  { pattern: 'Fox Mountain', canonical: 'Fox Mountain' },
+  { pattern: 'Terrain Traveller', canonical: 'Terrain Traveller' },
+  { pattern: 'American LaFrance', canonical: 'American LaFrance' },
+  { pattern: 'Grandeur Motors', canonical: 'Grandeur Motors' },
+  { pattern: 'General Motors', canonical: 'General Motors' },
+  { pattern: 'Mercedes-Benz', canonical: 'Mercedes-Benz' },
+  { pattern: 'Mercedes Benz', canonical: 'Mercedes-Benz' },
+  { pattern: 'Mercedes-AMG', canonical: 'Mercedes-AMG' },
+  { pattern: 'Mercedes AMG', canonical: 'Mercedes-AMG' },
+  { pattern: 'Marlin Motors', canonical: 'Marlin Motors' },
+  { pattern: 'Aston Martin', canonical: 'Aston Martin' },
+  { pattern: 'Sir Rodgers', canonical: 'Sir Rodgers' },
+  { pattern: 'Western Star', canonical: 'Western Star' },
+  { pattern: 'Rolls-Royce', canonical: 'Rolls-Royce' },
+  { pattern: 'Rolls Royce', canonical: 'Rolls-Royce' },
+  { pattern: 'Alpha Romeo', canonical: 'Alfa Romeo' },
+  { pattern: 'Range Rover', canonical: 'Range Rover' },
+  { pattern: 'Alfa Romeo', canonical: 'Alfa Romeo' },
+  { pattern: 'Land Rover', canonical: 'Land Rover' },
+  { pattern: 'De Tomaso', canonical: 'De Tomaso' }
+];
+
+export const normalizeMakerAndModel = (rawMaker?: string, rawModel?: string): { maker: string; model: string } => {
+  const maker = (rawMaker || '').trim();
+  const model = (rawModel || '').trim();
+  if (!maker && !model) return { maker: '', model: '' };
+
+  const combined = `${maker} ${model}`.replace(/\s+/g, ' ').trim();
+  for (const { pattern, canonical } of MULTI_WORD_BRANDS) {
+    if (combined.toLowerCase().startsWith(pattern.toLowerCase())) {
+      const nextChar = combined[pattern.length];
+      if (!nextChar || nextChar === ' ' || nextChar === '-') {
+        const rest = combined.slice(pattern.length).replace(/^[-\s]+/, '').trim();
+        if (rest) {
+          return { maker: canonical, model: rest };
+        }
+      }
+    }
+  }
+  return { maker, model };
+};
+
+export const splitTitleIntoMakerAndModel = (titleWithoutYear: string): { maker: string; model: string } => {
+  const cleaned = (titleWithoutYear || '').replace(/\s+/g, ' ').trim();
+  if (!cleaned) return { maker: '', model: '' };
+
+  for (const { pattern, canonical } of MULTI_WORD_BRANDS) {
+    if (cleaned.toLowerCase().startsWith(pattern.toLowerCase())) {
+      const nextChar = cleaned[pattern.length];
+      if (!nextChar || nextChar === ' ' || nextChar === '-') {
+        const rest = cleaned.slice(pattern.length).replace(/^[-\s]+/, '').trim();
+        return { maker: canonical, model: rest || canonical };
+      }
+    }
+  }
+
+  const parts = cleaned.split(/\s+/);
+  return {
+    maker: parts[0] || '',
+    model: parts.slice(1).join(' ')
+  };
+};

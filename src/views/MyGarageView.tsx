@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon, Loader2, SlidersHorizontal, Filter, X, Car } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
-import { formatDate, parseUTCDate } from '../utils/helpers';
+import { formatDate, parseUTCDate, normalizeMakerAndModel } from '../utils/helpers';
 import { triggerHaptic } from '../utils/native';
 
 export const GarageTiltCard = ({ children, className }: { children: React.ReactNode, className?: string }) => {
@@ -249,7 +249,7 @@ export const MyGarageView = ({
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               {!isMobile && (
                 <button 
                   className="btn-icon btn-secondary" 
@@ -656,9 +656,11 @@ export const MyGarageView = ({
                   if (garageSortOrder === 'maker') return (a.maker || '').localeCompare(b.maker || '');
                   return 0;
                 })
-                .map(v => (
+                .map(v => {
+                  const { maker: displayMaker, model: displayModel } = normalizeMakerAndModel(v.maker, v.model);
+                  return (
                 <GarageTiltCard key={v.id} className="glass card garage-card animate-fade">
-                  <div className="garage-card-image"><VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${v.maker} ${v.model}`} targetTrim={v.trim} dataSaverEnabled={dataSaverEnabled} /></div>
+                  <div className="garage-card-image"><VehicleImageGallery vehicleId={v.id} imageData={v.image_data} fallbackQuery={`${v.year} ${displayMaker} ${displayModel}`} targetTrim={v.trim} dataSaverEnabled={dataSaverEnabled} /></div>
                   <div className="garage-card-body">
                     <div className="garage-card-header">
                       <div>
@@ -675,8 +677,8 @@ export const MyGarageView = ({
                             {v.game_type === 'rc' ? '🔵 RC' : '🟢 Greenville'}
                           </span>
                         </div>
-                        <div className="garage-card-meta">{(v as any).vehicle_type === 'trailer' ? '🚛 ' : ''}{v.year ? `${v.year} ` : ''}{v.maker}</div>
-                        <h3 className="garage-card-title">{v.model}</h3>
+                        <div className="garage-card-meta">{(v as any).vehicle_type === 'trailer' ? '🚛 ' : ''}{v.year ? `${v.year} ` : ''}{displayMaker}</div>
+                        <h3 className="garage-card-title">{displayModel}</h3>
                         <div className="garage-card-date">申請: {formatDate(v.created_at)}</div>
                       </div>
                       <div className="garage-card-status">
@@ -719,17 +721,23 @@ export const MyGarageView = ({
                        </div>
 
                       <div className="garage-card-actions">
-                        <button className="btn btn-secondary" onClick={() => handleStartEdit(v)}>
+                        <button className="btn btn-secondary garage-edit-btn" onClick={() => handleStartEdit({ ...v, maker: displayMaker, model: displayModel })}>
                           <Edit3 size={16} /> 編集
                         </button>
-                        <button className="btn btn-secondary btn-delete" onClick={() => handleDeleteVehicle(v.id)} style={{ color: 'var(--error)' }}>
-                          <Trash2 size={16} /> 削除
+                        <button
+                          className="btn-icon garage-delete-icon-btn"
+                          onClick={() => handleDeleteVehicle(v.id)}
+                          title="車両を削除"
+                          aria-label="車両を削除"
+                        >
+                          <Trash2 size={17} />
                         </button>
                       </div>
                     </div>
                   </div>
                 </GarageTiltCard>
-              ))
+                  );
+                })
             )}
           </div>
           {!isLoading && vehicles.filter(v => (v as any).vehicle_type === garageTab || (!(v as any).vehicle_type && garageTab === 'car')).length === 0 && (

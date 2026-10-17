@@ -101,7 +101,7 @@ import { compressImage, compressDualImage } from './utils/helpers';
 import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';
 import { VehicleImageGallery } from './components/VehicleImageGallery';
-import { formatDate, parseUTCDate } from './utils/helpers';
+import { formatDate, parseUTCDate, normalizeMakerAndModel, splitTitleIntoMakerAndModel } from './utils/helpers';
 import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications, updateApplicationTrackerNotification, getLiveProgress, updateVehicleTrackerNotification } from './utils/native';
 import { Capacitor } from '@capacitor/core';
 import { handleAvatarError } from './utils/avatarFallback';
@@ -1386,7 +1386,11 @@ export default function App() {
       const res = await fetch(endpoint);
       if (res.ok) {
         const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
+        const rawList = Array.isArray(data) ? data : [];
+        const list = rawList.map((v: Vehicle) => {
+          const { maker, model } = normalizeMakerAndModel(v.maker, v.model);
+          return { ...v, maker, model };
+        });
         if (isAdminView) {
           setAllSearchVehicles(list);
           const pendingList = list.filter((v: Vehicle) => v.status === 'pending');
@@ -1620,8 +1624,12 @@ export default function App() {
         }
       }
       if (vehRes.ok) {
-        const vList = await vehRes.json();
-        if (Array.isArray(vList)) {
+        const rawVList = await vehRes.json();
+        if (Array.isArray(rawVList)) {
+          const vList = rawVList.map((v: any) => {
+            const { maker, model } = normalizeMakerAndModel(v.maker, v.model);
+            return { ...v, maker, model };
+          });
           setAllSearchVehicles(vList);
           vehsCount = vList.filter((v: any) => v.status === 'pending').length;
           if (view === 'admin') {
@@ -2282,18 +2290,20 @@ export default function App() {
 
   const handleStartEdit = (v: Vehicle) => {
     const isTrailer = (v as any).vehicle_type === 'trailer';
+    const { maker: normalizedMaker, model: normalizedModel } = normalizeMakerAndModel(v.maker, v.model);
     if (isTrailer) {
       setTrailerFormData({
         game_type: (v as any).game_type || 'gv',
-        model: v.model, maker: v.maker, trailer_type: (v as any).trailer_type || '', color: v.color || '',
+        model: normalizedModel, maker: normalizedMaker, trailer_type: (v as any).trailer_type || '', color: v.color || '',
         plate: v.plate, plate_region: v.plate_region || 'WISCONSIN',
         roblox_username: v.roblox_username || '', image_data: v.image_data || ''
       });
       setEditingVehicleId(v.id);
       setShowTrailerModal(true);
-    } else {      setFormData({
+    } else {
+      setFormData({
         game_type: (v as any).game_type || 'gv',
-        maker: v.maker, model: v.model, year: v.year, trim: v.trim || '', color: v.color || '',
+        maker: normalizedMaker, model: normalizedModel, year: v.year, trim: v.trim || '', color: v.color || '',
         plate: v.plate, plate_region: v.plate_region || 'WISCONSIN',
         roblox_username: v.roblox_username || '', image_data: v.image_data || ''
       });
@@ -2775,11 +2785,9 @@ export default function App() {
             if (yearMatch) {
               parsedYear = parseInt(yearMatch[1]);
               const rest = yearLine.replace(yearMatch[0], '').trim();
-              const parts = rest.split(/\s+/);
-              if (parts.length > 0) {
-                parsedMaker = parts[0];
-                parsedModel = parts.slice(1).join(' ');
-              }
+              const splitResult = splitTitleIntoMakerAndModel(rest);
+              parsedMaker = splitResult.maker;
+              parsedModel = splitResult.model;
             }
 
             if (yearLineIndex + 1 < lockIndex) {
@@ -2832,11 +2840,12 @@ export default function App() {
 
         if (!parsedMaker || !parsedModel) {
           for (const line of lines) {
-            const carMatch = line.match(/^(\d{4})\s+([a-zA-Z][a-zA-Z0-9-]*)\s+(.+)$/);
+            const carMatch = line.match(/^(\d{4})\s+(.+)$/);
             if (carMatch) {
               parsedYear = parseInt(carMatch[1]);
-              parsedMaker = carMatch[2];
-              parsedModel = carMatch[3].trim();
+              const splitResult = splitTitleIntoMakerAndModel(carMatch[2]);
+              parsedMaker = splitResult.maker;
+              parsedModel = splitResult.model;
               break;
             }
           }
@@ -3581,7 +3590,7 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                {!sidebarCollapsed && <span style={{ marginLeft: '8px' }}>メッセージ</span>}
+                {!sidebarCollapsed && <span>メッセージ</span>}
               </button>
               <button className={`btn-sidebar ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : undefined }}>
                 <UserIcon size={18} fill={view === 'profile' ? 'currentColor' : 'none'} strokeWidth={view === 'profile' ? 2.4 : 1.8} /> {!sidebarCollapsed && <span>設定</span>}
@@ -3633,10 +3642,10 @@ export default function App() {
               </div>
             )}
 
-            {/* PC: 車両登録ボタン（DMV Navyスタイル） */}
+            {/* PC: 新規作成ボタン（スマホ下部の＋ボタンと同じ挙動） */}
             <div style={{ marginTop: '16px' }}>
               <button
-                onClick={() => handleOpenVehicleModal('gv')}
+                onClick={handleMobilePlusClick}
                 className="btn btn-primary"
                 style={{
                   width: '100%',
@@ -3644,7 +3653,7 @@ export default function App() {
                   borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: sidebarCollapsed ? 'center' : 'center',
+                  justifyContent: 'center',
                   gap: '8px',
                   background: 'var(--primary)',
                   color: '#ffffff',
@@ -3665,10 +3674,10 @@ export default function App() {
                   e.currentTarget.style.transform = 'none';
                   e.currentTarget.style.boxShadow = '0 4px 14px rgba(30, 58, 138, 0.25)';
                 }}
-                title="車両登録 (Alt+N)"
+                title="新規作成 (Alt+N)"
               >
                 <Plus size={18} strokeWidth={2.6} />
-                {!sidebarCollapsed && <span>車両を登録</span>}
+                {!sidebarCollapsed && <span>新規作成</span>}
               </button>
             </div>
           </div>

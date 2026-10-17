@@ -3361,53 +3361,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>市民タイムライン</h2>
           <p style={{ color: theme === 'light' ? 'var(--text-muted)' : '#cbd5e1', margin: '4px 0 0' }}>ぴっざぁ市民のひとりごとや写真を共有しよう。</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          {!isMobile && currentUser.role === 'admin' && (
-            <button
-              onClick={() => {
-                triggerHaptic('medium');
-                setComposerMode('announcement');
-                setIsAnnouncement(true);
-                setShowComposerModal(true);
-              }}
-              className="composer-interactive-btn"
-              style={{
-                padding: '10px 18px',
-                borderRadius: '999px',
-                fontWeight: 800,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                background: theme === 'dark'
-                  ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.22) 0%, rgba(245, 158, 11, 0.16) 100%)'
-                  : 'linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(245, 158, 11, 0.10) 100%)',
-                color: theme === 'dark' ? '#60a5fa' : '#2563eb',
-                border: '1px solid rgba(37, 99, 235, 0.35)',
-                boxShadow: '0 4px 16px rgba(37, 99, 235, 0.15)'
-              }}
-              title="運営専用の告知を作成（トップ固定・終了日時指定可）"
-            >
-              <span style={{ fontSize: '1rem', lineHeight: 1 }}>📢</span>
-              <span>告知を作成（運営専用）</span>
-            </button>
-          )}
-          {!isMobile && (
-            <button 
-              onClick={() => {
-                triggerHaptic('light');
-                setComposerMode('post');
-                setIsAnnouncement(false);
-                setShowComposerModal(true);
-              }} 
-              className="btn btn-primary composer-interactive-btn"
-              style={{ padding: '10px 22px', borderRadius: '999px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <Plus size={18} strokeWidth={2.6} />
-              <span>ポストする</span>
-            </button>
-          )}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {!isMobile && (
             <button 
               onClick={() => { triggerHaptic('light'); fetchPosts(); }} 
@@ -3433,6 +3387,21 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               title="再読み込み"
             >
               <RotateCcw size={18} className={isLoading ? 'animate-spin' : undefined} strokeWidth={2.5} style={{ color: theme === 'dark' ? '#ffffff' : 'currentColor', stroke: theme === 'dark' ? '#ffffff' : 'currentColor', flexShrink: 0 }} />
+            </button>
+          )}
+          {!isMobile && (
+            <button 
+              onClick={() => {
+                triggerHaptic('light');
+                setComposerMode('post');
+                setIsAnnouncement(false);
+                setShowComposerModal(true);
+              }} 
+              className="btn btn-primary composer-interactive-btn"
+              style={{ padding: '10px 22px', borderRadius: '999px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Plus size={18} strokeWidth={2.6} />
+              <span>ポストする</span>
             </button>
           )}
         </div>

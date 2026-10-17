@@ -598,7 +598,7 @@ h2, h3, h4 {
 .admin-nav-btn:hover {
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-main);
-  transform: translateX(4px);
+  transform: translateY(-2px);
 }
 
 :root[data-theme='light'] .admin-nav-btn:hover {
@@ -609,9 +609,8 @@ h2, h3, h4 {
   background: rgba(37, 99, 235, 0.08);
   color: var(--primary);
   font-weight: 700;
-  transform: translateX(4px);
-  box-shadow: inset 3px 0 0 var(--primary);
-  border-radius: 0 12px 12px 0;
+  transform: translateY(-1.5px);
+  border-radius: 12px;
 }
 
 :root[data-theme='light'] .admin-nav-btn.active {
@@ -1120,11 +1119,16 @@ h2, h3, h4 {
 }
 
 .garage-card-image {
-  height: 200px;
+  height: 180px;
   position: relative;
   border-bottom: 1px solid var(--glass-border);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--image-bg);
+}
+
+.garage-card-image > div {
+  height: 100%;
+  border-bottom: none !important;
 }
 
 /* Empty-safe hiding for card image when there's no user image and no wiki image! */
@@ -1133,7 +1137,7 @@ h2, h3, h4 {
 }
 
 .garage-card-body {
-  padding: 32px;
+  padding: 18px 24px 24px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1143,18 +1147,18 @@ h2, h3, h4 {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .garage-card-meta {
   color: var(--primary);
   font-size: 0.85rem;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .garage-card-title {
-  font-size: 1.6rem;
+  font-size: 1.55rem;
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.2;
@@ -1162,28 +1166,28 @@ h2, h3, h4 {
 
 .garage-card-date {
   color: var(--text-muted);
-  font-size: 0.85rem;
-  margin-top: 12px;
+  font-size: 0.82rem;
+  margin-top: 8px;
 }
 
 .garage-card-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin-bottom: 32px;
+  margin-bottom: 22px;
 }
 
 .garage-card-field-title {
   font-size: 0.7rem;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .garage-card-field-value {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.98rem;
   color: var(--text-main);
 }
 
@@ -1194,32 +1198,15 @@ h2, h3, h4 {
 }
 
 .garage-card-plate-section {
-  margin-bottom: 32px;
+  margin-bottom: 22px;
 }
 
 .garage-card-plate-title {
   font-size: 0.7rem;
   color: var(--text-muted);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-}
-
-.garage-card-plate {
-  display: inline-flex;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--glass-border);
-}
-
-.garage-card-plate-region {
-  background: var(--plate-region-bg, #1c2e4a);
-  color: #ffffff;
-  padding: 10px 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
 }
 
 .garage-card-plate {
@@ -1261,15 +1248,42 @@ h2, h3, h4 {
 
 .garage-card-actions {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 10px;
 }
 
 .garage-card-actions .btn {
   flex: 1;
   justify-content: center;
   border-radius: 12px;
-  padding: 14px;
+  padding: 12px 18px;
   font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.garage-card-actions .garage-delete-icon-btn {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  flex: 0 0 42px !important;
+  border-radius: 50% !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.24) !important;
+  color: var(--error) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.garage-card-actions .garage-delete-icon-btn:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  transform: translateY(-2px) !important;
+}
+
+.garage-card-actions .garage-delete-icon-btn svg {
+  color: var(--error) !important;
+  stroke: var(--error) !important;
 }
 
 /* ==========================================================================
@@ -1524,19 +1538,29 @@ h2, h3, h4 {
     flex-shrink: 0 !important;
   }
 
-  /* Stack actions vertically in 2-column grid view to prevent horizontal overflow */
+  /* Keep Edit wide and Delete icon compact on a single row in 2-column grid view */
   .card-grid .garage-card-actions {
-    flex-direction: column !important;
+    flex-direction: row !important;
+    align-items: center !important;
     gap: 6px !important;
     margin-top: auto !important;
   }
 
   .card-grid .garage-card-actions .btn {
-    width: 100% !important;
-    padding: 8px !important;
+    flex: 1 !important;
+    width: auto !important;
+    padding: 8px 10px !important;
     font-size: 0.8rem !important;
-    border-radius: 8px !important;
+    border-radius: 999px !important;
     justify-content: center !important;
+  }
+
+  .card-grid .garage-card-actions .garage-delete-icon-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    flex: 0 0 34px !important;
   }
 
 
@@ -1906,7 +1930,7 @@ h2, h3, h4 {
 .btn-sidebar:hover {
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-main);
-  transform: translateX(4px);
+  transform: translateY(-2px);
 }
 
 :root[data-theme='light'] .btn-sidebar:hover {
@@ -1917,9 +1941,8 @@ h2, h3, h4 {
   background: rgba(37, 99, 235, 0.08);
   color: var(--primary);
   font-weight: 700;
-  transform: translateX(4px);
-  box-shadow: inset 3px 0 0 var(--primary);
-  border-radius: 0 12px 12px 0;
+  transform: translateY(-1.5px);
+  border-radius: 12px;
 }
 
 :root[data-theme='light'] .btn-sidebar.active {
@@ -2663,22 +2686,29 @@ img[alt="author"],
 }
 
 
-/* 選択状態（Active）の独立浮遊表示 */
+/* 選択状態（Active）の独立浮遊表示（横ズレなし・わずかに上へオフセット） */
 .btn-sidebar.active,
 .admin-nav-btn.active {
   background: rgba(37, 99, 235, 0.12) !important;
   color: var(--primary) !important;
   font-weight: 700 !important;
-  margin: 0 8px !important;
+  margin: 0 !important;
   border-radius: 12px !important;
   box-shadow: none !important;
-  transform: none !important;
+  transform: translateY(-1.5px) !important;
 }
 
 :root[data-theme='dark'] .btn-sidebar.active,
 :root[data-theme='dark'] .admin-nav-btn.active {
   background: rgba(10, 132, 255, 0.18) !important;
   color: #0a84ff !important;
+}
+
+@media (min-width: 769px) {
+  .mobile-action-menu-overlay {
+    align-items: center !important;
+    padding: 24px !important;
+  }
 }
 
 /* ピル形状の余白ルール（左右が上下の1.5〜2倍） */
@@ -2735,12 +2765,14 @@ button:not(:disabled) {
 :root[data-theme='light'] .admin-nav-btn:hover:not(.active) {
   background: rgba(37, 99, 235, 0.06) !important;
   color: var(--primary) !important;
+  transform: translateY(-2px) !important;
 }
 
 :root[data-theme='dark'] .btn-sidebar:hover:not(.active),
 :root[data-theme='dark'] .admin-nav-btn:hover:not(.active) {
   background: rgba(10, 132, 255, 0.10) !important;
   color: #0a84ff !important;
+  transform: translateY(-2px) !important;
 }
 
 /* 4. モバイルプラスボタン（センターアクション）の発光をインディゴに統一＆上側飛び出しリング */

@@ -82,15 +82,15 @@ export const VehicleImageGallery = ({
   if (images.length === 0) {
     if (wikiLoading) {
       return (
-        <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--image-bg)', borderBottom: '1px solid var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.8rem', gap: '8px' }}>
+        <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--image-bg)', color: 'var(--text-muted)', fontSize: '0.8rem', gap: '8px' }}>
           <RefreshCw size={14} className="animate-spin" /> 参考画像を読み込み中...
         </div>
       );
     }
     if (wikiUrl) {
       return (
-        <div style={{ position: 'relative', borderBottom: '1px solid var(--glass-border)' }}>
-          <div className="wiki-fallback-image" style={{ height: '160px', backgroundImage: `url(${wikiUrl})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: 'var(--image-bg)' }} />
+        <div style={{ position: 'relative', height: '180px' }}>
+          <div className="wiki-fallback-image" style={{ height: '100%', backgroundImage: `url(${wikiUrl})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: 'var(--image-bg)' }} />
           <span className="wiki-fallback-badge" style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.65)', color: '#aaa', fontSize: '0.68rem', padding: '3px 8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', pointerEvents: 'none' }}>
             <ImageIcon size={10} /> Greenville Wiki より参考画像
           </span>
@@ -119,7 +119,7 @@ export const VehicleImageGallery = ({
   if (images.length === 1) {
     return (
       <>
-        <div style={{ height: '200px', backgroundColor: 'var(--image-bg)', borderBottom: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+        <div style={{ height: '180px', backgroundColor: 'var(--image-bg)', overflow: 'hidden' }}>
           <ProgressiveImage
             lowSrc={images[0].low}
             highSrc={images[0].highUrl || images[0].high}
@@ -137,7 +137,7 @@ export const VehicleImageGallery = ({
   if (isMobile) {
     return (
       <>
-        <div className="image-gallery" style={{ height: '200px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', borderBottom: '1px solid var(--glass-border)', position: 'relative' }}>
+        <div className="image-gallery" style={{ height: '180px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', position: 'relative' }}>
           {images.map((img, i) => (
             <div key={i} style={{ minWidth: '100%', height: '100%', scrollSnapAlign: 'start', overflow: 'hidden' }}>
               <ProgressiveImage
@@ -159,7 +159,7 @@ export const VehicleImageGallery = ({
 
   return (
     <>
-      <div style={{ height: '200px', position: 'relative', borderBottom: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+      <div style={{ height: '180px', position: 'relative', overflow: 'hidden' }}>
         <ProgressiveImage
           lowSrc={images[currentIndex].low}
           highSrc={images[currentIndex].highUrl || images[currentIndex].high}

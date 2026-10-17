@@ -114,6 +114,49 @@ async function withSchemaFallback<T>(db: any, operation: () => Promise<T>): Prom
   }
 }
 
+const MULTI_WORD_BRANDS: { pattern: string; canonical: string }[] = [
+  { pattern: 'Fox Mountain Motors', canonical: 'Fox Mountain Motors' },
+  { pattern: 'Fox Mountain', canonical: 'Fox Mountain' },
+  { pattern: 'Terrain Traveller', canonical: 'Terrain Traveller' },
+  { pattern: 'American LaFrance', canonical: 'American LaFrance' },
+  { pattern: 'Grandeur Motors', canonical: 'Grandeur Motors' },
+  { pattern: 'General Motors', canonical: 'General Motors' },
+  { pattern: 'Mercedes-Benz', canonical: 'Mercedes-Benz' },
+  { pattern: 'Mercedes Benz', canonical: 'Mercedes-Benz' },
+  { pattern: 'Mercedes-AMG', canonical: 'Mercedes-AMG' },
+  { pattern: 'Mercedes AMG', canonical: 'Mercedes-AMG' },
+  { pattern: 'Marlin Motors', canonical: 'Marlin Motors' },
+  { pattern: 'Aston Martin', canonical: 'Aston Martin' },
+  { pattern: 'Sir Rodgers', canonical: 'Sir Rodgers' },
+  { pattern: 'Western Star', canonical: 'Western Star' },
+  { pattern: 'Rolls-Royce', canonical: 'Rolls-Royce' },
+  { pattern: 'Rolls Royce', canonical: 'Rolls-Royce' },
+  { pattern: 'Alpha Romeo', canonical: 'Alfa Romeo' },
+  { pattern: 'Range Rover', canonical: 'Range Rover' },
+  { pattern: 'Alfa Romeo', canonical: 'Alfa Romeo' },
+  { pattern: 'Land Rover', canonical: 'Land Rover' },
+  { pattern: 'De Tomaso', canonical: 'De Tomaso' }
+];
+
+const normalizeMakerAndModel = (rawMaker?: string, rawModel?: string): { maker: string; model: string } => {
+  const maker = (rawMaker || '').trim();
+  const model = (rawModel || '').trim();
+  if (!maker && !model) return { maker: '', model: '' };
+  const combined = `${maker} ${model}`.replace(/\s+/g, ' ').trim();
+  for (const { pattern, canonical } of MULTI_WORD_BRANDS) {
+    if (combined.toLowerCase().startsWith(pattern.toLowerCase())) {
+      const nextChar = combined[pattern.length];
+      if (!nextChar || nextChar === ' ' || nextChar === '-') {
+        const rest = combined.slice(pattern.length).replace(/^[-\s]+/, '').trim();
+        if (rest) {
+          return { maker: canonical, model: rest };
+        }
+      }
+    }
+  }
+  return { maker, model };
+};
+
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const url = new URL(request.url);
   const userId = url.searchParams.get('userId') || '12345';
@@ -176,7 +219,14 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         ORDER BY v.created_at DESC
       `;
       const { results } = await env.D1_DB.prepare(query).all();
-      return new Response(JSON.stringify(results), { 
+      const normalized = (results as any[]).map(r => {
+        const { maker, model } = normalizeMakerAndModel(r.maker, r.model);
+        if (maker !== r.maker || model !== r.model) {
+          env.D1_DB.prepare("UPDATE vehicles SET maker = ?, model = ? WHERE id = ?").bind(maker, model, r.id).run().catch(() => {});
+        }
+        return { ...r, maker, model };
+      });
+      return new Response(JSON.stringify(normalized), { 
         headers: { 
           'Content-Type': 'application/json',
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
@@ -193,7 +243,14 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         ORDER BY v.created_at DESC
       `;
       const { results } = await env.D1_DB.prepare(query).bind(userId).all();
-      return new Response(JSON.stringify(results), { 
+      const normalized = (results as any[]).map(r => {
+        const { maker, model } = normalizeMakerAndModel(r.maker, r.model);
+        if (maker !== r.maker || model !== r.model) {
+          env.D1_DB.prepare("UPDATE vehicles SET maker = ?, model = ? WHERE id = ?").bind(maker, model, r.id).run().catch(() => {});
+        }
+        return { ...r, maker, model };
+      });
+      return new Response(JSON.stringify(normalized), { 
         headers: { 
           'Content-Type': 'application/json',
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
@@ -210,7 +267,8 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   const body = await request.json() as any;
-  const { maker, model, year, trim, color, plate, plate_region, roblox_username, owner_id, image_data, vehicle_type, trailer_type, is_temp_registration, game_type } = body;
+  const { year, trim, color, plate, plate_region, roblox_username, owner_id, image_data, vehicle_type, trailer_type, is_temp_registration, game_type } = body;
+  const { maker, model } = normalizeMakerAndModel(body.maker, body.model);
   const isTrailer = vehicle_type === 'trailer';
 
   // Guard: check citizenship approval
@@ -387,7 +445,8 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 
 export const onRequestPut = async ({ env, request }: { env: any, request: Request }) => {
   const body = await request.json() as any;
-  const { id, maker, model, year, trim, color, plate, plate_region, image_data, game_type } = body;
+  const { id, year, trim, color, plate, plate_region, image_data, game_type } = body;
+  const { maker, model } = normalizeMakerAndModel(body.maker, body.model);
  
   try {
     const existing = await env.D1_DB.prepare("SELECT * FROM vehicles WHERE id = ?").bind(id).first() as any;
