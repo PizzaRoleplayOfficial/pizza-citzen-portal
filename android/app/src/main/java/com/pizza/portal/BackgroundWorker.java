@@ -147,6 +147,7 @@ public class BackgroundWorker extends Worker {
 
                             // Stop active LiveProgress tracker notification for resolved applications
                             try {
+                                LiveProgressService.cancelTaskNotification(context, "車両登録の審査状況", null);
                                 if (LiveProgressService.instance != null) {
                                     LiveProgressService.instance.stopTask("車両登録の審査状況", null);
                                 }

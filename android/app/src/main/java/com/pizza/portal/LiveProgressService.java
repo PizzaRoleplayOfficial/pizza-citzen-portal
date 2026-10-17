@@ -8,7 +8,9 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,6 +20,10 @@ import java.util.List;
 public class LiveProgressService extends Service {
     private static final String TAG = "LiveProgressService";
     private static final String CHANNEL_ID = "live_progress_channel";
+
+    // Safety cap: never keep a dataSync foreground service alive longer than 3 minutes
+    // to strictly prevent Android 14/15/16 ForegroundServiceDidNotStopInTimeException.
+    private static final long MAX_FOREGROUND_DURATION_MS = 3 * 60 * 1000L;
 
     // Actions
     public static final String ACTION_START  = "START";
@@ -46,30 +52,43 @@ public class LiveProgressService extends Service {
         }
     }
 
-    private final java.util.Map<Integer, TaskState> activeTasks = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<Integer, TaskState> activeTasks = new java.util.concurrent.ConcurrentHashMap<>();
     private int foregroundNotificationId = -1;
     private boolean isForeground = false;
 
     private NotificationManager notificationManager;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable safetyDetachRunnable = new Runnable() {
+        @Override
+        public void run() {
+            Log.w(TAG, "Safety foreground duration reached — detaching foreground service while keeping notifications active.");
+            detachForegroundAndStop();
+        }
+    };
 
     @Override
     public void onCreate() {
         super.onCreate();
         instance = this;
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        createNotificationChannel();
+        ensureNotificationChannel(this);
         Log.d(TAG, "LiveProgressService: onCreate");
     }
 
-    private void createNotificationChannel() {
+    public static void ensureNotificationChannel(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "Live Activity Progress",
-                NotificationManager.IMPORTANCE_HIGH
-            );
-            channel.setDescription("Shows real-time status of ongoing activities");
-            notificationManager.createNotificationChannel(channel);
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return;
+            NotificationChannel existing = nm.getNotificationChannel(CHANNEL_ID);
+            if (existing == null) {
+                NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Live Activity Progress",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Shows real-time status of ongoing activities");
+                nm.createNotificationChannel(channel);
+            }
         }
     }
 
@@ -94,10 +113,79 @@ public class LiveProgressService extends Service {
         return 8888;
     }
 
+    /**
+     * Only short-lived active upload/sync tasks (8881 Catalog Sync, 8882 Timeline Upload)
+     * should use a Foreground Service. Long-lived review status trackers (8883 Vehicle,
+     * 8884 Citizen Application) must be posted directly via NotificationManager so the
+     * dataSync Foreground Service never stays running for hours in the background.
+     */
+    public static boolean isShortTermForegroundTask(int taskId) {
+        return taskId == 8881 || taskId == 8882;
+    }
+
+    /**
+     * Static helper to post or update a LiveProgress notification directly via NotificationManager
+     * without requiring a long-running Foreground Service.
+     */
+    public static int postOrUpdateNotification(Context context, String title, String text, int progress,
+                                               String segments, String points, String idExtra) {
+        Context appContext = context.getApplicationContext();
+        ensureNotificationChannel(appContext);
+        NotificationManager nm = (NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        int taskId = getNotificationId(title, idExtra);
+
+        TaskState task = activeTasks.get(taskId);
+        if (task == null) {
+            task = new TaskState(taskId, title, text, Math.max(0, progress), segments, points);
+            activeTasks.put(taskId, task);
+        } else {
+            if (title != null) task.title = title;
+            if (text != null) task.text = text;
+            if (progress >= 0) task.progress = progress;
+            if (segments != null) task.segments = segments;
+            if (points != null) task.points = points;
+        }
+
+        Notification notification = buildNotificationStatic(
+            appContext, task.title, task.text, task.progress, task.segments, task.points, task.id
+        );
+        if (nm != null) {
+            nm.notify(task.id, notification);
+        }
+        return taskId;
+    }
+
+    public static void cancelTaskNotification(Context context, String title, String idExtra) {
+        Context appContext = context.getApplicationContext();
+        NotificationManager nm = (NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        int taskId = getNotificationId(title, idExtra);
+        activeTasks.remove(taskId);
+        if (nm != null) {
+            nm.cancel(taskId);
+        }
+        if (instance != null) {
+            instance.onTaskRemovedInternal(taskId);
+        }
+    }
+
+    public static void cancelAllTaskNotifications(Context context) {
+        Context appContext = context.getApplicationContext();
+        NotificationManager nm = (NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm != null) {
+            for (int taskId : activeTasks.keySet()) {
+                nm.cancel(taskId);
+            }
+        }
+        activeTasks.clear();
+        if (instance != null) {
+            instance.detachForegroundAndStop();
+        }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null) {
-            stopSelf();
+            detachForegroundAndStop();
             return START_NOT_STICKY;
         }
 
@@ -122,146 +210,134 @@ public class LiveProgressService extends Service {
         String points = intent.getStringExtra("points");
         String idExtra = intent.getStringExtra("id");
 
-        int taskId = getNotificationId(title, idExtra);
-
-        if (ACTION_UPDATE.equals(action)) {
-            Log.d(TAG, "LiveProgressService: ACTION_UPDATE received for taskId=" + taskId);
-            TaskState task = activeTasks.get(taskId);
-            if (task == null) {
-                task = new TaskState(taskId, title, text, progress >= 0 ? progress : 0, segments, points);
-                activeTasks.put(taskId, task);
-            } else {
-                if (title != null) task.title = title;
-                if (text != null) task.text = text;
-                if (progress >= 0) task.progress = progress;
-                if (segments != null) task.segments = segments;
-                if (points != null) task.points = points;
-            }
-            pushNotification(taskId);
-            return START_STICKY;
-        }
-
-        // Default ACTION_START
-        Log.d(TAG, "LiveProgressService: ACTION_START received for taskId=" + taskId);
-        TaskState task = new TaskState(taskId, title, text, progress, segments, points);
-        activeTasks.put(taskId, task);
-        pushNotification(taskId);
-        return START_STICKY;
+        int taskId = postOrUpdateNotification(this, title, text, progress, segments, points, idExtra);
+        pushForegroundIfNeeded(taskId);
+        return START_NOT_STICKY;
     }
 
-    private void pushNotification(int taskId) {
+    private void pushForegroundIfNeeded(int taskId) {
         TaskState task = activeTasks.get(taskId);
-        if (task == null) return;
+        if (task == null) {
+            detachForegroundAndStop();
+            return;
+        }
 
-        Notification notification = buildNotification(
-            task.title, task.text, task.progress, task.segments, task.points, task.id
+        Notification notification = buildNotificationStatic(
+            this, task.title, task.text, task.progress, task.segments, task.points, task.id
         );
 
-        // Always call startForeground to avoid Stop FGS timeout (ForegroundServiceDidNotStartInTimeException)
-        // when startForegroundService is repeatedly called from the plugin.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                task.id,
-                notification,
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            );
-        } else {
-            startForeground(task.id, notification);
-        }
-        foregroundNotificationId = task.id;
-        isForeground = true;
-        Log.d(TAG, "startForeground called/updated for taskId=" + task.id);
-    }
-
-    public void stopTask(String title, String idExtra) {
-        int taskId = getNotificationId(title, idExtra);
-        Log.d(TAG, "stopTask: taskId=" + taskId + ", current activeTasks size=" + activeTasks.size());
-        activeTasks.remove(taskId);
-        notificationManager.cancel(taskId);
-
-        if (taskId == foregroundNotificationId) {
-            if (!activeTasks.isEmpty()) {
-                int nextId = activeTasks.keySet().iterator().next();
-                TaskState nextTask = activeTasks.get(nextId);
-                Notification nextNotification = buildNotification(
-                    nextTask.title, nextTask.text, nextTask.progress, nextTask.segments, nextTask.points, nextTask.id
+        // Always call startForeground first in case the service was started via startForegroundService()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    task.id,
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
                 );
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    startForeground(
-                        nextTask.id,
-                        nextNotification,
-                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-                    );
-                } else {
-                    startForeground(nextTask.id, nextNotification);
-                }
-                foregroundNotificationId = nextTask.id;
-                Log.d(TAG, "Promoted taskId=" + nextTask.id + " to foreground service notification");
             } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    stopForeground(STOP_FOREGROUND_REMOVE);
-                } else {
-                    stopForeground(true);
-                }
-                isForeground = false;
-                foregroundNotificationId = -1;
-                Log.d(TAG, "No more active tasks, stopping foreground service");
-                stopSelf();
+                startForeground(task.id, notification);
             }
+            foregroundNotificationId = task.id;
+            isForeground = true;
+        } catch (Throwable t) {
+            Log.w(TAG, "startForeground failed, falling back to NotificationManager: " + t.getMessage());
+            notificationManager.notify(task.id, notification);
+        }
+
+        // If this is a passive tracker (e.g. 8883 Vehicle or 8884 Citizen Application) and no short-term
+        // sync task is active, immediately detach the foreground service so it never runs in background!
+        if (!hasActiveShortTermTask()) {
+            Log.d(TAG, "No short-term sync task active (taskId=" + taskId + "), detaching foreground service immediately.");
+            detachForegroundAndStop();
+            // Re-post via NotificationManager to ensure the ongoing notification stays visible after detach
+            notificationManager.notify(task.id, notification);
         } else {
-            if (activeTasks.isEmpty()) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    stopForeground(STOP_FOREGROUND_REMOVE);
-                } else {
-                    stopForeground(true);
-                }
-                isForeground = false;
-                foregroundNotificationId = -1;
-                Log.d(TAG, "No more active tasks, stopping foreground service");
-                stopSelf();
-            }
+            // Reset 3-minute safety timer for short-term tasks
+            mainHandler.removeCallbacks(safetyDetachRunnable);
+            mainHandler.postDelayed(safetyDetachRunnable, MAX_FOREGROUND_DURATION_MS);
         }
     }
 
-    public void stopAllTasks() {
-        Log.d(TAG, "stopAllTasks");
-        for (int taskId : activeTasks.keySet()) {
-            notificationManager.cancel(taskId);
+    private boolean hasActiveShortTermTask() {
+        for (int id : activeTasks.keySet()) {
+            if (isShortTermForegroundTask(id)) {
+                return true;
+            }
         }
-        activeTasks.clear();
+        return false;
+    }
+
+    private void onTaskRemovedInternal(int removedTaskId) {
+        if (!hasActiveShortTermTask()) {
+            detachForegroundAndStop();
+        }
+    }
+
+    private void detachForegroundAndStop() {
+        mainHandler.removeCallbacks(safetyDetachRunnable);
         if (isForeground) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE);
-            } else {
-                stopForeground(true);
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_DETACH);
+                } else {
+                    stopForeground(false);
+                }
+            } catch (Throwable t) {
+                Log.w(TAG, "stopForeground detach warning: " + t.getMessage());
             }
             isForeground = false;
             foregroundNotificationId = -1;
         }
-        stopSelf();
+        try {
+            stopSelf();
+        } catch (Throwable t) {
+            Log.w(TAG, "stopSelf warning: " + t.getMessage());
+        }
     }
 
-    private Notification buildNotification(String title, String text, int progress,
-                                           String segmentsJson, String pointsJson, int taskId) {
+    public void stopTask(String title, String idExtra) {
+        cancelTaskNotification(this, title, idExtra);
+    }
+
+    public void stopAllTasks() {
+        cancelAllTaskNotifications(this);
+    }
+
+    // Android 14 (API 34) Foreground Service timeout callback
+    @Override
+    public void onTimeout(int startId) {
+        Log.w(TAG, "onTimeout(startId=" + startId + ") reached for dataSync service — stopping immediately.");
+        detachForegroundAndStop();
+    }
+
+    // Android 15+ (API 35+) Foreground Service timeout callback with fgsType
+    @Override
+    public void onTimeout(int startId, int fgsType) {
+        Log.w(TAG, "onTimeout(startId=" + startId + ", fgsType=" + fgsType + ") reached — stopping immediately.");
+        detachForegroundAndStop();
+    }
+
+    private static Notification buildNotificationStatic(Context context, String title, String text, int progress,
+                                                        String segmentsJson, String pointsJson, int taskId) {
         Notification.Builder builder;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder = new Notification.Builder(this, CHANNEL_ID);
+            builder = new Notification.Builder(context, CHANNEL_ID);
         } else {
-            builder = new Notification.Builder(this);
+            builder = new Notification.Builder(context);
         }
 
         // Tap → open app
-        Intent mainIntent = new Intent(this, MainActivity.class);
+        Intent mainIntent = new Intent(context, MainActivity.class);
         mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             pendingFlags |= PendingIntent.FLAG_IMMUTABLE;
         }
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, mainIntent, pendingFlags);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, mainIntent, pendingFlags);
 
-        int smallIcon = getApplicationInfo().icon;
+        int smallIcon = context.getApplicationInfo().icon;
         if (smallIcon == 0) {
-            smallIcon = getResources().getIdentifier("ic_launcher", "mipmap", getPackageName());
+            smallIcon = context.getResources().getIdentifier("ic_launcher", "mipmap", context.getPackageName());
         }
 
         builder.setContentTitle(title)
@@ -274,7 +350,7 @@ public class LiveProgressService extends Service {
         // Android 16 (API 36): Use ProgressStyle via reflection
         if (Build.VERSION.SDK_INT >= 36) {
             try {
-                applyProgressStyle(builder, progress, segmentsJson, pointsJson, smallIcon);
+                applyProgressStyleStatic(context, builder, progress, segmentsJson, pointsJson, smallIcon);
             } catch (Throwable t) {
                 Log.w(TAG, "ProgressStyle reflection failed, falling back: " + t.getMessage());
                 builder.setProgress(100, progress, false);
@@ -286,14 +362,14 @@ public class LiveProgressService extends Service {
 
         // Xiaomi HyperOS (HyperIsland / Focus Notification) support
         HyperIslandHelper.applyLiveProgress(
-            this, builder, title, text, progress, segmentsJson, pointsJson, pendingIntent
+            context, builder, title, text, progress, segmentsJson, pointsJson, pendingIntent
         );
 
         return builder.build();
     }
 
-    private void applyProgressStyle(Notification.Builder builder, int progress,
-                                    String segmentsJson, String pointsJson, int smallIcon) throws Exception {
+    private static void applyProgressStyleStatic(Context context, Notification.Builder builder, int progress,
+                                                 String segmentsJson, String pointsJson, int smallIcon) throws Exception {
         // setRequestPromotedOngoing(true)
         java.lang.reflect.Method setPromotedMethod =
             Notification.Builder.class.getMethod("setRequestPromotedOngoing", boolean.class);
@@ -362,7 +438,7 @@ public class LiveProgressService extends Service {
         // Tracker icon
         try {
             android.graphics.drawable.Icon icon = android.graphics.drawable.Icon.createWithResource(
-                this, smallIcon
+                context, smallIcon
             );
             java.lang.reflect.Method setTrackerIconMethod;
             try {
@@ -387,16 +463,15 @@ public class LiveProgressService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "LiveProgressService: onDestroy");
-        for (int taskId : activeTasks.keySet()) {
-            notificationManager.cancel(taskId);
-        }
-        activeTasks.clear();
+        mainHandler.removeCallbacks(safetyDetachRunnable);
         if (isForeground) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE);
-            } else {
-                stopForeground(true);
-            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_DETACH);
+                } else {
+                    stopForeground(false);
+                }
+            } catch (Throwable ignored) {}
             isForeground = false;
             foregroundNotificationId = -1;
         }
@@ -408,3 +483,4 @@ public class LiveProgressService extends Service {
         return null;
     }
 }
+

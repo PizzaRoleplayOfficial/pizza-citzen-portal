@@ -556,6 +556,37 @@ public class LiveUpdateService extends Service {
     }
 
     @Override
+    public void onTimeout(int startId) {
+        Log.w(TAG, "Foreground service timeout reached (API 34). Stopping service immediately.");
+        stopOnTimeout();
+    }
+
+    @Override
+    public void onTimeout(int startId, int fgsType) {
+        Log.w(TAG, "Foreground service timeout reached (API 35+, fgsType=" + fgsType + "). Stopping service immediately.");
+        stopOnTimeout();
+    }
+
+    private void stopOnTimeout() {
+        if (downloadThread != null && downloadThread.isAlive()) {
+            downloadThread.interrupt();
+        }
+        try {
+            if (isForeground) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                } else {
+                    stopForeground(true);
+                }
+                isForeground = false;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping foreground on timeout", e);
+        }
+        stopSelf();
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
         if (downloadThread != null && downloadThread.isAlive()) {

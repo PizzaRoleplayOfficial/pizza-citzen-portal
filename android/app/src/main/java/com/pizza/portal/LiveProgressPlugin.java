@@ -26,15 +26,28 @@ public class LiveProgressPlugin extends Plugin {
         }
 
         try {
-            Intent serviceIntent = new Intent(getContext(), LiveProgressService.class);
-            serviceIntent.setAction(LiveProgressService.ACTION_START);
-            serviceIntent.putExtra("title", title);
-            serviceIntent.putExtra("text", text);
-            serviceIntent.putExtra("progress", progress);
-            if (segments != null) serviceIntent.putExtra("segments", segments);
-            if (points   != null) serviceIntent.putExtra("points", points);
+            int taskId = LiveProgressService.getNotificationId(title, null);
+            if (!LiveProgressService.isShortTermForegroundTask(taskId)) {
+                LiveProgressService.postOrUpdateNotification(
+                    getContext(),
+                    title,
+                    text,
+                    progress != null ? progress : 0,
+                    segments,
+                    points,
+                    null
+                );
+            } else {
+                Intent serviceIntent = new Intent(getContext(), LiveProgressService.class);
+                serviceIntent.setAction(LiveProgressService.ACTION_START);
+                serviceIntent.putExtra("title", title);
+                serviceIntent.putExtra("text", text);
+                serviceIntent.putExtra("progress", progress);
+                if (segments != null) serviceIntent.putExtra("segments", segments);
+                if (points   != null) serviceIntent.putExtra("points", points);
 
-            startService(serviceIntent);
+                startService(serviceIntent);
+            }
 
             JSObject ret = new JSObject();
             ret.put("success", true);
@@ -62,16 +75,29 @@ public class LiveProgressPlugin extends Plugin {
         }
 
         try {
-            Intent serviceIntent = new Intent(getContext(), LiveProgressService.class);
-            serviceIntent.setAction(LiveProgressService.ACTION_UPDATE);
-            serviceIntent.putExtra("title", title);
-            serviceIntent.putExtra("text", text);
-            serviceIntent.putExtra("progress", progress);
-            if (segments != null) serviceIntent.putExtra("segments", segments);
-            if (points   != null) serviceIntent.putExtra("points", points);
+            int taskId = LiveProgressService.getNotificationId(title, null);
+            if (!LiveProgressService.isShortTermForegroundTask(taskId)) {
+                LiveProgressService.postOrUpdateNotification(
+                    getContext(),
+                    title,
+                    text,
+                    progress != null ? progress : 0,
+                    segments,
+                    points,
+                    null
+                );
+            } else {
+                Intent serviceIntent = new Intent(getContext(), LiveProgressService.class);
+                serviceIntent.setAction(LiveProgressService.ACTION_UPDATE);
+                serviceIntent.putExtra("title", title);
+                serviceIntent.putExtra("text", text);
+                serviceIntent.putExtra("progress", progress);
+                if (segments != null) serviceIntent.putExtra("segments", segments);
+                if (points   != null) serviceIntent.putExtra("points", points);
 
-            // If service is not running (e.g. killed by OS), fallback to START
-            startService(serviceIntent);
+                // If service is not running (e.g. killed by OS), fallback to START
+                startService(serviceIntent);
+            }
 
             JSObject ret = new JSObject();
             ret.put("success", true);
@@ -88,15 +114,19 @@ public class LiveProgressPlugin extends Plugin {
         String id = call.getString("id");
 
         try {
-            if (LiveProgressService.instance != null) {
-                if (title == null && id == null) {
+            if (title == null && id == null) {
+                LiveProgressService.cancelAllTaskNotifications(getContext());
+                if (LiveProgressService.instance != null) {
                     LiveProgressService.instance.stopAllTasks();
                 } else {
-                    LiveProgressService.instance.stopTask(title, id);
+                    Intent serviceIntent = new Intent(getContext(), LiveProgressService.class);
+                    getContext().stopService(serviceIntent);
                 }
             } else {
-                Intent serviceIntent = new Intent(getContext(), LiveProgressService.class);
-                getContext().stopService(serviceIntent);
+                LiveProgressService.cancelTaskNotification(getContext(), title, id);
+                if (LiveProgressService.instance != null) {
+                    LiveProgressService.instance.stopTask(title, id);
+                }
             }
 
             JSObject ret = new JSObject();
