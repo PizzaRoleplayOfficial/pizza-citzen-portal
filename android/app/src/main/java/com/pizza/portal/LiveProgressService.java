@@ -284,6 +284,11 @@ public class LiveProgressService extends Service {
             builder.setProgress(100, progress, false);
         }
 
+        // Xiaomi HyperOS (HyperIsland / Focus Notification) support
+        HyperIslandHelper.applyLiveProgress(
+            this, builder, title, text, progress, segmentsJson, pointsJson, pendingIntent
+        );
+
         return builder.build();
     }
 

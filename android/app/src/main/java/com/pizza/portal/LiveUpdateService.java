@@ -132,6 +132,9 @@ public class LiveUpdateService extends Service {
             builder.setProgress(100, progress, false);
         }
 
+        // Xiaomi HyperOS (HyperIsland / Focus Notification) support
+        HyperIslandHelper.applyApkUpdateProgress(this, builder, progress, contentText, false);
+
         return builder.build();
     }
 
@@ -166,6 +169,9 @@ public class LiveUpdateService extends Service {
         } else {
             builder.setProgress(0, 0, true);
         }
+
+        // Xiaomi HyperOS (HyperIsland / Focus Notification) support
+        HyperIslandHelper.applyApkUpdateProgress(this, builder, 50, downloadedText, true);
 
         return builder.build();
     }
@@ -526,6 +532,12 @@ public class LiveUpdateService extends Service {
                 .setContentText("Test update download completed successfully!")
                 .setSmallIcon(doneAppIcon)
                 .setAutoCancel(true);
+            HyperIslandHelper.applyApkUpdateComplete(
+                this,
+                builder,
+                "GV Portal Update Test",
+                "Test update download completed successfully!"
+            );
             notificationManager.notify(NOTIFICATION_ID + 2, builder.build());
         } catch (InterruptedException e) {
             Log.d(TAG, "Test demo interrupted");

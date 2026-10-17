@@ -107,6 +107,22 @@ public class LiveProgressPlugin extends Plugin {
         }
     }
 
+    /** Xiaomi HyperIsland (Focus Notification) のサポート状態を取得する */
+    @PluginMethod
+    public void isHyperIslandSupported(PluginCall call) {
+        try {
+            boolean supported = HyperIslandHelper.isSupported(getContext());
+            JSObject ret = new JSObject();
+            ret.put("supported", supported);
+            ret.put("manufacturer", Build.MANUFACTURER);
+            call.resolve(ret);
+        } catch (Exception e) {
+            JSObject ret = new JSObject();
+            ret.put("supported", false);
+            call.resolve(ret);
+        }
+    }
+
     /** startService のヘルパー（API レベルに応じて foreground/通常 を切り替え） */
     private void startService(Intent intent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

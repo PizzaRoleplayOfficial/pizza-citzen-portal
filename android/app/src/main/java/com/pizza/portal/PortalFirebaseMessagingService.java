@@ -270,7 +270,17 @@ public class PortalFirebaseMessagingService extends FirebaseMessagingService {
         }
 
         try {
-            NotificationManagerCompat.from(context).notify(notificationId, builder.build());
+            Notification notification = builder.build();
+            HyperIslandHelper.applyDmNotification(
+                    context,
+                    notification,
+                    partnerName,
+                    body,
+                    avatarBitmap,
+                    contentPendingIntent,
+                    markReadPendingIntent
+            );
+            NotificationManagerCompat.from(context).notify(notificationId, notification);
             Log.d(TAG, "DM rich notification posted successfully for conv: " + conversationId);
         } catch (SecurityException se) {
             Log.e(TAG, "Notification permission missing: " + se.getMessage());

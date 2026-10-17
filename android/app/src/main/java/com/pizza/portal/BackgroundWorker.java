@@ -114,7 +114,7 @@ public class BackgroundWorker extends Worker {
                     String body = newPendingCount == 1 
                         ? "新規の登録申請が届きました: " + firstCarDescription 
                         : "新規の登録申請が " + newPendingCount + " 件届きました。";
-                    sendNotification(context, title, body, "admin_notifications_channel", "管理者向け通知");
+                    sendNotification(context, title, body, "admin_notifications_channel", "管理者向け通知", "admin_new");
                 }
             } else {
                 // 一般ユーザーの場合: ステータスが "pending" から変化した車両を検知
@@ -143,7 +143,7 @@ public class BackgroundWorker extends Worker {
                                 body += " 理由: " + v.getString("reject_reason");
                             }
                             
-                            sendNotification(context, title, body, "application_results_channel", "申請結果通知");
+                            sendNotification(context, title, body, "application_results_channel", "申請結果通知", status);
 
                             // Stop active LiveProgress tracker notification for resolved applications
                             try {
@@ -203,7 +203,7 @@ public class BackgroundWorker extends Worker {
         return null;
     }
 
-    private void sendNotification(Context context, String title, String body, String channelId, String channelName) {
+    private void sendNotification(Context context, String title, String body, String channelId, String channelName, String status) {
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         
         // Android 8.0 以上のチャンネル作成
@@ -247,9 +247,12 @@ public class BackgroundWorker extends Worker {
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
 
+        android.app.Notification notification = builder.build();
+        HyperIslandHelper.applyVehicleStatusNotification(context, notification, title, body, status, pendingIntent);
+
         // 通知IDの作成 (同一チャンネルの通知は上書き更新して連打スタックを防止)
         int notificationId = channelId != null ? channelId.hashCode() : (int) System.currentTimeMillis();
-        notificationManager.notify(notificationId, builder.build());
+        notificationManager.notify(notificationId, notification);
         Log.d(TAG, "Local notification pushed: " + title);
     }
 }

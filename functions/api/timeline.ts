@@ -48,6 +48,12 @@ const ensureTimelineTables = async (db: any) => {
       await db.prepare("ALTER TABLE timeline_posts ADD COLUMN is_announcement INTEGER DEFAULT 0").run();
     }
     await db.prepare("UPDATE timeline_posts SET is_announcement = 0 WHERE is_announcement IS NULL").run();
+
+    const hasAnnouncementExpiresAt = tableInfo.results.some((col: any) => col.name === 'announcement_expires_at');
+    if (!hasAnnouncementExpiresAt) {
+      console.log("Adding announcement_expires_at column to timeline_posts table...");
+      await db.prepare("ALTER TABLE timeline_posts ADD COLUMN announcement_expires_at TEXT").run();
+    }
   } catch (err: any) {
     console.error("Error checking/adding columns:", err.message);
   }
@@ -148,6 +154,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     await ensureAllD1Indexes(env.D1_DB);
 
     const postId = url.searchParams.get('postId') || '';
+    const nowIso = new Date().toISOString();
     
     let query = `
       SELECT 
@@ -160,6 +167,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         p.views_count,
         p.repost_id,
         p.is_announcement,
+        p.announcement_expires_at,
         u.username as author_username,
         u.avatar as author_avatar,
         u.roblox_username as author_roblox_username,
@@ -211,8 +219,11 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
     const before = url.searchParams.get('before') || '';
     
-    const conditions: string[] = [];
-    const bindParams: any[] = [userId, userId, userId, userId, userId];
+    const conditions: string[] = [
+      "(p.is_announcement IS NULL OR p.is_announcement != 1 OR p.announcement_expires_at IS NULL OR p.announcement_expires_at > ?)",
+      "(orig.id IS NULL OR orig.is_announcement IS NULL OR orig.is_announcement != 1 OR orig.announcement_expires_at IS NULL OR orig.announcement_expires_at > ?)"
+    ];
+    const bindParams: any[] = [userId, userId, userId, userId, userId, nowIso, nowIso];
 
     if (postId) {
       conditions.push("p.id = ?");
@@ -355,8 +366,9 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
+    await ensureAllD1Indexes(env.D1_DB);
     const body = await request.json() as any;
-    const { userId, content, image_data, video_path, repostId, poll, isAnnouncement } = body;
+    const { userId, content, image_data, video_path, repostId, poll, isAnnouncement, announcementExpiresAt } = body;
 
     if (!userId || (!content && !repostId)) {
       return new Response(JSON.stringify({ error: 'ユーザーIDと投稿内容、またはリポスト対象IDが必要です。' }), {
@@ -372,16 +384,21 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       });
     }
 
-    // ensureTimelineTables skipped on GET for performance
-
     const id = crypto.randomUUID();
     const initialViews = 0; // Starts with 0 views
     
     let isAnnouncementFlag = 0;
+    let normalizedExpiresAt: string | null = null;
     if (isAnnouncement) {
       const dbUser = await env.D1_DB.prepare("SELECT role FROM users WHERE id = ?").bind(userId).first();
       if (dbUser && dbUser.role === 'admin') {
         isAnnouncementFlag = 1;
+        if (announcementExpiresAt && typeof announcementExpiresAt === 'string' && announcementExpiresAt.trim() !== '') {
+          const parsedDate = new Date(announcementExpiresAt);
+          if (!isNaN(parsedDate.getTime())) {
+            normalizedExpiresAt = parsedDate.toISOString();
+          }
+        }
       }
     }
 
@@ -399,9 +416,18 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
       }
     }
 
+    // Opportunistically delete expired announcements when creating a new post
+    try {
+      await env.D1_DB.prepare(
+        "DELETE FROM timeline_posts WHERE is_announcement = 1 AND announcement_expires_at IS NOT NULL AND announcement_expires_at <= ?"
+      ).bind(new Date().toISOString()).run();
+    } catch {
+      // Ignore if column not yet migrated
+    }
+
     await env.D1_DB.prepare(
-      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path, repost_id, is_announcement) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    ).bind(id, userId, content || "", image_data || null, initialViews, video_path || null, repostId || null, isAnnouncementFlag).run();
+      "INSERT INTO timeline_posts (id, user_id, content, image_data, views_count, video_path, repost_id, is_announcement, announcement_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, userId, content || "", image_data || null, initialViews, video_path || null, repostId || null, isAnnouncementFlag, normalizedExpiresAt).run();
 
     // Insert poll if option data is provided
     if (poll && Array.isArray(poll.options) && poll.options.length >= 2) {

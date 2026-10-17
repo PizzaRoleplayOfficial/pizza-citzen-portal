@@ -31,9 +31,11 @@ const INDEX_STATEMENTS = [
   "CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC)",
 
   // Timeline (Prevents N+1 full table scans per post)
+  "ALTER TABLE timeline_posts ADD COLUMN announcement_expires_at TEXT",
   "CREATE INDEX IF NOT EXISTS idx_timeline_posts_created ON timeline_posts(created_at DESC)",
   "CREATE INDEX IF NOT EXISTS idx_timeline_posts_repost ON timeline_posts(repost_id)",
   "CREATE INDEX IF NOT EXISTS idx_timeline_posts_user ON timeline_posts(user_id, created_at DESC)",
+  "CREATE INDEX IF NOT EXISTS idx_timeline_posts_announcement ON timeline_posts(is_announcement, announcement_expires_at, created_at DESC)",
   "CREATE INDEX IF NOT EXISTS idx_timeline_comments_post ON timeline_comments(post_id, created_at ASC)",
   "CREATE INDEX IF NOT EXISTS idx_timeline_poll_votes_post ON timeline_poll_votes(post_id, option_index)",
   "CREATE INDEX IF NOT EXISTS idx_timeline_bookmarks_post ON timeline_bookmarks(post_id, user_id)",

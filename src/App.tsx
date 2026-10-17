@@ -630,12 +630,16 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showQuickActionSheet, setShowQuickActionSheet] = useState(false);
-  const [triggerTimelineComposer, setTriggerTimelineComposer] = useState(false);
+  const [triggerTimelineComposer, setTriggerTimelineComposer] = useState<'post' | 'announcement' | false>(false);
   
   const handleMobilePlusClick = () => {
     triggerHaptic('medium');
     if (view === 'timeline') {
-      setTriggerTimelineComposer(true);
+      if (currentUser?.role === 'admin') {
+        setShowQuickActionSheet(true);
+      } else {
+        setTriggerTimelineComposer('post');
+      }
     } else {
       setShowQuickActionSheet(true);
     }
@@ -4730,6 +4734,7 @@ export default function App() {
           alignItems: 'center',
           padding: '8px calc(8px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(8px + var(--safe-left))', 
           zIndex: 1000,
+          overflow: 'visible',
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.04)'
         }}>
           {/* Tab 1: Home */}
@@ -4747,7 +4752,7 @@ export default function App() {
           {/* Tab 3: Center Plus Action Button */}
           <div className="mobile-nav-plus-wrapper" style={{ flex: 1 }}>
             <button className="mobile-nav-plus-btn" onClick={handleMobilePlusClick} aria-label="新規アクション">
-              <Plus size={28} strokeWidth={2.8} />
+              <Plus size={32} strokeWidth={3} />
             </button>
           </div>
           
@@ -6344,11 +6349,11 @@ export default function App() {
           <div className="mobile-action-sheet-container" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-action-group">
               <div className="mobile-action-header">
-                <h4>{view === 'garage' ? 'ガレージアクション' : '新規登録・投稿'}</h4>
-                <p>{view === 'garage' ? '登録方法を選択してください' : '行いたい操作を選択してください'}</p>
+                <h4>{view === 'garage' ? 'ガレージアクション' : view === 'timeline' ? 'タイムライン投稿' : '新規登録・投稿'}</h4>
+                <p>{view === 'garage' ? '登録方法を選択してください' : view === 'timeline' ? '作成する投稿の種類を選択してください' : '行いたい操作を選択してください'}</p>
               </div>
 
-              {currentUser.role === 'admin' && (
+              {currentUser.role === 'admin' && view !== 'timeline' && (
                 <button className="mobile-action-button" onClick={() => {
                   triggerHaptic('light');
                   setShowQuickActionSheet(false);
@@ -6366,7 +6371,48 @@ export default function App() {
                 </button>
               )}
 
-              {view === 'garage' ? (
+              {view === 'timeline' ? (
+                <>
+                  <button className="mobile-action-button" onClick={() => {
+                    triggerHaptic('light');
+                    setShowQuickActionSheet(false);
+                    setTriggerTimelineComposer('post');
+                  }}>
+                    <MessageSquare size={20} />
+                    <span>新規ポストを作成</span>
+                  </button>
+
+                  {currentUser.role === 'admin' && (
+                    <button
+                      className="mobile-action-button"
+                      onClick={() => {
+                        triggerHaptic('medium');
+                        setShowQuickActionSheet(false);
+                        setTriggerTimelineComposer('announcement');
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.10) 0%, rgba(245, 158, 11, 0.08) 100%)',
+                        borderTop: '1px solid var(--border)'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>📢</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span style={{ fontWeight: 800, color: 'var(--primary)' }}>告知を作成（運営専用）</span>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          background: 'rgba(37, 99, 235, 0.15)',
+                          color: 'var(--primary)'
+                        }}>
+                          トップ固定
+                        </span>
+                      </div>
+                    </button>
+                  )}
+                </>
+              ) : view === 'garage' ? (
                 <>
                   <button className="mobile-action-button" onClick={() => {
                     triggerHaptic('light');
@@ -6424,12 +6470,45 @@ export default function App() {
                     setShowQuickActionSheet(false);
                     setView('timeline');
                     setTimeout(() => {
-                      setTriggerTimelineComposer(true);
+                      setTriggerTimelineComposer('post');
                     }, 150);
                   }}>
                     <MessageSquare size={20} />
                     タイムラインに投稿する
                   </button>
+
+                  {currentUser.role === 'admin' && (
+                    <button
+                      className="mobile-action-button"
+                      onClick={() => {
+                        triggerHaptic('medium');
+                        setShowQuickActionSheet(false);
+                        setView('timeline');
+                        setTimeout(() => {
+                          setTriggerTimelineComposer('announcement');
+                        }, 150);
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.10) 0%, rgba(245, 158, 11, 0.08) 100%)',
+                        borderTop: '1px solid var(--border)'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>📢</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span style={{ fontWeight: 800, color: 'var(--primary)' }}>告知を作成（運営専用）</span>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          background: 'rgba(37, 99, 235, 0.15)',
+                          color: 'var(--primary)'
+                        }}>
+                          トップ固定
+                        </span>
+                      </div>
+                    </button>
+                  )}
                 </>
               )}
             </div>
