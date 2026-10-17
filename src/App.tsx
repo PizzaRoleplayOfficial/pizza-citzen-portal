@@ -6354,16 +6354,14 @@ export default function App() {
                   triggerHaptic('light');
                   setShowQuickActionSheet(false);
                   setView('admin');
-                }} style={{ borderBottom: '1px solid var(--border)', background: totalAdminPending > 0 ? 'rgba(239, 68, 68, 0.06)' : undefined }}>
+                }} style={{ justifyContent: 'center', borderBottom: '1px solid var(--border)', background: totalAdminPending > 0 ? 'rgba(239, 68, 68, 0.06)' : undefined }}>
                   <ShieldCheck size={20} color={totalAdminPending > 0 ? '#ef4444' : 'var(--primary)'} />
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <span style={{ fontWeight: 700, color: totalAdminPending > 0 ? '#ef4444' : undefined }}>管理パネルを開く</span>
-                    {totalAdminPending > 0 && (
-                      <span className="admin-pending-badge-sm">
-                        審査待ち {totalAdminPending}件
-                      </span>
-                    )}
-                  </div>
+                  <span style={{ fontWeight: 700, color: totalAdminPending > 0 ? '#ef4444' : undefined }}>管理パネルを開く</span>
+                  {totalAdminPending > 0 && (
+                    <span className="admin-pending-badge-sm">
+                      審査待ち {totalAdminPending}件
+                    </span>
+                  )}
                 </button>
               )}
 
@@ -6373,7 +6371,7 @@ export default function App() {
                     triggerHaptic('light');
                     setShowQuickActionSheet(false);
                     setTriggerTimelineComposer('post');
-                  }}>
+                  }} style={{ justifyContent: 'center' }}>
                     <MessageSquare size={20} />
                     <span>新規ポストを作成</span>
                   </button>
@@ -6387,24 +6385,13 @@ export default function App() {
                         setTriggerTimelineComposer('announcement');
                       }}
                       style={{
+                        justifyContent: 'center',
                         background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.10) 0%, rgba(245, 158, 11, 0.08) 100%)',
                         borderTop: '1px solid var(--border)'
                       }}
                     >
                       <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>📢</span>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <span style={{ fontWeight: 800, color: 'var(--primary)' }}>告知を作成（運営専用）</span>
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          background: 'rgba(37, 99, 235, 0.15)',
-                          color: 'var(--primary)'
-                        }}>
-                          トップ固定
-                        </span>
-                      </div>
+                      <span style={{ fontWeight: 800, color: 'var(--primary)' }}>告知を作成（運営専用）</span>
                     </button>
                   )}
                 </>
@@ -6417,9 +6404,9 @@ export default function App() {
                     setFormData({ game_type: 'gv', maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
                     setEditingVehicleId(null);
                     setShowAddModal(true);
-                  }}>
+                  }} style={{ justifyContent: 'center' }}>
                     <Car size={20} />
-                    車両を手動で登録申請
+                    <span>車両を手動で登録申請</span>
                   </button>
 
                   <button className="mobile-action-button" onClick={() => {
@@ -6428,9 +6415,9 @@ export default function App() {
                     if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
                     setFormData(prev => ({ ...prev, game_type: 'gv' }));
                     setShowBetaAutoFillModal(true);
-                  }}>
+                  }} style={{ justifyContent: 'center' }}>
                     <ImageIcon size={20} />
-                    画像から自動入力 (Beta)
+                    <span>画像から自動入力 (Beta)</span>
                   </button>
                   
                   <button className="mobile-action-button" onClick={() => {
@@ -6440,8 +6427,8 @@ export default function App() {
                     setTrailerFormData({ game_type: 'gv', model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
                     setEditingVehicleId(null);
                     setShowTrailerModal(true);
-                  }}>
-                    🚛 トレーラーを追加申請
+                  }} style={{ justifyContent: 'center' }}>
+                    <span>🚛 トレーラーを追加申請</span>
                   </button>
                 </>
               ) : (
@@ -6456,9 +6443,9 @@ export default function App() {
                       setEditingVehicleId(null);
                       setShowAddModal(true);
                     }, 150);
-                  }}>
+                  }} style={{ justifyContent: 'center' }}>
                     <Car size={20} />
-                    車両を登録申請する
+                    <span>車両を登録申請する</span>
                   </button>
                   
                   <button className="mobile-action-button" onClick={() => {
@@ -6468,9 +6455,9 @@ export default function App() {
                     setTimeout(() => {
                       setTriggerTimelineComposer('post');
                     }, 150);
-                  }}>
+                  }} style={{ justifyContent: 'center' }}>
                     <MessageSquare size={20} />
-                    タイムラインに投稿する
+                    <span>タイムラインに投稿する</span>
                   </button>
 
                   {currentUser.role === 'admin' && (
@@ -6485,24 +6472,13 @@ export default function App() {
                         }, 150);
                       }}
                       style={{
+                        justifyContent: 'center',
                         background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.10) 0%, rgba(245, 158, 11, 0.08) 100%)',
                         borderTop: '1px solid var(--border)'
                       }}
                     >
                       <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>📢</span>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <span style={{ fontWeight: 800, color: 'var(--primary)' }}>告知を作成（運営専用）</span>
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          background: 'rgba(37, 99, 235, 0.15)',
-                          color: 'var(--primary)'
-                        }}>
-                          トップ固定
-                        </span>
-                      </div>
+                      <span style={{ fontWeight: 800, color: 'var(--primary)' }}>告知を作成（運営専用）</span>
                     </button>
                   )}
                 </>

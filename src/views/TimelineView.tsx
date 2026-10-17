@@ -3909,15 +3909,22 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                         gap: '6px',
                         whiteSpace: 'nowrap',
                         background: composerMode === 'post'
-                          ? (theme === 'dark' ? 'rgba(255, 255, 255, 0.14)' : '#ffffff')
+                          ? 'var(--primary)'
                           : 'transparent',
-                        color: composerMode === 'post' ? 'var(--text-main)' : 'var(--text-muted)',
-                        boxShadow: composerMode === 'post' ? '0 2px 10px rgba(0, 0, 0, 0.12)' : 'none',
+                        color: composerMode === 'post' ? '#ffffff' : 'var(--text-muted)',
+                        boxShadow: composerMode === 'post' ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none',
                         transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)'
                       }}
                     >
-                      <MessageSquare size={15} style={{ flexShrink: 0, color: 'currentColor', stroke: 'currentColor' }} />
-                      <span>通常ポスト</span>
+                      <MessageSquare
+                        size={15}
+                        style={{
+                          flexShrink: 0,
+                          color: composerMode === 'post' ? '#ffffff' : 'currentColor',
+                          stroke: composerMode === 'post' ? '#ffffff' : 'currentColor'
+                        }}
+                      />
+                      <span style={{ color: composerMode === 'post' ? '#ffffff' : 'inherit' }}>通常ポスト</span>
                     </button>
                     <button
                       type="button"
@@ -4036,7 +4043,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     placeholder={
                       composerMode === 'announcement'
                         ? '市民への重要なお知らせ・イベント告知を入力...（画像のコピペもOK）'
-                        : 'いまどうしてる？（コピペでの画像追加もOK）'
+                        : 'いまどうしてる？（画像のコピペもOK）'
                     }
                     maxLength={280}
                     style={{
@@ -4161,43 +4168,53 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
               {/* Media & Poll Attachment Buttons (Placed directly below content input area) */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer}
-                  className="composer-interactive-btn"
-                  style={{
-                    background: 'rgba(37, 99, 235, 0.08)',
-                    border: '1px solid rgba(37, 99, 235, 0.18)',
-                    borderRadius: '999px',
-                    padding: isMobile ? '0 14px' : '0 16px',
-                    height: isMobile ? '38px' : '40px',
-                    color: 'var(--primary)',
-                    cursor: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    opacity: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 0.5 : 1,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0
-                  }}
-                >
-                  <ImageIcon size={17} style={{ flexShrink: 0 }} />
-                  {isMobile ? (
-                    <>
-                      {newPostImages.length > 0 && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>メディア ({newPostImages.length})</span>}
-                      {selectedVideoFile !== null && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>動画 (1)</span>}
-                      {newPostImages.length === 0 && selectedVideoFile === null && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>メディア</span>}
-                    </>
-                  ) : (
-                    <span>
-                      {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
-                    </span>
-                  )}
-                </button>
+                {(() => {
+                  const isMediaDisabled = newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isMediaDisabled}
+                      className="composer-interactive-btn composer-attach-btn"
+                      style={{
+                        background: isMediaDisabled
+                          ? (theme === 'dark' ? 'rgba(148, 163, 184, 0.16)' : 'rgba(148, 163, 184, 0.18)')
+                          : 'rgba(37, 99, 235, 0.10)',
+                        border: isMediaDisabled
+                          ? (theme === 'dark' ? '1px solid rgba(148, 163, 184, 0.30)' : '1px solid rgba(148, 163, 184, 0.35)')
+                          : '1px solid rgba(37, 99, 235, 0.24)',
+                        borderRadius: '999px',
+                        padding: isMobile ? '0 14px' : '0 16px',
+                        height: isMobile ? '38px' : '40px',
+                        color: isMediaDisabled
+                          ? (theme === 'dark' ? '#cbd5e1' : '#475569')
+                          : 'var(--primary)',
+                        cursor: isMediaDisabled ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        fontSize: '0.84rem',
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
+                      }}
+                    >
+                      <ImageIcon size={17} style={{ flexShrink: 0, color: 'currentColor', stroke: 'currentColor' }} />
+                      {isMobile ? (
+                        <>
+                          {newPostImages.length > 0 && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>メディア ({newPostImages.length})</span>}
+                          {selectedVideoFile !== null && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>動画 (1)</span>}
+                          {newPostImages.length === 0 && selectedVideoFile === null && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>メディア</span>}
+                        </>
+                      ) : (
+                        <span>
+                          {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })()}
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -4207,43 +4224,53 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   style={{ display: 'none' }} 
                 />
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setShowPollComposer(!showPollComposer);
-                  }}
-                  disabled={newPostImages.length > 0 || selectedVideoFile !== null}
-                  className="composer-interactive-btn"
-                  style={{
-                    background: showPollComposer ? 'rgba(37, 99, 235, 0.16)' : 'rgba(37, 99, 235, 0.08)',
-                    border: showPollComposer ? '1px solid var(--primary)' : '1px solid rgba(37, 99, 235, 0.18)',
-                    borderRadius: '999px',
-                    padding: isMobile ? '0 14px' : '0 16px',
-                    height: isMobile ? '38px' : '40px',
-                    color: 'var(--primary)',
-                    cursor: (newPostImages.length > 0 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    opacity: (newPostImages.length > 0 || selectedVideoFile !== null) ? 0.5 : 1,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0
-                  }}
-                >
-                  <BarChart2 size={17} style={{ transform: 'rotate(90deg)', flexShrink: 0 }} />
-                  <span>アンケート</span>
-                </button>
+                {(() => {
+                  const isPollDisabled = newPostImages.length > 0 || selectedVideoFile !== null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setShowPollComposer(!showPollComposer);
+                      }}
+                      disabled={isPollDisabled}
+                      className="composer-interactive-btn composer-attach-btn"
+                      style={{
+                        background: isPollDisabled
+                          ? (theme === 'dark' ? 'rgba(148, 163, 184, 0.16)' : 'rgba(148, 163, 184, 0.18)')
+                          : (showPollComposer ? 'rgba(37, 99, 235, 0.18)' : 'rgba(37, 99, 235, 0.10)'),
+                        border: isPollDisabled
+                          ? (theme === 'dark' ? '1px solid rgba(148, 163, 184, 0.30)' : '1px solid rgba(148, 163, 184, 0.35)')
+                          : (showPollComposer ? '1px solid var(--primary)' : '1px solid rgba(37, 99, 235, 0.24)'),
+                        borderRadius: '999px',
+                        padding: isMobile ? '0 14px' : '0 16px',
+                        height: isMobile ? '38px' : '40px',
+                        color: isPollDisabled
+                          ? (theme === 'dark' ? '#cbd5e1' : '#475569')
+                          : 'var(--primary)',
+                        cursor: isPollDisabled ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        fontSize: '0.84rem',
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
+                      }}
+                    >
+                      <BarChart2 size={17} style={{ transform: 'rotate(90deg)', flexShrink: 0, color: 'currentColor', stroke: 'currentColor' }} />
+                      <span>アンケート</span>
+                    </button>
+                  );
+                })()}
               </div>
 
               {showPollComposer && (
                 <div 
                   className="glass" 
                   style={{ 
-                    padding: '16px', 
+                    padding: '14px 16px', 
                     borderRadius: '20px', 
                     background: theme === 'dark' ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.025)', 
                     border: '1px solid var(--glass-border)',
@@ -4253,8 +4280,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     animation: 'composerDrawerIn 0.26s cubic-bezier(0.22, 1, 0.36, 1)'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <BarChart2 size={16} style={{ color: 'var(--primary)', transform: 'rotate(90deg)' }} />
                       <span>アンケート設定</span>
                     </span>
@@ -4343,7 +4370,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     </button>
                   )}
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginTop: '4px', borderTop: '1px solid var(--glass-border)', paddingTop: '10px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginTop: '2px', borderTop: '1px solid var(--glass-border)', paddingTop: '10px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>投票期間:</span>
                       <select 
@@ -4405,12 +4432,12 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
               )}
 
-              {/* Dedicated Announcement Expiration Date/Time Section (Admin Announcement Mode Only) */}
+              {/* Dedicated Announcement Expiration Date/Time Section (Compact 1-Row Dropdown UI) */}
               {composerMode === 'announcement' && currentUser.role === 'admin' && (
                 <div
                   style={{
-                    padding: isMobile ? '12px 14px' : '14px 16px',
-                    borderRadius: '20px',
+                    padding: isMobile ? '10px 14px' : '12px 16px',
+                    borderRadius: '18px',
                     background: theme === 'dark'
                       ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.10) 0%, rgba(15, 23, 42, 0.55) 100%)'
                       : 'linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, rgba(241, 245, 249, 0.8) 100%)',
@@ -4421,87 +4448,40 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     animation: 'composerDrawerIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                    <Clock size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                      掲載終了日時（有効期限）
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <Clock size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        掲載終了日時:
+                      </span>
+                    </div>
+
+                    <select
+                      value={announcementPresetKey}
+                      onChange={(e) => applyAnnouncementExpiryPreset(e.target.value)}
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '12px',
+                        padding: '6px 12px',
+                        color: 'var(--input-text)',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="indefinite">無期限</option>
+                      <option value="1h">1時間後</option>
+                      <option value="today">今日中</option>
+                      <option value="tomorrow">明日まで</option>
+                      <option value="7d">1週間後</option>
+                      <option value="custom">日時を指定...</option>
+                    </select>
                   </div>
 
-                  {/* Single-Row Horizontally Scrollable Preset Chips */}
-                  <div
-                    className="composer-preset-scroll"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      flexWrap: 'nowrap',
-                      overflowX: 'auto',
-                      padding: '6px 4px',
-                      margin: '-4px -4px',
-                      scrollbarWidth: 'none',
-                      msOverflowStyle: 'none',
-                      WebkitOverflowScrolling: 'touch'
-                    }}
-                  >
-                    {[
-                      { key: 'indefinite', label: '無期限', prefix: '∞' },
-                      { key: '1h', label: '1時間後' },
-                      { key: 'today', label: '今日中' },
-                      { key: 'tomorrow', label: '明日まで' },
-                      { key: '7d', label: '1週間後' },
-                      { key: 'custom', label: '日時指定' }
-                    ].map(preset => {
-                      const isActive =
-                        (preset.key === 'indefinite' && !announcementExpiresAt && announcementPresetKey === 'indefinite') ||
-                        (preset.key !== 'indefinite' && announcementPresetKey === preset.key && !!announcementExpiresAt);
-                      return (
-                        <button
-                          key={preset.key}
-                          type="button"
-                          onClick={() => applyAnnouncementExpiryPreset(preset.key)}
-                          className="composer-preset-chip"
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '999px',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            lineHeight: 1.2,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            border: isActive
-                              ? '1px solid var(--primary)'
-                              : '1px solid var(--glass-border)',
-                            background: isActive
-                              ? 'var(--primary)'
-                              : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : '#ffffff'),
-                            color: isActive ? '#ffffff' : 'var(--text-main)',
-                            boxShadow: isActive ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none',
-                            transition: 'background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease'
-                          }}
-                        >
-                          {preset.prefix && (
-                            <span style={{
-                              fontSize: '0.92rem',
-                              fontWeight: 900,
-                              lineHeight: 1,
-                              color: isActive ? '#ffffff' : 'var(--primary)'
-                            }}>
-                              {preset.prefix}
-                            </span>
-                          )}
-                          <span style={{ color: isActive ? '#ffffff' : 'inherit' }}>{preset.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* DateTime Picker Input: Only rendered when a date/time is active (hidden when "∞ 無期限" is selected) */}
-                  {(announcementPresetKey !== 'indefinite' || !!announcementExpiresAt) && (
+                  {/* DateTime Picker Input: Only rendered when "日時を指定..." ('custom') is selected */}
+                  {announcementPresetKey === 'custom' && (
                     <div
                       style={{
                         display: 'flex',
@@ -4522,8 +4502,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           }}
                           style={{
                             width: '100%',
-                            padding: '9px 12px 9px 34px',
-                            borderRadius: '13px',
+                            padding: '8px 12px 8px 34px',
+                            borderRadius: '12px',
                             background: 'var(--input-bg)',
                             border: '1px solid var(--glass-border)',
                             color: 'var(--input-text)',
@@ -4699,14 +4679,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         .composer-interactive-btn:active:not(:disabled) {
           transform: scale(0.94) !important;
         }
-        .composer-preset-scroll::-webkit-scrollbar {
-          display: none;
-        }
-        .composer-preset-chip {
-          transform: none !important;
-        }
-        .composer-preset-chip:active:not(:disabled) {
-          transform: scale(0.95) !important;
+        button.composer-attach-btn:disabled {
+          opacity: 0.55 !important;
         }
         textarea.composer-textarea,
         :root[data-theme='light'] textarea.composer-textarea,
