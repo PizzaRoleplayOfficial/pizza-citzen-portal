@@ -635,11 +635,7 @@ export default function App() {
   const handleMobilePlusClick = () => {
     triggerHaptic('medium');
     if (view === 'timeline') {
-      if (currentUser?.role === 'admin') {
-        setShowQuickActionSheet(true);
-      } else {
-        setTriggerTimelineComposer('post');
-      }
+      setTriggerTimelineComposer('post');
     } else {
       setShowQuickActionSheet(true);
     }

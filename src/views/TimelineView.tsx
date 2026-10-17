@@ -3995,16 +3995,19 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               </div>
 
               {/* Main Content Input Card (Expanded Height) */}
-              <div style={{
-                display: 'flex',
-                gap: isMobile ? '12px' : '14px',
-                alignItems: 'flex-start',
-                padding: isMobile ? '14px' : '18px',
-                borderRadius: '22px',
-                background: theme === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 23, 42, 0.025)',
-                border: '1px solid var(--glass-border)',
-                transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
-              }}>
+              <div
+                className="composer-input-card"
+                style={{
+                  display: 'flex',
+                  gap: isMobile ? '12px' : '14px',
+                  alignItems: 'flex-start',
+                  padding: isMobile ? '14px' : '18px',
+                  borderRadius: '22px',
+                  background: theme === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 23, 42, 0.025)',
+                  border: '1px solid var(--glass-border)',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
+                }}
+              >
                 <img 
                   src={currentUser.avatar} 
                   alt="Avatar" 
@@ -4012,7 +4015,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   style={{
                     width: isMobile ? '42px' : '46px',
                     height: isMobile ? '42px' : '46px',
-                    borderRadius: '15px',
+                    borderRadius: '50%',
                     background: '#fff',
                     objectFit: 'cover',
                     flexShrink: 0,
@@ -4021,6 +4024,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
                   <textarea
+                    className="composer-textarea"
                     value={newPostContent}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -4038,13 +4042,16 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     style={{
                       width: '100%',
                       minHeight: isMobile ? '134px' : '156px',
+                      padding: '2px 6px',
+                      borderRadius: '6px',
                       background: 'transparent',
                       border: 'none',
                       color: 'var(--text-main)',
                       fontSize: isMobile ? '1rem' : '1.05rem',
                       resize: 'none',
                       outline: 'none',
-                      lineHeight: 1.55
+                      lineHeight: 1.55,
+                      boxSizing: 'border-box'
                     }}
                   />
                   
@@ -4423,12 +4430,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
 
                   {/* Single-Row Horizontally Scrollable Preset Chips */}
                   <div
+                    className="composer-preset-scroll"
                     style={{
                       display: 'flex',
+                      alignItems: 'center',
                       gap: '6px',
                       flexWrap: 'nowrap',
                       overflowX: 'auto',
-                      paddingBottom: '2px',
+                      padding: '6px 4px',
+                      margin: '-4px -4px',
                       scrollbarWidth: 'none',
                       msOverflowStyle: 'none',
                       WebkitOverflowScrolling: 'touch'
@@ -4450,12 +4460,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                           key={preset.key}
                           type="button"
                           onClick={() => applyAnnouncementExpiryPreset(preset.key)}
-                          className="composer-interactive-btn"
+                          className="composer-preset-chip"
                           style={{
                             padding: '6px 12px',
                             borderRadius: '999px',
                             fontSize: '0.78rem',
                             fontWeight: 700,
+                            lineHeight: 1.2,
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
                             flexShrink: 0,
@@ -4469,8 +4480,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                               ? 'var(--primary)'
                               : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : '#ffffff'),
                             color: isActive ? '#ffffff' : 'var(--text-main)',
-                            boxShadow: isActive ? '0 3px 10px rgba(37, 99, 235, 0.28)' : 'none',
-                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                            boxShadow: isActive ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none',
+                            transition: 'background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease'
                           }}
                         >
                           {preset.prefix && (
@@ -4687,6 +4698,31 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         }
         .composer-interactive-btn:active:not(:disabled) {
           transform: scale(0.94) !important;
+        }
+        .composer-preset-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .composer-preset-chip {
+          transform: none !important;
+        }
+        .composer-preset-chip:active:not(:disabled) {
+          transform: scale(0.95) !important;
+        }
+        textarea.composer-textarea,
+        :root[data-theme='light'] textarea.composer-textarea,
+        :root[data-theme='dark'] textarea.composer-textarea,
+        :root[data-theme='light'] textarea.composer-textarea:focus,
+        :root[data-theme='dark'] textarea.composer-textarea:focus {
+          border-radius: 6px !important;
+          padding: 2px 6px !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+          outline: none !important;
+        }
+        .composer-input-card:focus-within {
+          border-color: var(--primary) !important;
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22) !important;
         }
       `}</style>
 

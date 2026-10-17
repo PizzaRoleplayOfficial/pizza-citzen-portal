@@ -2058,7 +2058,7 @@ body.lite-mode .wiki-fallback-badge {
   z-index: 2000;
   display: flex;
   align-items: flex-end;
-  justifyContent: center;
+  justify-content: center;
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -2070,6 +2070,7 @@ body.lite-mode .wiki-fallback-badge {
   padding: 24px 16px calc(24px + var(--safe-bottom));
   width: 100%;
   max-width: 500px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2094,7 +2095,7 @@ body.lite-mode .wiki-fallback-badge {
   cursor: pointer;
   display: flex;
   align-items: center;
-  justifyContent: center;
+  justify-content: center;
   gap: 10px;
   transition: background 0.2s, transform 0.1s;
 }
@@ -2140,14 +2141,15 @@ body.lite-mode .wiki-fallback-badge {
   z-index: 9999;
   display: flex;
   align-items: flex-end;
-  justifyContent: center;
+  justify-content: center;
   animation: fadeIn 0.2s ease-out;
   padding: 0 16px calc(16px + var(--safe-bottom));
 }
 
 .mobile-action-sheet-container {
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2203,7 +2205,7 @@ body.lite-mode .wiki-fallback-badge {
   font-weight: 600;
   display: flex;
   align-items: center;
-  justifyContent: center;
+  justify-content: center;
   gap: 10px;
   cursor: pointer;
   transition: background-color 0.15s;
