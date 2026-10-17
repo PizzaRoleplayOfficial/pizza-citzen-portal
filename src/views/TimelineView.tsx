@@ -937,6 +937,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       setAnnouncementExpiresAt('');
       return;
     }
+    if (preset === 'custom') {
+      if (!announcementExpiresAt) {
+        const defaultTarget = new Date(now);
+        defaultTarget.setDate(defaultTarget.getDate() + 1);
+        defaultTarget.setHours(23, 59, 0, 0);
+        setAnnouncementExpiresAt(toLocalDateTimeInputValue(defaultTarget));
+      }
+      return;
+    }
     const target = new Date(now);
     if (preset === '1h') {
       target.setHours(target.getHours() + 1);
@@ -3861,68 +3870,106 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
               )}
 
-              {/* Modal Header */}
+              {/* Top Bar: Mode Switcher Tabs (Admin) + Close Button */}
               <div style={{
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                borderBottom: '1px solid var(--glass-border)',
-                paddingBottom: isMobile ? '12px' : '14px',
-                gap: '12px'
+                justifyContent: 'space-between',
+                gap: '10px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                  <div
-                    key={composerMode}
-                    style={{
-                      width: isMobile ? '36px' : '40px',
-                      height: isMobile ? '36px' : '40px',
-                      borderRadius: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: composerMode === 'announcement'
-                        ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(245, 158, 11, 0.18) 100%)'
-                        : 'rgba(37, 99, 235, 0.1)',
-                      border: composerMode === 'announcement'
-                        ? '1px solid rgba(37, 99, 235, 0.35)'
-                        : '1px solid rgba(37, 99, 235, 0.15)',
-                      color: 'var(--primary)',
-                      flexShrink: 0,
-                      animation: 'composerIconPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                    }}
-                  >
-                    {composerMode === 'announcement' ? (
-                      <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>📢</span>
-                    ) : (
-                      <MessageSquare size={18} />
-                    )}
+                {currentUser.role === 'admin' ? (
+                  <div style={{
+                    flex: 1,
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '6px',
+                    padding: '4px',
+                    borderRadius: '16px',
+                    background: theme === 'dark' ? 'rgba(0, 0, 0, 0.32)' : 'rgba(15, 23, 42, 0.06)',
+                    border: '1px solid var(--glass-border)'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setComposerMode('post');
+                        setIsAnnouncement(false);
+                      }}
+                      className="composer-interactive-btn"
+                      style={{
+                        padding: isMobile ? '9px 10px' : '10px 14px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 800,
+                        fontSize: isMobile ? '0.84rem' : '0.88rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                        background: composerMode === 'post'
+                          ? (theme === 'dark' ? 'rgba(255, 255, 255, 0.14)' : '#ffffff')
+                          : 'transparent',
+                        color: composerMode === 'post' ? 'var(--text-main)' : 'var(--text-muted)',
+                        boxShadow: composerMode === 'post' ? '0 2px 10px rgba(0, 0, 0, 0.12)' : 'none',
+                        transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)'
+                      }}
+                    >
+                      <MessageSquare size={15} style={{ flexShrink: 0, color: 'currentColor', stroke: 'currentColor' }} />
+                      <span>通常ポスト</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('medium');
+                        setComposerMode('announcement');
+                        setIsAnnouncement(true);
+                      }}
+                      className="composer-interactive-btn"
+                      style={{
+                        padding: isMobile ? '9px 10px' : '10px 14px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 800,
+                        fontSize: isMobile ? '0.84rem' : '0.88rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                        background: composerMode === 'announcement'
+                          ? 'var(--primary)'
+                          : 'transparent',
+                        color: composerMode === 'announcement' ? '#ffffff' : 'var(--text-muted)',
+                        boxShadow: composerMode === 'announcement' ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none',
+                        transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)'
+                      }}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke={composerMode === 'announcement' ? '#ffffff' : 'currentColor'}
+                        strokeWidth="2.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ flexShrink: 0 }}
+                      >
+                        <path d="m3 11 18-5v12L3 14v-3z" />
+                        <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                      </svg>
+                      <span style={{ color: composerMode === 'announcement' ? '#ffffff' : 'inherit' }}>告知を作成</span>
+                    </button>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: isMobile ? '1.05rem' : '1.15rem' }}>
-                        {composerMode === 'announcement' ? '告知を作成（運営専用）' : '新規ポストを作成'}
-                      </span>
-                      {composerMode === 'announcement' && (
-                        <span style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          background: 'rgba(37, 99, 235, 0.15)',
-                          color: 'var(--primary)',
-                          border: '1px solid rgba(37, 99, 235, 0.3)'
-                        }}>
-                          トップ固定表示
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
-                      {composerMode === 'announcement'
-                        ? 'タイムライン最上部に固定され、指定日時に自動消去できます'
-                        : '市民タイムラインへひとりごとや写真・動画をシェア'}
-                    </span>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                    <MessageSquare size={17} style={{ color: 'var(--primary)' }} />
+                    <span>通常ポスト</span>
                   </div>
-                </div>
+                )}
 
                 <button
                   type="button"
@@ -3930,15 +3977,15 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   disabled={isSubmitting}
                   className="composer-interactive-btn"
                   style={{
-                    background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                    background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                     border: 'none',
                     color: 'var(--text-muted)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '34px',
-                    height: '34px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '50%',
                     flexShrink: 0
                   }}
@@ -3947,88 +3994,14 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </button>
               </div>
 
-              {/* Admin-only Window Mode Switcher (Hidden for general users) */}
-              {currentUser.role === 'admin' && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '6px',
-                  padding: '4px',
-                  borderRadius: '18px',
-                  background: theme === 'dark' ? 'rgba(0, 0, 0, 0.28)' : 'rgba(15, 23, 42, 0.05)',
-                  border: '1px solid var(--glass-border)'
-                }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setComposerMode('post');
-                      setIsAnnouncement(false);
-                    }}
-                    className="composer-interactive-btn"
-                    style={{
-                      padding: isMobile ? '9px 12px' : '10px 14px',
-                      borderRadius: '14px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontWeight: 800,
-                      fontSize: '0.84rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      background: composerMode === 'post'
-                        ? (theme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : '#ffffff')
-                        : 'transparent',
-                      color: composerMode === 'post' ? 'var(--text-main)' : 'var(--text-muted)',
-                      boxShadow: composerMode === 'post' ? '0 2px 10px rgba(0, 0, 0, 0.12)' : 'none',
-                      transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)'
-                    }}
-                  >
-                    <MessageSquare size={15} />
-                    <span>通常ポスト</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('medium');
-                      setComposerMode('announcement');
-                      setIsAnnouncement(true);
-                    }}
-                    className="composer-interactive-btn"
-                    style={{
-                      padding: isMobile ? '9px 12px' : '10px 14px',
-                      borderRadius: '14px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontWeight: 800,
-                      fontSize: '0.84rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      background: composerMode === 'announcement'
-                        ? 'var(--primary)'
-                        : 'transparent',
-                      color: composerMode === 'announcement' ? '#ffffff' : 'var(--text-muted)',
-                      boxShadow: composerMode === 'announcement' ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none',
-                      transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)'
-                    }}
-                  >
-                    <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>📢</span>
-                    <span>告知を作成（運営専用）</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Main Content Input Card */}
+              {/* Main Content Input Card (Expanded Height) */}
               <div style={{
                 display: 'flex',
                 gap: isMobile ? '12px' : '14px',
                 alignItems: 'flex-start',
-                padding: isMobile ? '12px' : '16px',
+                padding: isMobile ? '14px' : '18px',
                 borderRadius: '22px',
-                background: theme === 'dark' ? 'rgba(255, 255, 255, 0.025)' : 'rgba(15, 23, 42, 0.025)',
+                background: theme === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 23, 42, 0.025)',
                 border: '1px solid var(--glass-border)',
                 transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
               }}>
@@ -4037,9 +4010,9 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                   alt="Avatar" 
                   onError={(e) => handleAvatarError(e, currentUser.username)} 
                   style={{
-                    width: isMobile ? '42px' : '48px',
-                    height: isMobile ? '42px' : '48px',
-                    borderRadius: '16px',
+                    width: isMobile ? '42px' : '46px',
+                    height: isMobile ? '42px' : '46px',
+                    borderRadius: '15px',
                     background: '#fff',
                     objectFit: 'cover',
                     flexShrink: 0,
@@ -4058,13 +4031,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     onKeyDown={handleKeyDown}
                     placeholder={
                       composerMode === 'announcement'
-                        ? '📢 市民への重要なお知らせ・イベント告知を入力...（画像のコピペもOK）'
+                        ? '市民への重要なお知らせ・イベント告知を入力...（画像のコピペもOK）'
                         : 'いまどうしてる？（コピペでの画像追加もOK）'
                     }
                     maxLength={280}
                     style={{
                       width: '100%',
-                      minHeight: isMobile ? '92px' : '110px',
+                      minHeight: isMobile ? '134px' : '156px',
                       background: 'transparent',
                       border: 'none',
                       color: 'var(--text-main)',
@@ -4179,153 +4152,85 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
               </div>
 
-              {/* Dedicated Announcement Expiration Date/Time Section (Admin Announcement Mode Only) */}
-              {composerMode === 'announcement' && currentUser.role === 'admin' && (
-                <div
+              {/* Media & Poll Attachment Buttons (Placed directly below content input area) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer}
+                  className="composer-interactive-btn"
                   style={{
-                    padding: isMobile ? '14px' : '16px 18px',
-                    borderRadius: '22px',
-                    background: theme === 'dark'
-                      ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.10) 0%, rgba(15, 23, 42, 0.55) 100%)'
-                      : 'linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, rgba(241, 245, 249, 0.8) 100%)',
-                    border: '1px solid rgba(37, 99, 235, 0.28)',
+                    background: 'rgba(37, 99, 235, 0.08)',
+                    border: '1px solid rgba(37, 99, 235, 0.18)',
+                    borderRadius: '999px',
+                    padding: isMobile ? '0 14px' : '0 16px',
+                    height: isMobile ? '38px' : '40px',
+                    color: 'var(--primary)',
+                    cursor: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 'not-allowed' : 'pointer',
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    animation: 'composerDrawerIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)'
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    opacity: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 0.5 : 1,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Clock size={17} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                        掲載終了日時（有効期限）
-                      </span>
-                    </div>
-                    <span style={{
-                      fontSize: '0.73rem',
-                      fontWeight: 800,
-                      padding: '3px 10px',
-                      borderRadius: '999px',
-                      background: announcementExpiresAt
-                        ? 'rgba(245, 158, 11, 0.16)'
-                        : 'rgba(16, 185, 129, 0.14)',
-                      color: announcementExpiresAt
-                        ? (theme === 'dark' ? '#fbbf24' : '#d97706')
-                        : (theme === 'dark' ? '#34d399' : '#059669'),
-                      border: announcementExpiresAt
-                        ? '1px solid rgba(245, 158, 11, 0.3)'
-                        : '1px solid rgba(16, 185, 129, 0.25)'
-                    }}>
-                      {announcementExpiresAt
-                        ? `⏰ ${formatExpiryDisplay(announcementExpiresAt)} に自動消去`
-                        : '♾️ 無期限（手動削除まで表示）'}
+                  <ImageIcon size={17} style={{ flexShrink: 0 }} />
+                  {isMobile ? (
+                    <>
+                      {newPostImages.length > 0 && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>メディア ({newPostImages.length})</span>}
+                      {selectedVideoFile !== null && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>動画 (1)</span>}
+                      {newPostImages.length === 0 && selectedVideoFile === null && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>メディア</span>}
+                    </>
+                  ) : (
+                    <span>
+                      {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
                     </span>
-                  </div>
+                  )}
+                </button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileSelect}
+                  multiple 
+                  accept="image/*,video/*" 
+                  style={{ display: 'none' }} 
+                />
 
-                  {/* Quick Preset Pills */}
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {[
-                      { key: 'indefinite', label: '♾️ 無期限' },
-                      { key: '1h', label: '1時間後' },
-                      { key: 'today', label: '今日 23:59' },
-                      { key: 'tomorrow', label: '明日 23:59' },
-                      { key: '3d', label: '3日後' },
-                      { key: '7d', label: '1週間後' }
-                    ].map(preset => {
-                      const isActive = (preset.key === 'indefinite' && !announcementExpiresAt) ||
-                                       (preset.key !== 'indefinite' && announcementPresetKey === preset.key && !!announcementExpiresAt);
-                      return (
-                        <button
-                          key={preset.key}
-                          type="button"
-                          onClick={() => applyAnnouncementExpiryPreset(preset.key)}
-                          className="composer-interactive-btn"
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '999px',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: isActive
-                              ? '1px solid var(--primary)'
-                              : '1px solid var(--glass-border)',
-                            background: isActive
-                              ? 'var(--primary)'
-                              : (theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#ffffff'),
-                            color: isActive ? '#ffffff' : 'var(--text-main)',
-                            boxShadow: isActive ? '0 3px 10px rgba(37, 99, 235, 0.28)' : 'none',
-                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                          }}
-                        >
-                          {preset.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Custom DateTime Picker Input */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', flex: 1, minWidth: '210px', display: 'flex', alignItems: 'center' }}>
-                      <Calendar size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-                      <input
-                        type="datetime-local"
-                        value={announcementExpiresAt}
-                        min={toLocalDateTimeInputValue(new Date())}
-                        onChange={(e) => {
-                          setAnnouncementPresetKey('custom');
-                          setAnnouncementExpiresAt(e.target.value);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px 10px 36px',
-                          borderRadius: '14px',
-                          background: 'var(--input-bg)',
-                          border: '1px solid var(--glass-border)',
-                          color: 'var(--input-text)',
-                          fontSize: '0.9rem',
-                          fontWeight: 600,
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                    {announcementExpiresAt && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('light');
-                          setAnnouncementExpiresAt('');
-                          setAnnouncementPresetKey('indefinite');
-                        }}
-                        className="composer-interactive-btn"
-                        style={{
-                          padding: '10px 14px',
-                          borderRadius: '14px',
-                          background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-                          border: '1px solid var(--glass-border)',
-                          color: 'var(--text-muted)',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        <X size={14} />
-                        <span>無期限に戻す</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-                    {announcementExpiresAt
-                      ? `※ 指定した日時（${formatExpiryDisplay(announcementExpiresAt)}）を過ぎると、タイムライン上から自動的に消去（非表示）されます。`
-                      : '※ 終了日時を指定しない場合は、手動で削除するまで無期限でタイムライン最上部に固定表示されます。'}
-                  </div>
-                </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setShowPollComposer(!showPollComposer);
+                  }}
+                  disabled={newPostImages.length > 0 || selectedVideoFile !== null}
+                  className="composer-interactive-btn"
+                  style={{
+                    background: showPollComposer ? 'rgba(37, 99, 235, 0.16)' : 'rgba(37, 99, 235, 0.08)',
+                    border: showPollComposer ? '1px solid var(--primary)' : '1px solid rgba(37, 99, 235, 0.18)',
+                    borderRadius: '999px',
+                    padding: isMobile ? '0 14px' : '0 16px',
+                    height: isMobile ? '38px' : '40px',
+                    color: 'var(--primary)',
+                    cursor: (newPostImages.length > 0 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    opacity: (newPostImages.length > 0 || selectedVideoFile !== null) ? 0.5 : 1,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                >
+                  <BarChart2 size={17} style={{ transform: 'rotate(90deg)', flexShrink: 0 }} />
+                  <span>アンケート</span>
+                </button>
+              </div>
 
               {showPollComposer && (
                 <div 
@@ -4493,180 +4398,241 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
               )}
 
-              {/* Creator Actions Toolbar */}
+              {/* Dedicated Announcement Expiration Date/Time Section (Admin Announcement Mode Only) */}
+              {composerMode === 'announcement' && currentUser.role === 'admin' && (
+                <div
+                  style={{
+                    padding: isMobile ? '12px 14px' : '14px 16px',
+                    borderRadius: '20px',
+                    background: theme === 'dark'
+                      ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.10) 0%, rgba(15, 23, 42, 0.55) 100%)'
+                      : 'linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, rgba(241, 245, 249, 0.8) 100%)',
+                    border: '1px solid rgba(37, 99, 235, 0.26)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    animation: 'composerDrawerIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <Clock size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      掲載終了日時（有効期限）
+                    </span>
+                  </div>
+
+                  {/* Single-Row Horizontally Scrollable Preset Chips */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '6px',
+                      flexWrap: 'nowrap',
+                      overflowX: 'auto',
+                      paddingBottom: '2px',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none',
+                      WebkitOverflowScrolling: 'touch'
+                    }}
+                  >
+                    {[
+                      { key: 'indefinite', label: '無期限', prefix: '∞' },
+                      { key: '1h', label: '1時間後' },
+                      { key: 'today', label: '今日中' },
+                      { key: 'tomorrow', label: '明日まで' },
+                      { key: '7d', label: '1週間後' },
+                      { key: 'custom', label: '日時指定' }
+                    ].map(preset => {
+                      const isActive =
+                        (preset.key === 'indefinite' && !announcementExpiresAt && announcementPresetKey === 'indefinite') ||
+                        (preset.key !== 'indefinite' && announcementPresetKey === preset.key && !!announcementExpiresAt);
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => applyAnnouncementExpiryPreset(preset.key)}
+                          className="composer-interactive-btn"
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '999px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            border: isActive
+                              ? '1px solid var(--primary)'
+                              : '1px solid var(--glass-border)',
+                            background: isActive
+                              ? 'var(--primary)'
+                              : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                            color: isActive ? '#ffffff' : 'var(--text-main)',
+                            boxShadow: isActive ? '0 3px 10px rgba(37, 99, 235, 0.28)' : 'none',
+                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                          }}
+                        >
+                          {preset.prefix && (
+                            <span style={{
+                              fontSize: '0.92rem',
+                              fontWeight: 900,
+                              lineHeight: 1,
+                              color: isActive ? '#ffffff' : 'var(--primary)'
+                            }}>
+                              {preset.prefix}
+                            </span>
+                          )}
+                          <span style={{ color: isActive ? '#ffffff' : 'inherit' }}>{preset.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* DateTime Picker Input: Only rendered when a date/time is active (hidden when "∞ 無期限" is selected) */}
+                  {(announcementPresetKey !== 'indefinite' || !!announcementExpiresAt) && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        animation: 'composerDrawerIn 0.22s cubic-bezier(0.22, 1, 0.36, 1)'
+                      }}
+                    >
+                      <div style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                        <Calendar size={15} style={{ position: 'absolute', left: '12px', color: 'var(--primary)', pointerEvents: 'none' }} />
+                        <input
+                          type="datetime-local"
+                          value={announcementExpiresAt}
+                          min={toLocalDateTimeInputValue(new Date())}
+                          onChange={(e) => {
+                            setAnnouncementPresetKey('custom');
+                            setAnnouncementExpiresAt(e.target.value);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px 9px 34px',
+                            borderRadius: '13px',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--glass-border)',
+                            color: 'var(--input-text)',
+                            fontSize: '0.88rem',
+                            fontWeight: 600,
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Footer Submit Row */}
               <div style={{ 
                 display: 'flex', 
-                justifyContent: 'space-between', 
+                justifyContent: 'flex-end', 
                 alignItems: 'center', 
-                gap: '10px',
-                flexWrap: 'wrap',
-                paddingTop: '4px'
+                gap: isMobile ? '10px' : '14px',
+                paddingTop: '2px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer}
-                    className="composer-interactive-btn"
-                    style={{
-                      background: 'rgba(37, 99, 235, 0.08)',
-                      border: '1px solid rgba(37, 99, 235, 0.18)',
-                      borderRadius: '999px',
-                      padding: isMobile ? '0 14px' : '0 16px',
-                      height: isMobile ? '40px' : '42px',
-                      color: 'var(--primary)',
-                      cursor: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      opacity: (newPostImages.length >= 4 || selectedVideoFile !== null || showPollComposer) ? 0.5 : 1,
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0
-                    }}
-                  >
-                    <ImageIcon size={18} style={{ flexShrink: 0 }} />
-                    {isMobile ? (
-                      <>
-                        {newPostImages.length > 0 && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>({newPostImages.length})</span>}
-                        {selectedVideoFile !== null && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>(1)</span>}
-                        {newPostImages.length === 0 && selectedVideoFile === null && <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>メディア</span>}
-                      </>
-                    ) : (
-                      <span>
-                        {selectedVideoFile ? '動画添付済み' : `メディア (${newPostImages.length}/4)`}
+                {isCompressingVideo && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, whiteSpace: 'nowrap' }}>圧縮中...</span>
+                  </div>
+                )}
+
+                {isSubmitting && !isCompressingVideo && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>送信中...</span>
+                  </div>
+                )}
+
+                {/* Character Progress Ring */}
+                {charCount > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <svg width={26} height={26} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+                      <circle
+                        cx={13}
+                        cy={13}
+                        r={10}
+                        fill="transparent"
+                        stroke="rgba(148,163,184,0.18)"
+                        strokeWidth={2.5}
+                      />
+                      <circle
+                        cx={13}
+                        cy={13}
+                        r={10}
+                        fill="transparent"
+                        stroke={strokeColor}
+                        strokeWidth={2.5}
+                        strokeDasharray={2 * Math.PI * 10}
+                        strokeDashoffset={2 * Math.PI * 10 - (percentage / 100) * 2 * Math.PI * 10}
+                        style={{ transition: 'stroke-dashoffset 0.15s ease, stroke 0.15s ease' }}
+                      />
+                    </svg>
+                    {charCount >= 240 && (
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: strokeColor }}>
+                        {maxChars - charCount}
                       </span>
                     )}
-                  </button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileSelect}
-                    multiple 
-                    accept="image/*,video/*" 
-                    style={{ display: 'none' }} 
-                  />
+                  </div>
+                )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setShowPollComposer(!showPollComposer);
-                    }}
-                    disabled={newPostImages.length > 0 || selectedVideoFile !== null}
-                    className="composer-interactive-btn"
-                    style={{
-                      background: showPollComposer ? 'rgba(37, 99, 235, 0.16)' : 'rgba(37, 99, 235, 0.08)',
-                      border: showPollComposer ? '1px solid var(--primary)' : '1px solid rgba(37, 99, 235, 0.18)',
-                      borderRadius: '999px',
-                      padding: isMobile ? '0 14px' : '0 16px',
-                      height: isMobile ? '40px' : '42px',
-                      color: 'var(--primary)',
-                      cursor: (newPostImages.length > 0 || selectedVideoFile !== null) ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      opacity: (newPostImages.length > 0 || selectedVideoFile !== null) ? 0.5 : 1,
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0
-                    }}
-                  >
-                    <BarChart2 size={18} style={{ transform: 'rotate(90deg)', flexShrink: 0 }} />
-                    <span>アンケート</span>
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '14px', flexShrink: 0, marginLeft: 'auto' }}>
-                  {isCompressingVideo && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, whiteSpace: 'nowrap' }}>圧縮中...</span>
-                    </div>
-                  )}
-
-                  {isSubmitting && !isCompressingVideo && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Loader2 size={14} className="animate-spin" style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>送信中...</span>
-                    </div>
-                  )}
-
-                  {/* Character Progress Ring */}
-                  {charCount > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                      <svg width={26} height={26} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-                        <circle
-                          cx={13}
-                          cy={13}
-                          r={10}
-                          fill="transparent"
-                          stroke="rgba(148,163,184,0.18)"
-                          strokeWidth={2.5}
-                        />
-                        <circle
-                          cx={13}
-                          cy={13}
-                          r={10}
-                          fill="transparent"
-                          stroke={strokeColor}
-                          strokeWidth={2.5}
-                          strokeDasharray={2 * Math.PI * 10}
-                          strokeDashoffset={2 * Math.PI * 10 - (percentage / 100) * 2 * Math.PI * 10}
-                          style={{ transition: 'stroke-dashoffset 0.15s ease, stroke 0.15s ease' }}
-                        />
+                <button
+                  type="submit"
+                  disabled={isSubmitDisabled}
+                  className="btn btn-primary composer-interactive-btn"
+                  style={{
+                    padding: isMobile ? '0 20px' : '0 24px',
+                    height: isMobile ? '42px' : '44px',
+                    borderRadius: '999px',
+                    fontSize: '0.9rem',
+                    fontWeight: 800,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
+                    opacity: isSubmitDisabled ? 0.55 : 1,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    boxShadow: isSubmitDisabled ? 'none' : '0 6px 20px rgba(37, 99, 235, 0.35)'
+                  }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" style={{ flexShrink: 0, color: '#ffffff', stroke: '#ffffff' }} />
+                      <span style={{ color: '#ffffff' }}>送信中...</span>
+                    </>
+                  ) : composerMode === 'announcement' ? (
+                    <>
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#ffffff"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ flexShrink: 0 }}
+                      >
+                        <path d="m3 11 18-5v12L3 14v-3z" />
+                        <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
                       </svg>
-                      {charCount >= 240 && (
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: strokeColor }}>
-                          {maxChars - charCount}
-                        </span>
-                      )}
-                    </div>
+                      <span style={{ color: '#ffffff' }}>告知を公開</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} style={{ flexShrink: 0, color: '#ffffff', stroke: '#ffffff' }} />
+                      <span style={{ color: '#ffffff' }}>ポストする</span>
+                    </>
                   )}
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitDisabled}
-                    className="btn btn-primary composer-interactive-btn"
-                    style={{
-                      padding: isMobile ? '0 18px' : '0 24px',
-                      height: isMobile ? '40px' : '42px',
-                      borderRadius: '999px',
-                      fontSize: '0.9rem',
-                      fontWeight: 800,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
-                      opacity: isSubmitDisabled ? 0.55 : 1,
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                      boxShadow: isSubmitDisabled ? 'none' : '0 6px 20px rgba(37, 99, 235, 0.35)'
-                    }}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" style={{ flexShrink: 0 }} />
-                        <span>送信中...</span>
-                      </>
-                    ) : composerMode === 'announcement' ? (
-                      <>
-                        <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>📢</span>
-                        <span>告知を公開</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send size={16} style={{ flexShrink: 0 }} />
-                        <span>ポストする</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                </button>
               </div>
             </form>
           </div>
