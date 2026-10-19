@@ -1338,14 +1338,14 @@ h2, h3, h4 {
     min-height: 100% !important;
   }
 
-  /* Enforce contain layout on mobile to prevent any cropping of wheels or bumper for varying resolutions */
+  /* Enforce cover layout on mobile so vehicle thumbnails fill the full card width cleanly */
   .card-grid .garage-card-image div,
   .card-grid .garage-card-image .image-gallery div,
   .card-grid .garage-card-image .wiki-fallback-image,
   .list-view .garage-card-image div,
   .list-view .garage-card-image .image-gallery div,
   .list-view .garage-card-image .wiki-fallback-image {
-    background-size: contain !important;
+    background-size: cover !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
     background-color: var(--image-bg) !important;
@@ -3040,3 +3040,131 @@ body.is-desktop .desktop-titlebar {
 body.is-desktop .desktop-titlebar * {
   -webkit-app-region: no-drag;
 }
+
+/* ==========================================================================
+   PC Desktop Popover Menu (「＋ 新規作成」 & 「＋ 車両を追加」)
+   ========================================================================== */
+@keyframes popoverScaleIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.desktop-popover-menu {
+  background: rgba(24, 27, 36, 0.96);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 2500;
+  animation: popoverScaleIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme='light'] .desktop-popover-menu {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.desktop-popover-item {
+  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px;
+  padding: 10px 12px !important;
+  border-radius: 9px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #f4f4f5 !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.desktop-popover-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  transform: none !important;
+}
+
+:root[data-theme='light'] .desktop-popover-item {
+  color: #1f2937 !important;
+}
+
+:root[data-theme='light'] .desktop-popover-item:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: #1e3a8a !important;
+}
+
+.desktop-popover-icon {
+  color: rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.desktop-popover-item:hover .desktop-popover-icon {
+  color: #ffffff;
+}
+
+:root[data-theme='light'] .desktop-popover-icon {
+  color: #4b5563;
+}
+
+:root[data-theme='light'] .desktop-popover-item:hover .desktop-popover-icon {
+  color: #2563eb;
+}
+
+/* ==========================================================================
+   Garage Vehicle Card Full-Width Edge-to-Edge Thumbnail
+   ========================================================================== */
+:root[data-theme='light'] .card-grid .garage-card,
+:root[data-theme='dark'] .card-grid .garage-card,
+.card-grid .garage-card {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.garage-card-image {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.garage-card-image > div,
+.garage-card-image .image-gallery,
+.garage-card-image .image-gallery > div,
+.garage-card-image .wiki-fallback-image {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.garage-card-image img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.garage-card-image .wiki-fallback-image {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+

@@ -89,9 +89,9 @@ export const VehicleImageGallery = ({
     }
     if (wikiUrl) {
       return (
-        <div style={{ position: 'relative', height: '180px' }}>
-          <div className="wiki-fallback-image" style={{ height: '100%', backgroundImage: `url(${wikiUrl})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: 'var(--image-bg)' }} />
-          <span className="wiki-fallback-badge" style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.65)', color: '#aaa', fontSize: '0.68rem', padding: '3px 8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', pointerEvents: 'none' }}>
+        <div style={{ position: 'relative', width: '100%', height: '180px', overflow: 'hidden' }}>
+          <div className="wiki-fallback-image" style={{ width: '100%', height: '100%', backgroundImage: `url(${wikiUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: 'var(--image-bg)' }} />
+          <span className="wiki-fallback-badge" style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.65)', color: '#d4d4d8', fontSize: '0.68rem', padding: '3px 8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', pointerEvents: 'none', backdropFilter: 'blur(6px)' }}>
             <ImageIcon size={10} /> Greenville Wiki より参考画像
           </span>
         </div>
@@ -119,14 +119,14 @@ export const VehicleImageGallery = ({
   if (images.length === 1) {
     return (
       <>
-        <div style={{ height: '180px', backgroundColor: 'var(--image-bg)', overflow: 'hidden' }}>
+        <div style={{ width: '100%', height: '180px', backgroundColor: 'var(--image-bg)', overflow: 'hidden' }}>
           <ProgressiveImage
             lowSrc={images[0].low}
             highSrc={images[0].highUrl || images[0].high}
             alt="Vehicle"
             dataSaverEnabled={dataSaverEnabled}
             onClick={e => openAt(e, 0)}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
           />
         </div>
         {isFullscreen && <ImageLightbox images={images.map(img => img.highUrl || img.high)} startIndex={currentIndex} onClose={() => setIsFullscreen(false)} />}
@@ -137,16 +137,16 @@ export const VehicleImageGallery = ({
   if (isMobile) {
     return (
       <>
-        <div className="image-gallery" style={{ height: '180px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', position: 'relative' }}>
+        <div className="image-gallery" style={{ width: '100%', height: '180px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', position: 'relative' }}>
           {images.map((img, i) => (
-            <div key={i} style={{ minWidth: '100%', height: '100%', scrollSnapAlign: 'start', overflow: 'hidden' }}>
+            <div key={i} style={{ minWidth: '100%', width: '100%', height: '100%', scrollSnapAlign: 'start', overflow: 'hidden' }}>
               <ProgressiveImage
                 lowSrc={img.low}
                 highSrc={img.highUrl || img.high}
                 alt={`Vehicle ${i}`}
                 dataSaverEnabled={dataSaverEnabled}
                 onClick={e => openAt(e, i)}
-                style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
               />
             </div>
           ))}
@@ -159,14 +159,14 @@ export const VehicleImageGallery = ({
 
   return (
     <>
-      <div style={{ height: '180px', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ width: '100%', height: '180px', position: 'relative', overflow: 'hidden' }}>
         <ProgressiveImage
           lowSrc={images[currentIndex].low}
           highSrc={images[currentIndex].highUrl || images[currentIndex].high}
           alt="Vehicle"
           dataSaverEnabled={dataSaverEnabled}
           onClick={e => openAt(e, currentIndex)}
-          style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in' }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
         />
         <button onClick={prevImage} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}><ArrowLeft size={16} /></button>
         <button onClick={nextImage} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}><ChevronRight size={16} /></button>

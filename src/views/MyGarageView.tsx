@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon, Loader2, SlidersHorizontal, Filter, X, Car } from 'lucide-react';
+import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon, Loader2, SlidersHorizontal, Filter, X, Car, ChevronDown } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
 import { formatDate, parseUTCDate, normalizeMakerAndModel } from '../utils/helpers';
@@ -146,7 +146,9 @@ export const MyGarageView = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected' | 'temp'>('all');
   const [fabOpen, setFabOpen] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [showAddDropdown, setShowAddDropdown] = useState(false);
   const fabRef = useRef<HTMLDivElement>(null);
+  const addDropdownRef = useRef<HTMLDivElement>(null);
 
   // Pull-to-refresh swipe gesture states
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -192,6 +194,27 @@ export const MyGarageView = ({
       document.removeEventListener('touchstart', handler);
     };
   }, [fabOpen]);
+
+  // PC用「＋ 車両を追加」ドロップダウン：外クリック・Escキーで閉じる
+  useEffect(() => {
+    if (!showAddDropdown) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (addDropdownRef.current && !addDropdownRef.current.contains(e.target as Node)) {
+        setShowAddDropdown(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAddDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showAddDropdown]);
 
   return (
     <>
@@ -288,28 +311,67 @@ export const MyGarageView = ({
                   ✨ 画像から自動登録 (Beta)
                 </button>
               )}
-              {/* Add button: desktop only — mobile uses FAB */}
+              {/* Add button: desktop only — opens compact popover menu directly below */}
               {!isMobile && (
-                garageTab === 'car' ? (
-                  <button className="btn btn-primary" onClick={() => {
-                    triggerHaptic('light');
-                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                    setFormData({ game_type: activeGame, maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
-                    setEditingVehicleId(null);
-                    setShowAddModal(true);
-                  }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem' }}>
-                    <Plus size={20} /> 車両を追加
+                <div ref={addDropdownRef} style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setShowAddDropdown(prev => !prev);
+                    }}
+                    style={{ padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Plus size={19} strokeWidth={2.5} />
+                    <span>車両を追加</span>
+                    <ChevronDown size={15} style={{ marginLeft: '2px', opacity: 0.85, transform: showAddDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
                   </button>
-                ) : (
-                  <button className="btn btn-primary" onClick={() => {
-                    triggerHaptic('light');
-                    if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
-                    setTrailerFormData({ game_type: activeGame, model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
-                    setShowTrailerModal(true);
-                  }} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', background: 'var(--primary)', color: '#000' }}>
-                    <Plus size={20} /> トレーラーを追加
-                  </button>
-                )
+
+                  {showAddDropdown && (
+                    <div
+                      className="desktop-popover-menu"
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 8px)',
+                        right: 0,
+                        minWidth: '220px'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="desktop-popover-item"
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setShowAddDropdown(false);
+                          if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                          setFormData({ game_type: activeGame, maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                          setEditingVehicleId(null);
+                          setShowAddModal(true);
+                        }}
+                      >
+                        <Car size={17} className="desktop-popover-icon" />
+                        <span>車両を手動で登録申請</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="desktop-popover-item"
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setShowAddDropdown(false);
+                          if (!currentUser.roblox_username) { alert("ユーザー名を設定してください"); setView('profile'); return; }
+                          setTrailerFormData({ game_type: activeGame, model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                          setEditingVehicleId(null);
+                          setShowTrailerModal(true);
+                        }}
+                      >
+                        <span className="desktop-popover-icon" style={{ fontSize: '1rem', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '17px' }}>🚛</span>
+                        <span>トレーラーを追加申請</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

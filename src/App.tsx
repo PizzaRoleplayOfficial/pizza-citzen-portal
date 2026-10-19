@@ -630,6 +630,8 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showQuickActionSheet, setShowQuickActionSheet] = useState(false);
+  const [showSidebarCreateMenu, setShowSidebarCreateMenu] = useState(false);
+  const sidebarCreateMenuRef = useRef<HTMLDivElement>(null);
   const [triggerTimelineComposer, setTriggerTimelineComposer] = useState<'post' | 'announcement' | false>(false);
   
   const handleMobilePlusClick = () => {
@@ -640,6 +642,26 @@ export default function App() {
       setShowQuickActionSheet(true);
     }
   };
+
+  useEffect(() => {
+    if (!showSidebarCreateMenu) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (sidebarCreateMenuRef.current && !sidebarCreateMenuRef.current.contains(e.target as Node)) {
+        setShowSidebarCreateMenu(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowSidebarCreateMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showSidebarCreateMenu]);
 
   const [registrationMode, setRegistrationMode] = useState<'normal' | 'temp'>('normal');
   const [showTrailerModal, setShowTrailerModal] = useState(false);
@@ -3642,10 +3664,14 @@ export default function App() {
               </div>
             )}
 
-            {/* PC: 新規作成ボタン（スマホ下部の＋ボタンと同じ挙動） */}
-            <div style={{ marginTop: '16px' }}>
+            {/* PC: 新規作成ボタン（コンパクトなポップオーバーメニューを表示） */}
+            <div ref={sidebarCreateMenuRef} style={{ marginTop: '16px', position: 'relative' }}>
               <button
-                onClick={handleMobilePlusClick}
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setShowSidebarCreateMenu(prev => !prev);
+                }}
                 className="btn btn-primary"
                 style={{
                   width: '100%',
@@ -3679,6 +3705,112 @@ export default function App() {
                 <Plus size={18} strokeWidth={2.6} />
                 {!sidebarCollapsed && <span>新規作成</span>}
               </button>
+
+              {showSidebarCreateMenu && (
+                <div
+                  className="desktop-popover-menu"
+                  style={
+                    sidebarCollapsed
+                      ? {
+                          position: 'absolute',
+                          left: 'calc(100% + 10px)',
+                          bottom: 0,
+                          minWidth: '220px'
+                        }
+                      : {
+                          position: 'absolute',
+                          bottom: 'calc(100% + 8px)',
+                          left: 0,
+                          width: '100%',
+                          minWidth: '215px'
+                        }
+                  }
+                >
+                  <button
+                    type="button"
+                    className="desktop-popover-item"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setShowSidebarCreateMenu(false);
+                      if (view !== 'timeline') {
+                        setView('timeline');
+                        setTimeout(() => setTriggerTimelineComposer('post'), 150);
+                      } else {
+                        setTriggerTimelineComposer('post');
+                      }
+                    }}
+                  >
+                    <MessageSquare size={17} className="desktop-popover-icon" />
+                    <span>タイムラインに投稿</span>
+                  </button>
+
+                  {currentUser.role === 'admin' && (
+                    <button
+                      type="button"
+                      className="desktop-popover-item"
+                      onClick={() => {
+                        triggerHaptic('medium');
+                        setShowSidebarCreateMenu(false);
+                        if (view !== 'timeline') {
+                          setView('timeline');
+                          setTimeout(() => setTriggerTimelineComposer('announcement'), 150);
+                        } else {
+                          setTriggerTimelineComposer('announcement');
+                        }
+                      }}
+                    >
+                      <span className="desktop-popover-icon" style={{ fontSize: '1rem', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '17px' }}>📢</span>
+                      <span>告知を作成</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="desktop-popover-item"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setShowSidebarCreateMenu(false);
+                      if (!currentUser.roblox_username) {
+                        alert("ユーザー名を設定してください");
+                        setView('profile');
+                        return;
+                      }
+                      if (view !== 'garage') {
+                        setView('garage');
+                      }
+                      setFormData({ game_type: 'gv', maker: '', model: '', year: 2024, trim: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username, image_data: '' });
+                      setEditingVehicleId(null);
+                      setShowAddModal(true);
+                    }}
+                  >
+                    <Car size={17} className="desktop-popover-icon" />
+                    <span>車両を登録申請</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="desktop-popover-item"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setShowSidebarCreateMenu(false);
+                      if (!currentUser.roblox_username) {
+                        alert("ユーザー名を設定してください");
+                        setView('profile');
+                        return;
+                      }
+                      if (view !== 'garage') {
+                        setView('garage');
+                      }
+                      setTrailerFormData({ game_type: 'gv', model: '', maker: '', trailer_type: '', color: '', plate: '', plate_region: 'WISCONSIN', roblox_username: currentUser.roblox_username || '', image_data: '' });
+                      setEditingVehicleId(null);
+                      setShowTrailerModal(true);
+                    }}
+                  >
+                    <span className="desktop-popover-icon" style={{ fontSize: '1rem', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '17px' }}>🚛</span>
+                    <span>トレーラーを追加申請</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -6348,8 +6480,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Quick Action Bottom Sheet (Apple iOS Action Sheet Style) */}
-      {showQuickActionSheet && (
+      {/* Quick Action Bottom Sheet (Apple iOS Action Sheet Style - Mobile only) */}
+      {isMobile && showQuickActionSheet && (
         <div className="mobile-action-menu-overlay" onClick={() => setShowQuickActionSheet(false)}>
           <div className="mobile-action-sheet-container" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-action-group">
@@ -6357,22 +6489,6 @@ export default function App() {
                 <h4>{view === 'garage' ? 'ガレージアクション' : view === 'timeline' ? 'タイムライン投稿' : '新規登録・投稿'}</h4>
                 <p>{view === 'garage' ? '登録方法を選択してください' : view === 'timeline' ? '作成する投稿の種類を選択してください' : '行いたい操作を選択してください'}</p>
               </div>
-
-              {currentUser.role === 'admin' && view !== 'timeline' && (
-                <button className="mobile-action-button" onClick={() => {
-                  triggerHaptic('light');
-                  setShowQuickActionSheet(false);
-                  setView('admin');
-                }} style={{ justifyContent: 'center', borderBottom: '1px solid var(--border)', background: totalAdminPending > 0 ? 'rgba(239, 68, 68, 0.06)' : undefined }}>
-                  <ShieldCheck size={20} color={totalAdminPending > 0 ? '#ef4444' : 'var(--primary)'} />
-                  <span style={{ fontWeight: 700, color: totalAdminPending > 0 ? '#ef4444' : undefined }}>管理パネルを開く</span>
-                  {totalAdminPending > 0 && (
-                    <span className="admin-pending-badge-sm">
-                      審査待ち {totalAdminPending}件
-                    </span>
-                  )}
-                </button>
-              )}
 
               {view === 'timeline' ? (
                 <>
