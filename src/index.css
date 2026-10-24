@@ -3633,3 +3633,19 @@ body.android-m3e select:focus {
 }
 
 
+/* 9. M3 Expressive Theme Selector & Filter Chips with Dynamic Color */
+body.android-m3e .theme-selector-item {
+  background: var(--md-sys-color-surface-container-high) !important;
+  color: var(--md-sys-color-on-surface-variant) !important;
+  border: 1px solid var(--md-sys-color-outline-variant) !important;
+  border-radius: 9999px !important;
+  transition: all 0.3s var(--md-sys-motion-spring-fast-spatial) !important;
+}
+
+body.android-m3e .theme-selector-item.active {
+  background: var(--md-sys-color-secondary-container) !important;
+  color: var(--md-sys-color-on-secondary-container) !important;
+  border-color: var(--md-sys-color-primary) !important;
+  border-radius: 16px !important;
+  font-weight: 800 !important;
+}

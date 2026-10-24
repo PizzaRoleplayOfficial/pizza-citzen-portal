@@ -1,6 +1,7 @@
 package com.pizza.portal;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -19,6 +20,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PhotoPickerPlugin.class);
         registerPlugin(BackGesturePlugin.class);
         registerPlugin(DmStatePlugin.class);
+        registerPlugin(MaterialYouPlugin.class);
 
         super.onCreate(savedInstanceState);
 
@@ -47,9 +49,15 @@ public class MainActivity extends BridgeActivity {
             }
         }
 
-        // Enable WebAuthn/Passkey support in WebView (v2.2.76)
+        // Enable WebAuthn/Passkey support and Material You Dynamic Color bridge in WebView
         WebView webView = this.bridge.getWebView();
         if (webView != null) {
+            try {
+                webView.addJavascriptInterface(new MaterialYouPlugin.WebAppMaterialYouBridge(this), "AndroidMaterialYou");
+                MaterialYouPlugin.pushToWebView(webView, this);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
             try {
                 if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.WEB_AUTHENTICATION)) {
                     androidx.webkit.WebSettingsCompat.setWebAuthenticationSupport(
@@ -76,6 +84,17 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         PortalFirebaseMessagingService.setAppForeground(true);
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            MaterialYouPlugin.pushToWebView(this.bridge.getWebView(), this);
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            MaterialYouPlugin.pushToWebView(this.bridge.getWebView(), this);
+        }
     }
 
     @Override

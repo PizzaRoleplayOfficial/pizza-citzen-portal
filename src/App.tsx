@@ -102,7 +102,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { ImageLightbox } from './components/ImageLightbox';
 import { VehicleImageGallery } from './components/VehicleImageGallery';
 import { formatDate, parseUTCDate, normalizeMakerAndModel, splitTitleIntoMakerAndModel } from './utils/helpers';
-import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications, updateApplicationTrackerNotification, getLiveProgress, updateVehicleTrackerNotification } from './utils/native';
+import { triggerHaptic, scheduleLocalNotification, requestNotificationPermission, startBackgroundPoll, stopBackgroundPoll, updateBackgroundPollCache, registerPushNotifications, unregisterPushNotifications, updateApplicationTrackerNotification, getLiveProgress, updateVehicleTrackerNotification, getAndroidMaterialYouTheme, generateM3TonalPaletteFromSeed, MaterialYouThemePayload } from './utils/native';
 import { Capacitor } from '@capacitor/core';
 import { handleAvatarError } from './utils/avatarFallback';
 import { App as CapApp } from '@capacitor/app';
@@ -232,9 +232,64 @@ export default function App() {
     timelineCommentEnabled: localStorage.getItem('gvvr_push_timeline_comment') !== 'false',
     timelineNewPostEnabled: localStorage.getItem('gvvr_push_timeline_new_post') !== 'false'
   });
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+  const isDesktop = typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop;
+  const isAndroidApp = isNative && Capacitor.getPlatform() === 'android';
+
+  const [materialYouData, setMaterialYouData] = useState<MaterialYouThemePayload | null>(() => {
+    if (!isAndroidApp) return null;
+    try {
+      const bridge = (window as any).AndroidMaterialYou;
+      if (bridge && typeof bridge.getThemeJson === 'function') {
+        const jsonStr = bridge.getThemeJson();
+        if (jsonStr) return JSON.parse(jsonStr);
+      }
+      if ((window as any).__ANDROID_MATERIAL_YOU__) {
+        return (window as any).__ANDROID_MATERIAL_YOU__;
+      }
+    } catch {}
+    return null;
+  });
+
+  const [systemIsDark, setSystemIsDark] = useState<boolean>(() => {
+    if (materialYouData && typeof materialYouData.systemDark === 'boolean') {
+      return materialYouData.systemDark;
+    }
+    return typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false;
+  });
+
+  const [themeMode, setThemeModeState] = useState<'system' | 'dark' | 'light'>(() => {
+    const savedMode = localStorage.getItem('gvvr_theme_mode') as 'system' | 'dark' | 'light' | null;
+    if (savedMode === 'system' || savedMode === 'dark' || savedMode === 'light') {
+      return savedMode;
+    }
+    if (isAndroidApp) {
+      return 'system';
+    }
     return (localStorage.getItem('gvvr_theme') as 'dark' | 'light') || 'light';
   });
+
+  const [m3SeedColor, setM3SeedColorState] = useState<string>(() => {
+    return localStorage.getItem('gvvr_m3_seed') || 'wallpaper';
+  });
+
+  const setM3SeedColor = (seed: string) => {
+    setM3SeedColorState(seed);
+    localStorage.setItem('gvvr_m3_seed', seed);
+    triggerHaptic('light');
+  };
+
+  const theme: 'dark' | 'light' = themeMode === 'system' ? (systemIsDark ? 'dark' : 'light') : themeMode;
+
+  const setTheme = (next: 'system' | 'dark' | 'light') => {
+    setThemeModeState(next);
+    localStorage.setItem('gvvr_theme_mode', next);
+    if (next === 'dark' || next === 'light') {
+      localStorage.setItem('gvvr_theme', next);
+    }
+    triggerHaptic('light');
+  };
   const [enterKeyBehavior, setEnterKeyBehavior] = useState<'enter' | 'shiftEnter'>(
     (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
   );
@@ -281,13 +336,96 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isDesktop = typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop;
-  const isAndroidApp = isNative && Capacitor.getPlatform() === 'android';
-
+  // Android Material 3 Expressive: システムテーマ(ダーク/ライト)＆壁紙ダイナミックカラーのリアルタイム同期
   useEffect(() => {
     document.body.classList.toggle('android-m3e', isAndroidApp);
     document.documentElement.setAttribute('data-ui-mode', isAndroidApp ? 'android-m3e' : 'liquid-glass');
+
+    const mql = typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-color-scheme: dark)')
+      : null;
+
+    const handleMqlChange = (e: MediaQueryListEvent) => {
+      setSystemIsDark(e.matches);
+    };
+    if (mql) {
+      if (typeof mql.addEventListener === 'function') {
+        mql.addEventListener('change', handleMqlChange);
+      } else if (typeof (mql as any).addListener === 'function') {
+        (mql as any).addListener(handleMqlChange);
+      }
+    }
+
+    if (!isAndroidApp) {
+      return () => {
+        if (mql) {
+          if (typeof mql.removeEventListener === 'function') {
+            mql.removeEventListener('change', handleMqlChange);
+          } else if (typeof (mql as any).removeListener === 'function') {
+            (mql as any).removeListener(handleMqlChange);
+          }
+        }
+      };
+    }
+
+    const syncMaterialYou = async () => {
+      const payload = await getAndroidMaterialYouTheme();
+      if (payload) {
+        setMaterialYouData(payload);
+        if (typeof payload.systemDark === 'boolean') {
+          setSystemIsDark(payload.systemDark);
+        }
+      }
+    };
+    syncMaterialYou();
+
+    const handleNativeUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<MaterialYouThemePayload>).detail;
+      if (detail) {
+        setMaterialYouData(detail);
+        if (typeof detail.systemDark === 'boolean') {
+          setSystemIsDark(detail.systemDark);
+        }
+      }
+    };
+    window.addEventListener('android-material-you-update', handleNativeUpdate);
+
+    return () => {
+      window.removeEventListener('android-material-you-update', handleNativeUpdate);
+      if (mql) {
+        if (typeof mql.removeEventListener === 'function') {
+          mql.removeEventListener('change', handleMqlChange);
+        } else if (typeof (mql as any).removeListener === 'function') {
+          (mql as any).removeListener(handleMqlChange);
+        }
+      }
+    };
   }, [isAndroidApp]);
+
+  // Android M3 Expressive ダイナミックカラートークンを :root CSS変数へ適用
+  useEffect(() => {
+    if (!isAndroidApp) return;
+
+    let activePalette: Record<string, string> | undefined;
+    if (m3SeedColor === 'wallpaper' && materialYouData?.supported && materialYouData.light && materialYouData.dark) {
+      activePalette = theme === 'dark' ? materialYouData.dark : materialYouData.light;
+    } else if (m3SeedColor && m3SeedColor !== 'wallpaper') {
+      const generated = generateM3TonalPaletteFromSeed(m3SeedColor);
+      activePalette = theme === 'dark' ? generated.dark : generated.light;
+    } else if (materialYouData?.supported && materialYouData.light && materialYouData.dark) {
+      activePalette = theme === 'dark' ? materialYouData.dark : materialYouData.light;
+    } else {
+      const fallback = generateM3TonalPaletteFromSeed('#0061a4');
+      activePalette = theme === 'dark' ? fallback.dark : fallback.light;
+    }
+
+    if (activePalette) {
+      const rootStyle = document.documentElement.style;
+      Object.entries(activePalette).forEach(([key, val]) => {
+        rootStyle.setProperty(key, val);
+      });
+    }
+  }, [isAndroidApp, theme, materialYouData, m3SeedColor]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     (isNative || isDesktop) ? localStorage.getItem('gvvr_sidebar_collapsed') === 'true' : false
   );
@@ -4765,7 +4903,12 @@ export default function App() {
             currentUser={currentUser}
             setCurrentUser={setCurrentUser}
             theme={theme}
+            themeMode={themeMode}
             setTheme={setTheme}
+            isAndroidApp={isAndroidApp}
+            m3SeedColor={m3SeedColor}
+            setM3SeedColor={setM3SeedColor}
+            materialYouSupported={!!materialYouData?.supported}
             handleUpdateProfile={handleUpdateProfile}
             onCheckUpdate={() => handleCheckUpdate(true)}
             isCheckingUpdate={isCheckingUpdate}

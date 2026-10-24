@@ -880,3 +880,155 @@ export const notifyActiveConversation = async (conversationId: string | null) =>
     console.error('Failed to notify active conversation to DmState plugin:', e);
   }
 };
+
+
+export interface MaterialYouThemePayload {
+  supported: boolean;
+  systemDark: boolean;
+  light?: Record<string, string>;
+  dark?: Record<string, string>;
+}
+
+const MaterialYou = registerPlugin<{
+  getSystemThemeAndPalette(): Promise<MaterialYouThemePayload>;
+}>('MaterialYou');
+
+/**
+ * Android 12+ (Material You / Monet) のシステム壁紙ダイナミックカラーおよびダークモード状態を取得する
+ */
+export const getAndroidMaterialYouTheme = async (): Promise<MaterialYouThemePayload | null> => {
+  if (!isNative || Capacitor.getPlatform() !== 'android') return null;
+
+  // 1. WebView JavascriptInterface 経由の同期取得（最速・ゼロ遅延）
+  try {
+    const bridge = (window as any).AndroidMaterialYou;
+    if (bridge && typeof bridge.getThemeJson === 'function') {
+      const jsonStr = bridge.getThemeJson();
+      if (jsonStr) {
+        return JSON.parse(jsonStr) as MaterialYouThemePayload;
+      }
+    }
+  } catch (e) {
+    console.warn('AndroidMaterialYou JS interface read failed:', e);
+  }
+
+  // 2. MainActivity.pushToWebView で注入済みのグローバルキャッシュ
+  if ((window as any).__ANDROID_MATERIAL_YOU__) {
+    return (window as any).__ANDROID_MATERIAL_YOU__ as MaterialYouThemePayload;
+  }
+
+  // 3. Capacitor Plugin メソッド経由の非同期取得
+  try {
+    const res = await MaterialYou.getSystemThemeAndPalette();
+    return res;
+  } catch (e) {
+    const prefersDark = typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false;
+    return {
+      supported: false,
+      systemDark: prefersDark
+    };
+  }
+};
+
+/**
+ * シードカラー(HEX)から Material 3 Expressive 準拠の Light / Dark トーナルパレットを生成する
+ */
+export const generateM3TonalPaletteFromSeed = (seedHex: string): { light: Record<string, string>; dark: Record<string, string> } => {
+  const hex = seedHex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  const hue = Math.round(h * 360);
+  const secHue = (hue + 12) % 360;
+  const tertHue = (hue + 60) % 360;
+  const sat = Math.max(48, Math.min(85, Math.round(s * 100)));
+
+  const hslToHex = (hDeg: number, sPct: number, lPct: number): string => {
+    const sNorm = sPct / 100;
+    const lNorm = lPct / 100;
+    const c = (1 - Math.abs(2 * lNorm - 1)) * sNorm;
+    const x = c * (1 - Math.abs(((hDeg / 60) % 2) - 1));
+    const m = lNorm - c / 2;
+    let r1 = 0, g1 = 0, b1 = 0;
+    if (hDeg < 60) { r1 = c; g1 = x; b1 = 0; }
+    else if (hDeg < 120) { r1 = x; g1 = c; b1 = 0; }
+    else if (hDeg < 180) { r1 = 0; g1 = c; b1 = x; }
+    else if (hDeg < 240) { r1 = 0; g1 = x; b1 = c; }
+    else if (hDeg < 300) { r1 = x; g1 = 0; b1 = c; }
+    else { r1 = c; g1 = 0; b1 = x; }
+    const toHexByte = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+    return `#${toHexByte(r1)}${toHexByte(g1)}${toHexByte(b1)}`;
+  };
+
+  const light: Record<string, string> = {
+    '--md-sys-color-surface': hslToHex(hue, 22, 98),
+    '--md-sys-color-surface-container-lowest': '#ffffff',
+    '--md-sys-color-surface-container-low': hslToHex(hue, 20, 96),
+    '--md-sys-color-surface-container': hslToHex(hue, 20, 94),
+    '--md-sys-color-surface-container-high': hslToHex(hue, 18, 92),
+    '--md-sys-color-surface-container-highest': hslToHex(hue, 18, 90),
+    '--md-sys-color-on-surface': hslToHex(hue, 24, 11),
+    '--md-sys-color-on-surface-variant': hslToHex(hue, 14, 29),
+    '--md-sys-color-primary': hslToHex(hue, sat, 38),
+    '--md-sys-color-on-primary': '#ffffff',
+    '--md-sys-color-primary-container': hslToHex(hue, Math.min(90, sat + 10), 90),
+    '--md-sys-color-on-primary-container': hslToHex(hue, sat, 12),
+    '--md-sys-color-secondary': hslToHex(secHue, 32, 38),
+    '--md-sys-color-on-secondary': '#ffffff',
+    '--md-sys-color-secondary-container': hslToHex(secHue, 42, 89),
+    '--md-sys-color-on-secondary-container': hslToHex(secHue, 45, 13),
+    '--md-sys-color-tertiary': hslToHex(tertHue, 45, 38),
+    '--md-sys-color-on-tertiary': '#ffffff',
+    '--md-sys-color-tertiary-container': hslToHex(tertHue, 55, 90),
+    '--md-sys-color-on-tertiary-container': hslToHex(tertHue, 50, 14),
+    '--md-sys-color-outline': hslToHex(hue, 11, 48),
+    '--md-sys-color-outline-variant': hslToHex(hue, 16, 80),
+  };
+
+  const dark: Record<string, string> = {
+    '--md-sys-color-surface': hslToHex(hue, 22, 7),
+    '--md-sys-color-surface-container-lowest': hslToHex(hue, 24, 5),
+    '--md-sys-color-surface-container-low': hslToHex(hue, 20, 10),
+    '--md-sys-color-surface-container': hslToHex(hue, 20, 13),
+    '--md-sys-color-surface-container-high': hslToHex(hue, 18, 17),
+    '--md-sys-color-surface-container-highest': hslToHex(hue, 18, 22),
+    '--md-sys-color-on-surface': hslToHex(hue, 20, 90),
+    '--md-sys-color-on-surface-variant': hslToHex(hue, 15, 79),
+    '--md-sys-color-primary': hslToHex(hue, Math.min(92, sat + 12), 78),
+    '--md-sys-color-on-primary': hslToHex(hue, sat, 18),
+    '--md-sys-color-primary-container': hslToHex(hue, sat, 28),
+    '--md-sys-color-on-primary-container': hslToHex(hue, Math.min(92, sat + 12), 90),
+    '--md-sys-color-secondary': hslToHex(secHue, 34, 78),
+    '--md-sys-color-on-secondary': hslToHex(secHue, 40, 18),
+    '--md-sys-color-secondary-container': hslToHex(secHue, 32, 28),
+    '--md-sys-color-on-secondary-container': hslToHex(secHue, 42, 90),
+    '--md-sys-color-tertiary': hslToHex(tertHue, 50, 80),
+    '--md-sys-color-on-tertiary': hslToHex(tertHue, 48, 18),
+    '--md-sys-color-tertiary-container': hslToHex(tertHue, 42, 29),
+    '--md-sys-color-on-tertiary-container': hslToHex(tertHue, 55, 90),
+    '--md-sys-color-outline': hslToHex(hue, 11, 58),
+    '--md-sys-color-outline-variant': hslToHex(hue, 14, 28),
+  };
+
+  return { light, dark };
+};

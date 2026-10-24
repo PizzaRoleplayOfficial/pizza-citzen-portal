@@ -8,7 +8,12 @@ interface ProfileViewProps {
   currentUser: any;
   setCurrentUser: (u: any) => void;
   theme: 'dark' | 'light';
-  setTheme: (t: 'dark' | 'light') => void;
+  themeMode?: 'system' | 'dark' | 'light';
+  setTheme: (t: 'system' | 'dark' | 'light') => void;
+  isAndroidApp?: boolean;
+  m3SeedColor?: string;
+  setM3SeedColor?: (seed: string) => void;
+  materialYouSupported?: boolean;
   handleUpdateProfile: (e: React.FormEvent) => void;
   onCheckUpdate: () => Promise<void>;
   isCheckingUpdate: boolean;
@@ -39,7 +44,12 @@ export const ProfileView = ({
   currentUser,
   setCurrentUser,
   theme,
+  themeMode = theme,
   setTheme,
+  isAndroidApp = false,
+  m3SeedColor = 'wallpaper',
+  setM3SeedColor,
+  materialYouSupported = false,
   handleUpdateProfile,
   onCheckUpdate,
   isCheckingUpdate,
@@ -300,16 +310,68 @@ export const ProfileView = ({
         </div>
         <div>
           <label style={{ display: 'block', marginBottom: '12px', fontSize: '16px', color: 'var(--text-muted)' }}>テーマ設定（見た目）</label>
-          <div className="theme-selector-container">
-            <label className={`theme-selector-item ${theme === 'dark' ? 'active' : ''}`}>
-              <input type="radio" value="dark" checked={theme === 'dark'} onChange={() => setTheme('dark')} style={{ accentColor: 'var(--primary)' }} />
+          <div className="theme-selector-container" style={{ flexWrap: 'wrap' }}>
+            <label className={`theme-selector-item ${themeMode === 'system' ? 'active' : ''}`}>
+              <input type="radio" value="system" checked={themeMode === 'system'} onChange={() => setTheme('system')} style={{ accentColor: 'var(--primary)' }} />
+              <Smartphone size={18} /> システム連動 ({theme === 'dark' ? 'ダーク' : 'ライト'})
+            </label>
+            <label className={`theme-selector-item ${themeMode === 'dark' ? 'active' : ''}`}>
+              <input type="radio" value="dark" checked={themeMode === 'dark'} onChange={() => setTheme('dark')} style={{ accentColor: 'var(--primary)' }} />
               <Palette size={18} /> ダークモード
             </label>
-            <label className={`theme-selector-item ${theme === 'light' ? 'active' : ''}`}>
-              <input type="radio" value="light" checked={theme === 'light'} onChange={() => setTheme('light')} style={{ accentColor: 'var(--primary)' }} />
+            <label className={`theme-selector-item ${themeMode === 'light' ? 'active' : ''}`}>
+              <input type="radio" value="light" checked={themeMode === 'light'} onChange={() => setTheme('light')} style={{ accentColor: 'var(--primary)' }} />
               <Palette size={18} /> ライトモード
             </label>
           </div>
+          {isAndroidApp && setM3SeedColor && (
+            <div style={{ marginTop: '16px', padding: '16px', borderRadius: '20px', background: 'var(--md-sys-color-surface-container-high, var(--input-bg))' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  Material 3 Expressive ダイナミックカラー
+                </span>
+                <span style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: '999px', background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)', fontWeight: 700 }}>
+                  {m3SeedColor === 'wallpaper' ? (materialYouSupported ? 'OS壁紙カラー連動中' : 'システム標準色') : 'カスタムパレット'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {[
+                  { id: 'wallpaper', label: '壁紙連動', preview: 'linear-gradient(135deg, #6750a4, #0061a4, #2e6c40)' },
+                  { id: '#0061a4', label: 'ブルー', preview: '#0061a4' },
+                  { id: '#2e6c40', label: 'セージ', preview: '#2e6c40' },
+                  { id: '#6750a4', label: 'パープル', preview: '#6750a4' },
+                  { id: '#984061', label: 'ローズ', preview: '#984061' },
+                  { id: '#8b5000', label: 'アンバー', preview: '#8b5000' },
+                ].map(opt => {
+                  const selected = m3SeedColor === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setM3SeedColor(opt.id)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '7px',
+                        padding: '8px 14px',
+                        borderRadius: selected ? '14px' : '999px',
+                        border: selected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                        background: selected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+                        color: selected ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                        fontWeight: selected ? 800 : 600,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                      }}
+                    >
+                      <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: opt.preview, display: 'inline-block', flexShrink: 0 }} />
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
         <div>
           <label style={{ display: 'block', marginBottom: '12px', fontSize: '16px', color: 'var(--text-muted)' }}>タイムラインの送信キー（キーボード操作時）</label>
