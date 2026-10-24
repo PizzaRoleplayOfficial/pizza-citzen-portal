@@ -69,13 +69,13 @@ input[type="url"],
   --text-muted: #6b7280;
   --text-light: #9ca3af;
 
-  /* Borders & Thin Material Glassmorphism */
+  /* Borders & Liquid Glass Material */
   --border: rgba(0, 0, 0, 0.08);
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --nav-bg: rgba(255, 255, 255, 0.75);
-  --panel-bg: #ffffff;
-  --admin-content-bg: #f4f5f7;
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.62) 50%, rgba(255, 255, 255, 0.48) 100%);
+  --glass-border: rgba(255, 255, 255, 0.72);
+  --nav-bg: rgba(255, 255, 255, 0.72);
+  --panel-bg: rgba(255, 255, 255, 0.68);
+  --admin-content-bg: #eef2f7;
 
   /* Form Controls */
   --input-bg: #ffffff;
@@ -116,24 +116,24 @@ input[type="url"],
   --secondary: #3b82f6;
   --secondary-hover: #60a5fa;
 
-  /* Backgrounds: Apple Clean Charcoal / Dark Zinc */
-  --bg-dark: #121316;
-  --bg-grad-1: #1a1b20;
-  --bg-grad-2: #121316;
-  --bg-card: #1c1d22;
+  /* Backgrounds: Deep Liquid Glass Dark Base */
+  --bg-dark: #090c15;
+  --bg-grad-1: #111827;
+  --bg-grad-2: #090c15;
+  --bg-card: rgba(18, 23, 38, 0.55);
 
   /* Typography */
   --text-main: #f4f4f5;
   --text-muted: #a1a1aa;
   --text-light: #71717a;
 
-  /* Borders & Thin Material Glassmorphism */
-  --border: rgba(255, 255, 255, 0.09);
-  --glass-bg: rgba(28, 29, 34, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --nav-bg: rgba(18, 19, 22, 0.85);
-  --panel-bg: #1c1d22;
-  --admin-content-bg: #121316;
+  /* Borders & Liquid Glass Material */
+  --border: rgba(255, 255, 255, 0.14);
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.01) 100%), rgba(14, 18, 30, 0.58);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --nav-bg: rgba(12, 16, 28, 0.68);
+  --panel-bg: rgba(16, 21, 34, 0.52);
+  --admin-content-bg: #090c15;
 
   /* Form Controls */
   --input-bg: #16171b;
@@ -170,24 +170,78 @@ input[type="url"],
 
 body {
   background-color: var(--bg-dark);
-  background-image: 
-    radial-gradient(circle at 50% -20%, var(--bg-grad-1), transparent),
-    radial-gradient(circle at 0% 100%, var(--bg-grad-2), transparent);
+  background-image:
+    radial-gradient(circle at 15% 15%, rgba(37, 99, 235, 0.22) 0%, transparent 48%),
+    radial-gradient(circle at 85% 22%, rgba(139, 92, 246, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 75% 82%, rgba(6, 182, 212, 0.16) 0%, transparent 52%),
+    radial-gradient(circle at 20% 85%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+  background-attachment: fixed;
   color: var(--text-main);
   font-family: var(--font-sans);
   min-height: 100vh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  position: relative;
 }
 
-/* Glassmorphism Utility */
+:root[data-theme='light'] body {
+  background-color: #eef2f9;
+  background-image:
+    radial-gradient(circle at 14% 16%, rgba(59, 130, 246, 0.20) 0%, transparent 48%),
+    radial-gradient(circle at 86% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 78% 84%, rgba(6, 182, 212, 0.16) 0%, transparent 52%),
+    radial-gradient(circle at 18% 86%, rgba(37, 99, 235, 0.14) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Ambient Background Light Orbs for Liquid Glass Refraction */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(90px);
+}
+
+body::before {
+  width: 520px;
+  height: 520px;
+  top: -120px;
+  right: 8%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, rgba(139, 92, 246, 0.14) 55%, transparent 75%);
+}
+
+body::after {
+  width: 560px;
+  height: 560px;
+  bottom: -140px;
+  left: 12%;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, rgba(37, 99, 235, 0.12) 55%, transparent 75%);
+}
+
+/* Liquid Glass Utility */
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.01) 100%), rgba(15, 20, 34, 0.52);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+}
+
+:root[data-theme='light'] .glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.62) 50%, rgba(255, 255, 255, 0.48) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 16px 36px rgba(15, 23, 42, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.45);
 }
 
 .container {
@@ -2421,14 +2475,17 @@ textarea.dm-textarea::-webkit-scrollbar,
   background: transparent !important;
 }
 
-/* Bottom Action Sheet iOS Clean */
+/* Bottom Action Sheet Liquid Glass */
 .mobile-action-group {
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border-radius: 20px !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.68) 50%, rgba(255, 255, 255, 0.56) 100%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-radius: 22px !important;
+  border: 1px solid rgba(255, 255, 255, 0.82) !important;
+  box-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.14),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.45) !important;
 }
 
 .mobile-action-button {
@@ -2438,29 +2495,32 @@ textarea.dm-textarea::-webkit-scrollbar,
 }
 
 .mobile-action-cancel-card {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border-radius: 18px !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 100%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
   color: #007aff !important;
   font-weight: 700 !important;
   font-size: 1.05rem !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+  box-shadow:
+    0 10px 28px rgba(15, 23, 42, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
 }
 
 :root[data-theme='dark'] .thin-material {
-  background: rgba(24, 25, 30, 0.8) !important;
+  background: rgba(18, 23, 38, 0.72) !important;
 }
 
 :root[data-theme='dark'] .segmented-control {
-  background: #27272a !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 :root[data-theme='dark'] .segmented-control-btn.active {
-  background: #3f3f46 !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 100%) !important;
   color: #f4f4f5 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
 }
 
 :root[data-theme='dark'] .bubble-other {
@@ -2475,14 +2535,25 @@ textarea.dm-textarea::-webkit-scrollbar,
 }
 
 :root[data-theme='dark'] .mobile-action-group {
-  background: rgba(30, 32, 38, 0.9) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 32, 0.74) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.05) !important;
 }
 
 :root[data-theme='dark'] .mobile-action-cancel-card {
-  background: rgba(30, 32, 38, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #0a84ff !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%), rgba(16, 21, 35, 0.78) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35) !important;
+  color: #38bdf8 !important;
 }
 
 /* ========================================================
@@ -2528,14 +2599,19 @@ input, textarea, select {
   font-size: 16px !important;
 }
 
-/* 2. 境界線（ボーダー）の徹底排除: 選択中・フォーカス時以外は非表示、余白と拡散シャドウで表現 */
+/* 2. Liquid Glass カード表現（ライトモード） */
 :root[data-theme='light'] .card,
 :root[data-theme='light'] .vehicle-card,
 :root[data-theme='light'] .feed-card {
-  background: #ffffff !important;
-  border: none !important;
-  border-radius: 18px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.64) 50%, rgba(255, 255, 255, 0.50) 100%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.78) !important;
+  border-radius: 22px !important;
+  box-shadow:
+    0 16px 36px rgba(15, 23, 42, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.45) !important;
 }
 
 /* 3. 入力フォームのボーダー排除 & フォーカス時ホワイト反転＋プライマリブルーリング */
@@ -2634,28 +2710,38 @@ img[alt="author"],
   border-radius: 50% !important;
 }
 
-/* 5. カード類（Squircle: 24px〜28px, 内部余白 24px 以上, 枠線排除） */
+/* 5. カード類（Liquid Glass — ライトモード） */
 :root[data-theme='light'] .card,
 :root[data-theme='light'] .vehicle-card,
 :root[data-theme='light'] .feed-card {
-  background: #ffffff !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.64) 50%, rgba(255, 255, 255, 0.50) 100%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   color: #1f2937 !important;
-  border: none !important;
-  border-radius: 26px !important;
+  border: 1px solid rgba(255, 255, 255, 0.78) !important;
+  border-radius: 24px !important;
   padding: 24px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  box-shadow:
+    0 16px 36px rgba(15, 23, 42, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.45) !important;
 }
 
-/* 6. ダークテーマ（網膜保護の絶対ルール: 純白カード完全禁止, エレベーション・グレー #1c1c1e, 文字色 #ebebf5） */
+/* 6. ダークテーマ（Liquid Glass — 表面張力・スペキュラーハイライト・屈折透過） */
 :root[data-theme='dark'] .card,
 :root[data-theme='dark'] .vehicle-card,
 :root[data-theme='dark'] .feed-card {
-  background: #1c1c1e !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.01) 100%), rgba(15, 20, 34, 0.54) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   color: #ebebf5 !important;
-  border: none !important;
-  border-radius: 26px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 24px !important;
   padding: 24px !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.05) !important;
 }
 
 /* 7. フォーカス時強調（ライト: #2563eb / ダーク: #0a84ff のリング） */
@@ -2686,22 +2772,25 @@ img[alt="author"],
 }
 
 
-/* 選択状態（Active）の独立浮遊表示（横ズレなし・わずかに上へオフセット） */
+/* 選択状態（Active）の独立浮遊表示（Liquid Glass スペキュラーハイライト） */
 .btn-sidebar.active,
 .admin-nav-btn.active {
-  background: rgba(37, 99, 235, 0.12) !important;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.22) 0%, rgba(37, 99, 235, 0.08) 100%) !important;
   color: var(--primary) !important;
   font-weight: 700 !important;
   margin: 0 !important;
-  border-radius: 12px !important;
-  box-shadow: none !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(37, 99, 235, 0.25) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 4px 14px rgba(37, 99, 235, 0.12) !important;
   transform: translateY(-1.5px) !important;
 }
 
 :root[data-theme='dark'] .btn-sidebar.active,
 :root[data-theme='dark'] .admin-nav-btn.active {
-  background: rgba(10, 132, 255, 0.18) !important;
-  color: #0a84ff !important;
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.28) 0%, rgba(10, 132, 255, 0.10) 100%) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.28) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.32), 0 6px 18px rgba(10, 132, 255, 0.2) !important;
 }
 
 @media (min-width: 769px) {
@@ -2763,15 +2852,40 @@ button:not(:disabled) {
 
 :root[data-theme='light'] .btn-sidebar:hover:not(.active),
 :root[data-theme='light'] .admin-nav-btn:hover:not(.active) {
-  background: rgba(37, 99, 235, 0.06) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(37, 99, 235, 0.08) 100%) !important;
   color: var(--primary) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(37, 99, 235, 0.08) !important;
   transform: translateY(-2px) !important;
 }
 
 :root[data-theme='dark'] .btn-sidebar:hover:not(.active),
 :root[data-theme='dark'] .admin-nav-btn:hover:not(.active) {
-  background: rgba(10, 132, 255, 0.10) !important;
-  color: #0a84ff !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.28), 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* プライマリボタン（Liquid Glass 内部発光 & スペキュラーハイライト） */
+.btn-primary,
+button.btn-primary {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0) 100%), var(--primary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow:
+    0 8px 24px var(--primary-glow),
+    inset 0 1px 1px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.btn-primary:hover:not(:disabled),
+button.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.10) 50%, rgba(255, 255, 255, 0.02) 100%), var(--primary-hover) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  box-shadow:
+    0 12px 28px var(--primary-glow),
+    inset 0 1px 2px rgba(255, 255, 255, 0.65),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.15) !important;
   transform: translateY(-2px) !important;
 }
 
@@ -3042,12 +3156,12 @@ body.is-desktop .desktop-titlebar * {
 }
 
 /* ==========================================================================
-   PC Desktop Popover Menu (「＋ 新規作成」 & 「＋ 車両を追加」)
+   PC Desktop Popover Menu (「＋ 新規作成」 & 「＋ 車両を追加」 — Liquid Glass)
    ========================================================================== */
 @keyframes popoverScaleIn {
   from {
     opacity: 0;
-    transform: translateY(4px) scale(0.97);
+    transform: translateY(6px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -3056,24 +3170,30 @@ body.is-desktop .desktop-titlebar * {
 }
 
 .desktop-popover-menu {
-  background: rgba(24, 27, 36, 0.96);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  padding: 6px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 32, 0.72) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 18px !important;
+  padding: 8px !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px rgba(255, 255, 255, 0.38),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.06) !important;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  z-index: 2500;
-  animation: popoverScaleIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 4px;
+  z-index: 3000;
+  animation: popoverScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root[data-theme='light'] .desktop-popover-menu {
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.72) 50%, rgba(255, 255, 255, 0.60) 100%), rgba(248, 250, 252, 0.78) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow:
+    0 20px 40px rgba(15, 23, 42, 0.16),
+    inset 0 1px 1px rgba(255, 255, 255, 0.98),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.45) !important;
 }
 
 .desktop-popover-item {
@@ -3081,49 +3201,54 @@ body.is-desktop .desktop-titlebar * {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 10px;
-  padding: 10px 12px !important;
-  border-radius: 9px !important;
-  border: none !important;
+  gap: 11px;
+  padding: 11px 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
   background: transparent !important;
-  color: #f4f4f5 !important;
-  font-size: 0.88rem !important;
+  color: #ffffff !important;
+  font-size: 0.9rem !important;
   font-weight: 600 !important;
   text-align: left !important;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease !important;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease !important;
   transform: none !important;
   box-shadow: none !important;
 }
 
 .desktop-popover-item:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25) !important;
   color: #ffffff !important;
   transform: none !important;
 }
 
 :root[data-theme='light'] .desktop-popover-item {
-  color: #1f2937 !important;
+  color: #111827 !important;
 }
 
 :root[data-theme='light'] .desktop-popover-item:hover {
-  background: rgba(37, 99, 235, 0.08) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(37, 99, 235, 0.10) 100%) !important;
+  border-color: rgba(37, 99, 235, 0.2) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 4px 12px rgba(37, 99, 235, 0.08) !important;
   color: #1e3a8a !important;
 }
 
 .desktop-popover-icon {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.9);
   flex-shrink: 0;
-  transition: color 0.15s ease;
+  transition: color 0.18s ease, transform 0.18s ease;
 }
 
 .desktop-popover-item:hover .desktop-popover-icon {
   color: #ffffff;
+  transform: scale(1.06);
 }
 
 :root[data-theme='light'] .desktop-popover-icon {
-  color: #4b5563;
+  color: #374151;
 }
 
 :root[data-theme='light'] .desktop-popover-item:hover .desktop-popover-icon {
@@ -3131,20 +3256,23 @@ body.is-desktop .desktop-titlebar * {
 }
 
 /* ==========================================================================
-   Garage Vehicle Card Full-Width Edge-to-Edge Thumbnail
+   Garage Vehicle Card Full-Width Edge-to-Edge Thumbnail & Liquid Glass Card
    ========================================================================== */
 :root[data-theme='light'] .card-grid .garage-card,
 :root[data-theme='dark'] .card-grid .garage-card,
 .card-grid .garage-card {
   padding: 0 !important;
   overflow: hidden !important;
+  border-radius: 22px !important;
 }
 
-.garage-card-image {
+.card-grid .garage-card-image {
   width: 100% !important;
+  height: 200px;
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
+  border-radius: 22px 22px 0 0;
 }
 
 .garage-card-image > div,
@@ -3159,6 +3287,7 @@ body.is-desktop .desktop-titlebar * {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
+  object-position: center !important;
   display: block !important;
 }
 

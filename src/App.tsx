@@ -239,14 +239,7 @@ export default function App() {
     (localStorage.getItem('gvvr_enter_key_behavior') as 'enter' | 'shiftEnter') || 'enter'
   );
   const [liteMode, setLiteMode] = useState<boolean>(() => {
-    const cached = localStorage.getItem('gvvr_lite_mode');
-    if (cached !== null) {
-      return cached === 'true';
-    }
-    // 自動判定: CPU 4コア以下、または RAM 4GB未満の場合デフォルトON
-    const cpuCores = navigator.hardwareConcurrency || 8;
-    const deviceMemory = (navigator as any).deviceMemory || 8;
-    return cpuCores <= 4 || deviceMemory < 4;
+    return localStorage.getItem('gvvr_lite_mode') === 'true';
   });
 
   const handleToggleLiteMode = (enabled: boolean) => {
@@ -3493,49 +3486,63 @@ export default function App() {
         position: 'relative',
         overflow: 'visible'
       }}>
-      {/* Decorative ambient background glows for Glassmorphism depth */}
-      {!isMobile && (
-        <>
-          <div style={{
-            position: 'absolute',
-            width: '400px',
-            height: '400px',
-            background: 'radial-gradient(circle, rgba(0, 255, 136, 0.08) 0%, transparent 70%)',
-            top: '5%',
-            left: '-100px',
-            zIndex: 0,
-            pointerEvents: 'none',
-            filter: 'blur(60px)'
-          }} />
-          <div style={{
-            position: 'absolute',
-            width: '450px',
-            height: '450px',
-            background: 'radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, transparent 70%)',
-            bottom: '10%',
-            left: '-150px',
-            zIndex: 0,
-            pointerEvents: 'none',
-            filter: 'blur(80px)'
-          }} />
-        </>
-      )}
+      {/* Decorative ambient background glows for Liquid Glass refraction & depth */}
+      <div style={{
+        position: 'fixed',
+        width: '480px',
+        height: '480px',
+        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, rgba(37, 99, 235, 0.08) 50%, transparent 72%)',
+        top: '2%',
+        left: '-80px',
+        zIndex: 0,
+        pointerEvents: 'none',
+        filter: 'blur(75px)'
+      }} />
+      <div style={{
+        position: 'fixed',
+        width: '520px',
+        height: '520px',
+        background: 'radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, rgba(59, 130, 246, 0.06) 55%, transparent 72%)',
+        top: '28%',
+        right: '-120px',
+        zIndex: 0,
+        pointerEvents: 'none',
+        filter: 'blur(85px)'
+      }} />
+      <div style={{
+        position: 'fixed',
+        width: '500px',
+        height: '500px',
+        background: 'radial-gradient(circle, rgba(6, 182, 212, 0.16) 0%, rgba(59, 130, 246, 0.06) 55%, transparent 72%)',
+        bottom: '4%',
+        left: '18%',
+        zIndex: 0,
+        pointerEvents: 'none',
+        filter: 'blur(85px)'
+      }} />
       {!isMobile && (
         <aside className="main-sidebar glass" style={{
           width: sidebarCollapsed ? '76px' : '260px',
-          background: theme === 'light' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(10, 15, 25, 0.5)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border)',
+          background: theme === 'light'
+            ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.62) 50%, rgba(255, 255, 255, 0.48) 100%)'
+            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.01) 100%), rgba(12, 17, 30, 0.56)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: theme === 'light' ? '1px solid rgba(255, 255, 255, 0.82)' : '1px solid rgba(255, 255, 255, 0.16)',
+          boxShadow: theme === 'light'
+            ? '0 20px 40px rgba(15, 23, 42, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.95), inset 0 -1px 1px rgba(255, 255, 255, 0.45)'
+            : '0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.35), inset 0 -1px 1px rgba(255, 255, 255, 0.05)',
+          borderRadius: '24px',
           display: 'flex',
           flexDirection: 'column',
           height: 'calc(100vh - clamp(24px, 2.4vw, 48px))',
           position: 'sticky',
           top: 'clamp(12px, 1.2vw, 24px)',
-          zIndex: 100,
+          zIndex: 200,
           padding: sidebarCollapsed ? '24px 8px' : '24px 16px',
           flexShrink: 0,
           justifyContent: 'space-between',
+          overflow: 'visible',
           transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
           {/* Top segment: Logo + Menu */}
@@ -3664,7 +3671,7 @@ export default function App() {
               </div>
             )}
 
-            {/* PC: 新規作成ボタン（コンパクトなポップオーバーメニューを表示） */}
+            {/* PC: 新規作成ボタン（コンパクトな Liquid Glass ポップオーバーメニューをボタンの右上に表示） */}
             <div ref={sidebarCreateMenuRef} style={{ marginTop: '16px', position: 'relative' }}>
               <button
                 type="button"
@@ -3676,29 +3683,16 @@ export default function App() {
                 style={{
                   width: '100%',
                   padding: sidebarCollapsed ? '12px 0' : '12px 18px',
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  background: 'var(--primary)',
                   color: '#ffffff',
                   fontWeight: 700,
                   fontSize: '0.92rem',
-                  border: 'none',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(30, 58, 138, 0.25)',
                   transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--primary-hover)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(30, 58, 138, 0.35)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--primary)';
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(30, 58, 138, 0.25)';
                 }}
                 title="新規作成 (Alt+N)"
               >
@@ -3715,14 +3709,13 @@ export default function App() {
                           position: 'absolute',
                           left: 'calc(100% + 10px)',
                           bottom: 0,
-                          minWidth: '220px'
+                          minWidth: '225px'
                         }
                       : {
                           position: 'absolute',
-                          bottom: 'calc(100% + 8px)',
-                          left: 0,
-                          width: '100%',
-                          minWidth: '215px'
+                          bottom: 'calc(100% + 10px)',
+                          left: '24px',
+                          minWidth: '230px'
                         }
                   }
                 >
@@ -4162,6 +4155,7 @@ export default function App() {
             }}>
               {/* デジタル市民証カード (Official State ID) */}
               <div 
+                className="glass"
                 onMouseMove={(e) => {
                   if (isMobile) return;
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -4176,10 +4170,7 @@ export default function App() {
                 }}
                 style={{
                   position: 'relative',
-                  borderRadius: '26px',
-                  background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
-                  border: 'none',
-                  boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.4)' : '0 8px 30px rgba(0, 0, 0, 0.04)',
+                  borderRadius: '24px',
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
@@ -4321,13 +4312,10 @@ export default function App() {
 
               {/* ガレージ登録状況カード (Registry Summary Card) */}
               <div 
-                className="card"
+                className="glass card"
                 style={{
-                  background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
-                  borderRadius: '26px',
+                  borderRadius: '24px',
                   padding: isMobile ? '20px' : '20px 24px',
-                  border: 'none',
-                  boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.4)' : '0 8px 30px rgba(0, 0, 0, 0.04)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',
@@ -6253,7 +6241,7 @@ export default function App() {
           />
           
           <div 
-            className="animate-fade"
+            className="glass animate-fade"
             style={{
               position: 'fixed',
               top: isMobile ? 'calc(max(env(safe-area-inset-top, 0px), 16px) + 55px)' : 'auto',
@@ -6263,15 +6251,20 @@ export default function App() {
               width: isMobile ? 'calc(100% - 32px)' : '340px',
               maxHeight: '480px',
               zIndex: 4999,
-              background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
+              background: theme === 'dark'
+                ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 32, 0.74)'
+                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.72) 50%, rgba(255, 255, 255, 0.58) 100%)',
               color: theme === 'dark' ? '#ffffff' : 'var(--text-main)',
-              border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.06)',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+              border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid rgba(255, 255, 255, 0.85)',
+              boxShadow: theme === 'dark'
+                ? '0 20px 40px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.35), inset 0 -1px 1px rgba(255, 255, 255, 0.05)'
+                : '0 20px 40px rgba(15, 23, 42, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.95)',
               borderRadius: '24px',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
-              backdropFilter: 'blur(30px)'
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)'
             }}
           >
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

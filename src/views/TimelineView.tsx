@@ -3806,23 +3806,25 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
               className="glass card"
               style={{
                 padding: isMobile ? '18px 18px 20px' : '28px',
-                borderRadius: '28px',
+                borderRadius: '26px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: isMobile ? '14px' : '18px',
                 background: theme === 'dark'
                   ? (composerMode === 'announcement'
-                      ? 'linear-gradient(165deg, rgba(24, 28, 42, 0.97) 0%, rgba(18, 20, 28, 0.98) 100%)'
-                      : 'rgba(22, 24, 31, 0.97)')
+                      ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 20, 36, 0.72)'
+                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 32, 0.72)')
                   : (composerMode === 'announcement'
-                      ? 'linear-gradient(165deg, rgba(248, 250, 255, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%)'
-                      : 'rgba(255, 255, 255, 0.98)'),
+                      ? 'linear-gradient(135deg, rgba(239, 246, 255, 0.90) 0%, rgba(255, 255, 255, 0.74) 50%, rgba(255, 255, 255, 0.62) 100%)'
+                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.72) 50%, rgba(255, 255, 255, 0.58) 100%)'),
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                 border: composerMode === 'announcement'
-                  ? '1.5px solid rgba(37, 99, 235, 0.45)'
-                  : '1px solid var(--glass-border)',
+                  ? '1.5px solid rgba(59, 130, 246, 0.5)'
+                  : (theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid rgba(255, 255, 255, 0.85)'),
                 boxShadow: composerMode === 'announcement'
-                  ? '0 24px 60px rgba(37, 99, 235, 0.22), 0 8px 24px rgba(0, 0, 0, 0.35)'
-                  : '0 24px 60px rgba(0, 0, 0, 0.35)',
+                  ? '0 24px 50px rgba(37, 99, 235, 0.28), 0 12px 32px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.42), inset 0 -1px 1px rgba(255, 255, 255, 0.06)'
+                  : '0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.35), inset 0 -1px 1px rgba(255, 255, 255, 0.05)',
                 overflowY: 'auto',
                 transition: 'border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease'
               }}
@@ -4877,15 +4879,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                     display: 'flex', 
                     flexDirection: 'column',
                     gap: '12px', 
-                    background: isAnnouncementPost 
-                      ? (theme === 'dark' ? '#1c1c1e' : '#ffffff')
-                      : 'var(--panel-bg)', 
-                    border: 'none',
-                    borderLeft: isAnnouncementPost ? '4px solid #2563eb' : 'none',
-                    boxShadow: isAnnouncementPost 
-                      ? '0 4px 20px rgba(0, 0, 0, 0.04)'
-                      : '0 2px 10px rgba(0, 0, 0, 0.02)',
-                    borderRadius: '16px',
+                    borderLeft: isAnnouncementPost ? '4px solid #3b82f6' : undefined,
+                    borderRadius: '22px',
                     position: 'relative',
                     opacity: post.isPending ? 0.6 : 1,
                     pointerEvents: post.isPending ? 'none' : 'auto'
