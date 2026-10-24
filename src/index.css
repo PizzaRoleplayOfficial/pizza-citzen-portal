@@ -3602,8 +3602,18 @@ body.android-m3e .app-layout::after {
   stroke: var(--md-sys-color-on-primary-container) !important;
 }
 
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .mobile-nav-plus-btn,
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-nav-plus-btn,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .mobile-nav-plus-btn:hover,
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-nav-plus-btn:hover {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .mobile-nav-plus-btn:active,
 :root[data-ui-mode='android-m3e'] body.android-m3e .mobile-nav-plus-btn:active {
-  transform: translateY(-10px) scale(0.9) !important;
+  left: 50% !important;
+  transform: translateX(-50%) translateY(-4px) scale(0.92) !important;
   border-radius: 14px !important;
 }
 

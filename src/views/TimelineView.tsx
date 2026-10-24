@@ -3769,7 +3769,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
       </div>
 
       {/* New Post / Admin Announcement Creator Modal (Optimized for Mobile & PC with Rounded UI & Spring Animations) */}
-      {showComposerModal && (
+      {showComposerModal && createPortal(
         <div 
           onClick={() => {
             if (!isSubmitting) setShowComposerModal(false);
@@ -3781,10 +3781,13 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             backdropFilter: 'blur(12px) saturate(160%)',
             WebkitBackdropFilter: 'blur(12px) saturate(160%)',
             display: 'flex',
-            alignItems: isMobile ? 'flex-end' : 'center',
+            alignItems: isMobile ? 'flex-start' : 'center',
             justifyContent: 'center',
-            zIndex: 1050,
-            padding: isMobile ? '12px 10px calc(12px + env(safe-area-inset-bottom, 0px))' : '24px',
+            zIndex: 10005,
+            overflowY: 'auto',
+            padding: isMobile
+              ? 'calc(16px + max(env(safe-area-inset-top, 0px), var(--safe-top, 16px))) 12px calc(28px + max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 16px)))'
+              : '24px',
             animation: 'composerBackdropIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
@@ -3793,7 +3796,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
             style={{
               width: '100%',
               maxWidth: isMobile ? '100%' : '620px',
-              maxHeight: isMobile ? '88dvh' : '88vh',
+              maxHeight: isMobile ? 'calc(100dvh - 48px - var(--safe-top, 16px) - var(--safe-bottom, 16px))' : '88vh',
+              margin: isMobile ? 'auto 0' : 0,
               display: 'flex',
               flexDirection: 'column',
               animation: isMobile
@@ -4489,13 +4493,17 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
               )}
 
-              {/* Footer Submit Row */}
+              {/* Footer Submit Row (Sticky on Mobile so it never hides) */}
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'flex-end', 
                 alignItems: 'center', 
                 gap: isMobile ? '10px' : '14px',
-                paddingTop: '2px'
+                paddingTop: '6px',
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 5,
+                flexShrink: 0
               }}>
                 {isCompressingVideo && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -4567,8 +4575,8 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 size={16} className="animate-spin" style={{ flexShrink: 0, color: '#ffffff', stroke: '#ffffff' }} />
-                      <span style={{ color: '#ffffff' }}>送信中...</span>
+                      <Loader2 size={16} className="animate-spin" style={{ flexShrink: 0, color: 'currentColor', stroke: 'currentColor' }} />
+                      <span style={{ color: 'currentColor' }}>送信中...</span>
                     </>
                   ) : composerMode === 'announcement' ? (
                     <>
@@ -4577,7 +4585,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                         height="17"
                         viewBox="0 0 24 24"
                         fill="none"
-                        stroke="#ffffff"
+                        stroke="currentColor"
                         strokeWidth="2.4"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -4586,19 +4594,20 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                         <path d="m3 11 18-5v12L3 14v-3z" />
                         <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
                       </svg>
-                      <span style={{ color: '#ffffff' }}>告知を公開</span>
+                      <span style={{ color: 'currentColor' }}>告知を公開</span>
                     </>
                   ) : (
                     <>
-                      <Send size={16} style={{ flexShrink: 0, color: '#ffffff', stroke: '#ffffff' }} />
-                      <span style={{ color: '#ffffff' }}>ポストする</span>
+                      <Send size={16} style={{ flexShrink: 0, color: 'currentColor', stroke: 'currentColor' }} />
+                      <span style={{ color: 'currentColor' }}>ポストする</span>
                     </>
                   )}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Composer Animations Style Block */}

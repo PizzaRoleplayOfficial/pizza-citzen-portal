@@ -1,7 +1,7 @@
 // desktop/preload.js
 const { contextBridge, ipcRenderer } = require('electron');
 
-let appVersion = '2.8.21';
+let appVersion = '2.8.22';
 try {
   const syncVer = ipcRenderer.sendSync('desktop:get-app-version-sync');
   if (typeof syncVer === 'string' && syncVer.length > 0) {
