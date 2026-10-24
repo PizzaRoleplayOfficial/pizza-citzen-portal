@@ -3390,6 +3390,8 @@ body.is-desktop .desktop-titlebar * {
 }
 
 /* 1. Tonal Surface Background (Disable Liquid Glass ambient orbs on Android M3E) */
+:root[data-ui-mode='android-m3e'] body.android-m3e,
+:root[data-theme] body.android-m3e,
 body.android-m3e {
   background-color: var(--md-sys-color-surface) !important;
   background-image: none !important;
@@ -3397,16 +3399,23 @@ body.android-m3e {
 }
 
 body.android-m3e::before,
-body.android-m3e::after {
+body.android-m3e::after,
+body.android-m3e .app-layout::before,
+body.android-m3e .app-layout::after {
   display: none !important;
 }
 
 /* 2. M3 Expressive Cards & Containers (Extra-Large 28px Squircle, Tonal Fill, No Glass Blur) */
-body.android-m3e .glass,
-body.android-m3e .card,
-body.android-m3e .vehicle-card,
-body.android-m3e .feed-card,
-body.android-m3e .garage-card {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .glass,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .card,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .vehicle-card,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .feed-card,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .garage-card,
+:root[data-ui-mode='android-m3e'] body.android-m3e .glass,
+:root[data-ui-mode='android-m3e'] body.android-m3e .card,
+:root[data-ui-mode='android-m3e'] body.android-m3e .vehicle-card,
+:root[data-ui-mode='android-m3e'] body.android-m3e .feed-card,
+:root[data-ui-mode='android-m3e'] body.android-m3e .garage-card {
   background: var(--md-sys-color-surface-container) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -3420,19 +3429,21 @@ body.android-m3e .garage-card {
 }
 
 /* Shape Morphing on Interactive Cards when tapped on Android */
-body.android-m3e .garage-card:active,
-body.android-m3e .feed-card:active {
+:root[data-ui-mode='android-m3e'] body.android-m3e .garage-card:active,
+:root[data-ui-mode='android-m3e'] body.android-m3e .feed-card:active {
   transform: scale(0.98) !important;
   border-radius: var(--md-sys-shape-corner-large, 20px) !important;
 }
 
-body.android-m3e .card-grid .garage-card-image {
+:root[data-ui-mode='android-m3e'] body.android-m3e .card-grid .garage-card-image {
   border-radius: 28px 28px 0 0 !important;
 }
 
 /* 3. M3 Expressive Buttons & Shape Morphing on Press (m3.material.io/components/buttons) */
-body.android-m3e .btn-primary,
-body.android-m3e button.btn-primary {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .btn-primary,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e button.btn-primary,
+:root[data-ui-mode='android-m3e'] body.android-m3e .btn-primary,
+:root[data-ui-mode='android-m3e'] body.android-m3e button.btn-primary {
   background: var(--md-sys-color-primary) !important;
   color: var(--md-sys-color-on-primary) !important;
   border: none !important;
@@ -3446,14 +3457,16 @@ body.android-m3e button.btn-primary {
 }
 
 /* Expressive Shape Morph: Pill (999px) -> Squircle (14px) on Active Press */
-body.android-m3e .btn-primary:active:not(:disabled),
-body.android-m3e button.btn-primary:active:not(:disabled) {
+:root[data-ui-mode='android-m3e'] body.android-m3e .btn-primary:active:not(:disabled),
+:root[data-ui-mode='android-m3e'] body.android-m3e button.btn-primary:active:not(:disabled) {
   transform: scale(0.95) !important;
   border-radius: 14px !important;
 }
 
-body.android-m3e .btn-secondary,
-body.android-m3e button.btn-secondary {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .btn-secondary,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e button.btn-secondary,
+:root[data-ui-mode='android-m3e'] body.android-m3e .btn-secondary,
+:root[data-ui-mode='android-m3e'] body.android-m3e button.btn-secondary {
   background: var(--md-sys-color-secondary-container) !important;
   color: var(--md-sys-color-on-secondary-container) !important;
   border: none !important;
@@ -3464,14 +3477,15 @@ body.android-m3e button.btn-secondary {
     border-radius 0.28s var(--md-sys-motion-spring-fast-spatial) !important;
 }
 
-body.android-m3e .btn-secondary:active:not(:disabled),
-body.android-m3e button.btn-secondary:active:not(:disabled) {
+:root[data-ui-mode='android-m3e'] body.android-m3e .btn-secondary:active:not(:disabled),
+:root[data-ui-mode='android-m3e'] body.android-m3e button.btn-secondary:active:not(:disabled) {
   transform: scale(0.95) !important;
   border-radius: 14px !important;
 }
 
 /* 4. M3 Expressive Connected Button Group / Segmented Control (m3.material.io/components/button-groups) */
-body.android-m3e .segmented-control {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .segmented-control,
+:root[data-ui-mode='android-m3e'] body.android-m3e .segmented-control {
   background: var(--md-sys-color-surface-container-high) !important;
   border: none !important;
   border-radius: var(--md-sys-shape-corner-full, 9999px) !important;
@@ -3479,14 +3493,16 @@ body.android-m3e .segmented-control {
   gap: 4px !important;
 }
 
-body.android-m3e .segmented-control-btn {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .segmented-control-btn,
+:root[data-ui-mode='android-m3e'] body.android-m3e .segmented-control-btn {
   border-radius: 12px !important;
   color: var(--md-sys-color-on-surface-variant) !important;
   transition:
     all 0.35s var(--md-sys-motion-spring-fast-spatial) !important;
 }
 
-body.android-m3e .segmented-control-btn.active {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .segmented-control-btn.active,
+:root[data-ui-mode='android-m3e'] body.android-m3e .segmented-control-btn.active {
   background: var(--md-sys-color-secondary-container) !important;
   color: var(--md-sys-color-on-secondary-container) !important;
   border-radius: var(--md-sys-shape-corner-full, 9999px) !important;
@@ -3495,14 +3511,24 @@ body.android-m3e .segmented-control-btn.active {
 }
 
 /* 5. M3 Expressive Top App Bar & Bottom Navigation Bar (m3.material.io/components/navigation-bar) */
-body.android-m3e .m3e-top-appbar {
+:root[data-ui-mode='android-m3e'] body.android-m3e .m3e-top-appbar {
   background: var(--md-sys-color-surface) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
 }
 
-body.android-m3e .m3e-bottom-nav {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .header-admin-btn,
+:root[data-ui-mode='android-m3e'] body.android-m3e .header-admin-btn,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .notification-btn,
+:root[data-ui-mode='android-m3e'] body.android-m3e .notification-btn {
+  background: var(--md-sys-color-surface-container-high) !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+:root[data-ui-mode='android-m3e'] body.android-m3e .m3e-bottom-nav {
   background: var(--md-sys-color-surface-container) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -3512,17 +3538,17 @@ body.android-m3e .m3e-bottom-nav {
   padding-bottom: calc(10px + var(--safe-bottom)) !important;
 }
 
-body.android-m3e .m3e-nav-item {
+:root[data-ui-mode='android-m3e'] body.android-m3e .m3e-nav-item {
   color: var(--md-sys-color-on-surface-variant) !important;
   gap: 4px !important;
   transition: color 0.2s var(--md-sys-motion-spring-fast-effects) !important;
 }
 
-body.android-m3e .m3e-nav-item.active {
+:root[data-ui-mode='android-m3e'] body.android-m3e .m3e-nav-item.active {
   color: var(--md-sys-color-on-surface) !important;
 }
 
-body.android-m3e .m3e-nav-icon-pill {
+:root[data-ui-mode='android-m3e'] body.android-m3e .m3e-nav-icon-pill {
   width: 64px;
   height: 32px;
   border-radius: var(--md-sys-shape-corner-full, 9999px);
@@ -3536,13 +3562,13 @@ body.android-m3e .m3e-nav-icon-pill {
     transform 0.38s var(--md-sys-motion-spring-fast-spatial);
 }
 
-body.android-m3e .m3e-nav-item.active .m3e-nav-icon-pill {
+:root[data-ui-mode='android-m3e'] body.android-m3e .m3e-nav-item.active .m3e-nav-icon-pill {
   background: var(--md-sys-color-secondary-container) !important;
   color: var(--md-sys-color-on-secondary-container) !important;
   animation: m3ePillPop 0.4s var(--md-sys-motion-spring-fast-spatial) forwards;
 }
 
-body.android-m3e .m3e-nav-item:active .m3e-nav-icon-pill {
+:root[data-ui-mode='android-m3e'] body.android-m3e .m3e-nav-item:active .m3e-nav-icon-pill {
   transform: scaleX(1.12) scaleY(0.92);
 }
 
@@ -3556,7 +3582,8 @@ body.android-m3e .m3e-nav-item:active .m3e-nav-icon-pill {
 }
 
 /* 6. M3 Expressive Squircle FAB (m3.material.io/components/floating-action-button) */
-body.android-m3e .mobile-nav-plus-btn {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .mobile-nav-plus-btn,
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-nav-plus-btn {
   width: 58px !important;
   height: 58px !important;
   border-radius: 20px !important;
@@ -3570,18 +3597,19 @@ body.android-m3e .mobile-nav-plus-btn {
     background-color 0.2s var(--md-sys-motion-spring-fast-effects) !important;
 }
 
-body.android-m3e .mobile-nav-plus-btn svg {
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-nav-plus-btn svg {
   color: var(--md-sys-color-on-primary-container) !important;
   stroke: var(--md-sys-color-on-primary-container) !important;
 }
 
-body.android-m3e .mobile-nav-plus-btn:active {
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-nav-plus-btn:active {
   transform: translateY(-10px) scale(0.9) !important;
   border-radius: 14px !important;
 }
 
 /* 7. M3 Expressive Bottom Sheets & Action Menus (m3.material.io/components/bottom-sheets) */
-body.android-m3e .mobile-action-group {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .mobile-action-group,
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-action-group {
   background: var(--md-sys-color-surface-container-high) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -3590,18 +3618,20 @@ body.android-m3e .mobile-action-group {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35) !important;
 }
 
-body.android-m3e .mobile-action-button {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .mobile-action-button,
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-action-button {
   color: var(--md-sys-color-primary) !important;
   border-radius: 16px !important;
   transition: transform 0.28s var(--md-sys-motion-spring-fast-spatial) !important;
 }
 
-body.android-m3e .mobile-action-button:active {
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-action-button:active {
   background: var(--md-sys-color-secondary-container) !important;
   transform: scale(0.97) !important;
 }
 
-body.android-m3e .mobile-action-cancel-card {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .mobile-action-cancel-card,
+:root[data-ui-mode='android-m3e'] body.android-m3e .mobile-action-cancel-card {
   background: var(--md-sys-color-secondary-container) !important;
   color: var(--md-sys-color-on-secondary-container) !important;
   backdrop-filter: none !important;
@@ -3612,29 +3642,36 @@ body.android-m3e .mobile-action-cancel-card {
 }
 
 /* 8. M3 Expressive Search Bars & Form Inputs (Surface Container High Pill) */
-body.android-m3e input[type="text"],
-body.android-m3e input[type="search"],
-body.android-m3e input[type="password"],
-body.android-m3e input[type="email"],
-body.android-m3e input[type="number"],
-body.android-m3e select,
-body.android-m3e textarea {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e input[type="text"],
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e input[type="search"],
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e input[type="password"],
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e input[type="email"],
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e input[type="number"],
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e select,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e textarea,
+:root[data-ui-mode='android-m3e'] body.android-m3e input[type="text"],
+:root[data-ui-mode='android-m3e'] body.android-m3e input[type="search"],
+:root[data-ui-mode='android-m3e'] body.android-m3e input[type="password"],
+:root[data-ui-mode='android-m3e'] body.android-m3e input[type="email"],
+:root[data-ui-mode='android-m3e'] body.android-m3e input[type="number"],
+:root[data-ui-mode='android-m3e'] body.android-m3e select,
+:root[data-ui-mode='android-m3e'] body.android-m3e textarea {
   background: var(--md-sys-color-surface-container-high) !important;
   color: var(--md-sys-color-on-surface) !important;
   border: 1px solid transparent !important;
 }
 
-body.android-m3e input[type="text"]:focus,
-body.android-m3e input[type="search"]:focus,
-body.android-m3e textarea:focus,
-body.android-m3e select:focus {
+:root[data-ui-mode='android-m3e'] body.android-m3e input[type="text"]:focus,
+:root[data-ui-mode='android-m3e'] body.android-m3e input[type="search"]:focus,
+:root[data-ui-mode='android-m3e'] body.android-m3e textarea:focus,
+:root[data-ui-mode='android-m3e'] body.android-m3e select:focus {
   background: var(--md-sys-color-surface-container-highest) !important;
   box-shadow: 0 0 0 2px var(--md-sys-color-primary) !important;
 }
 
-
 /* 9. M3 Expressive Theme Selector & Filter Chips with Dynamic Color */
-body.android-m3e .theme-selector-item {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .theme-selector-item,
+:root[data-ui-mode='android-m3e'] body.android-m3e .theme-selector-item {
   background: var(--md-sys-color-surface-container-high) !important;
   color: var(--md-sys-color-on-surface-variant) !important;
   border: 1px solid var(--md-sys-color-outline-variant) !important;
@@ -3642,7 +3679,8 @@ body.android-m3e .theme-selector-item {
   transition: all 0.3s var(--md-sys-motion-spring-fast-spatial) !important;
 }
 
-body.android-m3e .theme-selector-item.active {
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .theme-selector-item.active,
+:root[data-ui-mode='android-m3e'] body.android-m3e .theme-selector-item.active {
   background: var(--md-sys-color-secondary-container) !important;
   color: var(--md-sys-color-on-secondary-container) !important;
   border-color: var(--md-sys-color-primary) !important;

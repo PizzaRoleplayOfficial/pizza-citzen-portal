@@ -4328,22 +4328,22 @@ export default function App() {
               >
                 {/* Official State Header Bar */}
                 <div style={{
-                  background: 'linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%)',
-                  padding: '12px 18px',
+                  background: isAndroidApp ? 'var(--md-sys-color-primary-container)' : 'linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%)',
+                  padding: isAndroidApp ? '14px 20px' : '12px 18px',
                   flexWrap: 'wrap',
                   gap: '8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  color: '#ffffff'
+                  color: isAndroidApp ? 'var(--md-sys-color-on-primary-container)' : '#ffffff'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ShieldCheck size={18} style={{ color: '#93c5fd' }} />
+                    <ShieldCheck size={18} style={{ color: isAndroidApp ? 'var(--md-sys-color-primary)' : '#93c5fd' }} />
                     <span style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-heading)' }}>
                       STATE OF GREENVIEW • OFFICIAL CITIZEN ID
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.75)', letterSpacing: '0.05em' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-primary-container)' : 'rgba(255, 255, 255, 0.75)', opacity: isAndroidApp ? 0.8 : 1, letterSpacing: '0.05em' }}>
                     DMV REGISTRY
                   </span>
                 </div>
@@ -4437,7 +4437,7 @@ export default function App() {
                       <div style={{ 
                         fontSize: 'clamp(1.15rem, 2vw, 1.45rem)',
                         fontWeight: 700, 
-                        color: theme === 'dark' ? '#60a5fa' : '#1e3a8a', 
+                        color: isAndroidApp ? 'var(--md-sys-color-primary)' : (theme === 'dark' ? '#60a5fa' : '#1e3a8a'), 
                         fontFamily: 'var(--font-plate)', 
                         letterSpacing: '0.12em',
                         lineHeight: 1.2
@@ -4475,16 +4475,16 @@ export default function App() {
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0, flexWrap: 'nowrap' }}>
                     <button 
                       onClick={() => handleOpenVehicleModal('gv')}
-                      style={{ background: 'rgba(30, 58, 138, 0.08)', border: '1px solid rgba(30, 58, 138, 0.15)', padding: '6px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.15)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.08)'}
+                      className={isAndroidApp ? 'btn-primary' : undefined}
+                      style={{ background: isAndroidApp ? 'var(--md-sys-color-primary-container)' : 'rgba(30, 58, 138, 0.08)', border: isAndroidApp ? 'none' : '1px solid rgba(30, 58, 138, 0.15)', padding: '7px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-primary-container)' : 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
                       title="車両登録"
                     >
                       <Plus size={14} strokeWidth={2.5} /> 登録申請
                     </button>
                     <button 
                       onClick={() => { triggerHaptic('light'); setView('garage'); }} 
-                      style={{ background: 'var(--btn-secondary-bg)', border: '1px solid var(--border)', padding: '6px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      className={isAndroidApp ? 'btn-secondary' : undefined}
+                      style={{ background: isAndroidApp ? 'var(--md-sys-color-secondary-container)' : 'var(--btn-secondary-bg)', border: isAndroidApp ? 'none' : '1px solid var(--border)', padding: '7px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-secondary-container)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
                       onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-main)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                     >
@@ -4527,9 +4527,9 @@ export default function App() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '12px 18px',
-                        background: theme === 'dark' ? '#2c2c2e' : '#f8fafc',
-                        borderRadius: '16px',
+                        padding: '13px 18px',
+                        background: isAndroidApp ? 'var(--md-sys-color-surface-container-high)' : (theme === 'dark' ? '#2c2c2e' : '#f8fafc'),
+                        borderRadius: isAndroidApp ? '20px' : '16px',
                         border: 'none',
                         gap: '10px'
                       }}>
@@ -4562,12 +4562,13 @@ export default function App() {
 
 {/* ぴっざぁ公式Discord バナー */}
             <div 
+              className={isAndroidApp ? 'card' : undefined}
               style={{
-                borderRadius: '20px',
-                padding: isMobile ? '16px 20px' : '20px 28px',
-                background: 'linear-gradient(135deg, rgba(88, 101, 242, 0.08) 0%, rgba(88, 101, 242, 0.02) 100%)',
-                border: '1px solid rgba(88, 101, 242, 0.2)',
-                boxShadow: '0 4px 20px rgba(88, 101, 242, 0.06)',
+                borderRadius: isAndroidApp ? '28px' : '20px',
+                padding: isMobile ? '18px 20px' : '20px 28px',
+                background: isAndroidApp ? 'var(--md-sys-color-surface-container)' : 'linear-gradient(135deg, rgba(88, 101, 242, 0.08) 0%, rgba(88, 101, 242, 0.02) 100%)',
+                border: isAndroidApp ? 'none' : '1px solid rgba(88, 101, 242, 0.2)',
+                boxShadow: isAndroidApp ? '0 2px 10px rgba(0, 0, 0, 0.08)' : '0 4px 20px rgba(88, 101, 242, 0.06)',
                 display: 'flex',
                 flexDirection: isMobile ? 'column' : 'row',
                 alignItems: 'center',
@@ -4669,9 +4670,10 @@ export default function App() {
                         setTargetTimelinePostId(post.id);
                         setView('timeline');
                       }}
+                      className={isAndroidApp ? 'feed-card' : undefined}
                       style={{
-                        background: theme === 'dark' ? '#1c1c1e' : '#ffffff',
-                        borderRadius: '24px',
+                        background: isAndroidApp ? 'var(--md-sys-color-surface-container)' : (theme === 'dark' ? '#1c1c1e' : '#ffffff'),
+                        borderRadius: isAndroidApp ? '28px' : '24px',
                         border: 'none',
                         padding: '20px 24px',
                         boxShadow: theme === 'dark' ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.04)',
