@@ -3297,3 +3297,339 @@ body.is-desktop .desktop-titlebar * {
   background-repeat: no-repeat !important;
 }
 
+/* Default (Web / Non-Android) nav icon wrapper resets */
+.m3e-nav-icon-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   Material 3 Expressive (m3.material.io) — Android App Exclusive Theme
+   Web版およびPCデスクトップ版は Liquid Glass を維持し、
+   Androidアプリ (body.android-m3e) のみ M3 Expressive トークンを適用
+   ========================================================================== */
+
+:root[data-ui-mode='android-m3e'],
+:root[data-ui-mode='android-m3e'][data-theme='light'] {
+  /* M3 Expressive Light Tonal Palette (m3.material.io/styles/color) */
+  --md-sys-color-surface: #f7f9ff;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f1f4fa;
+  --md-sys-color-surface-container: #ebeef4;
+  --md-sys-color-surface-container-high: #e5e8ee;
+  --md-sys-color-surface-container-highest: #dfe3e9;
+  --md-sys-color-on-surface: #181c20;
+  --md-sys-color-on-surface-variant: #414751;
+  --md-sys-color-primary: #0061a4;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d1e4ff;
+  --md-sys-color-on-primary-container: #001d36;
+  --md-sys-color-secondary-container: #d3e4f8;
+  --md-sys-color-on-secondary-container: #0c1d2b;
+  --md-sys-color-tertiary-container: #f2daff;
+  --md-sys-color-on-tertiary-container: #261439;
+  --md-sys-color-outline: #717882;
+  --md-sys-color-outline-variant: #c1c7d3;
+
+  /* M3 Expressive Physics-Based Spring Motion Tokens (m3.material.io/styles/motion) */
+  --md-sys-motion-spring-fast-spatial: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --md-sys-motion-spring-default-spatial: cubic-bezier(0.22, 1.35, 0.36, 1);
+  --md-sys-motion-spring-fast-effects: cubic-bezier(0.2, 0, 0, 1);
+
+  /* M3 Expressive Expanded Shape Tokens (m3.material.io/styles/shape) */
+  --md-sys-shape-corner-medium: 16px;
+  --md-sys-shape-corner-large: 20px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-extra-extra-large: 36px;
+  --md-sys-shape-corner-full: 9999px;
+
+  /* Map App Variables to M3 Expressive Tokens */
+  --bg-dark: var(--md-sys-color-surface);
+  --panel-bg: var(--md-sys-color-surface-container);
+  --glass-bg: var(--md-sys-color-surface-container);
+  --glass-border: var(--md-sys-color-outline-variant);
+  --nav-bg: var(--md-sys-color-surface-container);
+  --input-bg: var(--md-sys-color-surface-container-high);
+  --text-main: var(--md-sys-color-on-surface);
+  --text-muted: var(--md-sys-color-on-surface-variant);
+  --primary: var(--md-sys-color-primary);
+}
+
+:root[data-ui-mode='android-m3e'][data-theme='dark'] {
+  /* M3 Expressive Dark Tonal Palette (m3.material.io/styles/color) */
+  --md-sys-color-surface: #0f141a;
+  --md-sys-color-surface-container-lowest: #0a0f14;
+  --md-sys-color-surface-container-low: #171c22;
+  --md-sys-color-surface-container: #1b2026;
+  --md-sys-color-surface-container-high: #252b31;
+  --md-sys-color-surface-container-highest: #30353c;
+  --md-sys-color-on-surface: #dfe3eb;
+  --md-sys-color-on-surface-variant: #c0c7d3;
+  --md-sys-color-primary: #9ecaff;
+  --md-sys-color-on-primary: #003258;
+  --md-sys-color-primary-container: #00497d;
+  --md-sys-color-on-primary-container: #d1e4ff;
+  --md-sys-color-secondary-container: #35485b;
+  --md-sys-color-on-secondary-container: #d3e4f8;
+  --md-sys-color-tertiary-container: #523c67;
+  --md-sys-color-on-tertiary-container: #f2daff;
+  --md-sys-color-outline: #8a919d;
+  --md-sys-color-outline-variant: #404751;
+
+  /* Map App Variables to M3 Expressive Tokens */
+  --bg-dark: var(--md-sys-color-surface);
+  --panel-bg: var(--md-sys-color-surface-container);
+  --glass-bg: var(--md-sys-color-surface-container);
+  --glass-border: var(--md-sys-color-outline-variant);
+  --nav-bg: var(--md-sys-color-surface-container);
+  --input-bg: var(--md-sys-color-surface-container-high);
+  --text-main: var(--md-sys-color-on-surface);
+  --text-muted: var(--md-sys-color-on-surface-variant);
+  --primary: var(--md-sys-color-primary);
+}
+
+/* 1. Tonal Surface Background (Disable Liquid Glass ambient orbs on Android M3E) */
+body.android-m3e {
+  background-color: var(--md-sys-color-surface) !important;
+  background-image: none !important;
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+body.android-m3e::before,
+body.android-m3e::after {
+  display: none !important;
+}
+
+/* 2. M3 Expressive Cards & Containers (Extra-Large 28px Squircle, Tonal Fill, No Glass Blur) */
+body.android-m3e .glass,
+body.android-m3e .card,
+body.android-m3e .vehicle-card,
+body.android-m3e .feed-card,
+body.android-m3e .garage-card {
+  background: var(--md-sys-color-surface-container) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-radius: var(--md-sys-shape-corner-extra-large, 28px) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+  transition:
+    transform 0.35s var(--md-sys-motion-spring-fast-spatial),
+    border-radius 0.35s var(--md-sys-motion-spring-fast-spatial),
+    background-color 0.2s var(--md-sys-motion-spring-fast-effects) !important;
+}
+
+/* Shape Morphing on Interactive Cards when tapped on Android */
+body.android-m3e .garage-card:active,
+body.android-m3e .feed-card:active {
+  transform: scale(0.98) !important;
+  border-radius: var(--md-sys-shape-corner-large, 20px) !important;
+}
+
+body.android-m3e .card-grid .garage-card-image {
+  border-radius: 28px 28px 0 0 !important;
+}
+
+/* 3. M3 Expressive Buttons & Shape Morphing on Press (m3.material.io/components/buttons) */
+body.android-m3e .btn-primary,
+body.android-m3e button.btn-primary {
+  background: var(--md-sys-color-primary) !important;
+  color: var(--md-sys-color-on-primary) !important;
+  border: none !important;
+  border-radius: var(--md-sys-shape-corner-full, 9999px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16) !important;
+  font-weight: 700 !important;
+  transition:
+    transform 0.32s var(--md-sys-motion-spring-fast-spatial),
+    border-radius 0.28s var(--md-sys-motion-spring-fast-spatial),
+    background-color 0.15s var(--md-sys-motion-spring-fast-effects) !important;
+}
+
+/* Expressive Shape Morph: Pill (999px) -> Squircle (14px) on Active Press */
+body.android-m3e .btn-primary:active:not(:disabled),
+body.android-m3e button.btn-primary:active:not(:disabled) {
+  transform: scale(0.95) !important;
+  border-radius: 14px !important;
+}
+
+body.android-m3e .btn-secondary,
+body.android-m3e button.btn-secondary {
+  background: var(--md-sys-color-secondary-container) !important;
+  color: var(--md-sys-color-on-secondary-container) !important;
+  border: none !important;
+  border-radius: var(--md-sys-shape-corner-full, 9999px) !important;
+  box-shadow: none !important;
+  transition:
+    transform 0.32s var(--md-sys-motion-spring-fast-spatial),
+    border-radius 0.28s var(--md-sys-motion-spring-fast-spatial) !important;
+}
+
+body.android-m3e .btn-secondary:active:not(:disabled),
+body.android-m3e button.btn-secondary:active:not(:disabled) {
+  transform: scale(0.95) !important;
+  border-radius: 14px !important;
+}
+
+/* 4. M3 Expressive Connected Button Group / Segmented Control (m3.material.io/components/button-groups) */
+body.android-m3e .segmented-control {
+  background: var(--md-sys-color-surface-container-high) !important;
+  border: none !important;
+  border-radius: var(--md-sys-shape-corner-full, 9999px) !important;
+  padding: 4px !important;
+  gap: 4px !important;
+}
+
+body.android-m3e .segmented-control-btn {
+  border-radius: 12px !important;
+  color: var(--md-sys-color-on-surface-variant) !important;
+  transition:
+    all 0.35s var(--md-sys-motion-spring-fast-spatial) !important;
+}
+
+body.android-m3e .segmented-control-btn.active {
+  background: var(--md-sys-color-secondary-container) !important;
+  color: var(--md-sys-color-on-secondary-container) !important;
+  border-radius: var(--md-sys-shape-corner-full, 9999px) !important;
+  box-shadow: none !important;
+  font-weight: 800 !important;
+}
+
+/* 5. M3 Expressive Top App Bar & Bottom Navigation Bar (m3.material.io/components/navigation-bar) */
+body.android-m3e .m3e-top-appbar {
+  background: var(--md-sys-color-surface) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
+}
+
+body.android-m3e .m3e-bottom-nav {
+  background: var(--md-sys-color-surface-container) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: none !important;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.14) !important;
+  padding-top: 10px !important;
+  padding-bottom: calc(10px + var(--safe-bottom)) !important;
+}
+
+body.android-m3e .m3e-nav-item {
+  color: var(--md-sys-color-on-surface-variant) !important;
+  gap: 4px !important;
+  transition: color 0.2s var(--md-sys-motion-spring-fast-effects) !important;
+}
+
+body.android-m3e .m3e-nav-item.active {
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+body.android-m3e .m3e-nav-icon-pill {
+  width: 64px;
+  height: 32px;
+  border-radius: var(--md-sys-shape-corner-full, 9999px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: transparent;
+  transition:
+    background-color 0.25s var(--md-sys-motion-spring-fast-effects),
+    transform 0.38s var(--md-sys-motion-spring-fast-spatial);
+}
+
+body.android-m3e .m3e-nav-item.active .m3e-nav-icon-pill {
+  background: var(--md-sys-color-secondary-container) !important;
+  color: var(--md-sys-color-on-secondary-container) !important;
+  animation: m3ePillPop 0.4s var(--md-sys-motion-spring-fast-spatial) forwards;
+}
+
+body.android-m3e .m3e-nav-item:active .m3e-nav-icon-pill {
+  transform: scaleX(1.12) scaleY(0.92);
+}
+
+@keyframes m3ePillPop {
+  0% {
+    transform: scaleX(0.45) scaleY(0.85);
+  }
+  100% {
+    transform: scaleX(1) scaleY(1);
+  }
+}
+
+/* 6. M3 Expressive Squircle FAB (m3.material.io/components/floating-action-button) */
+body.android-m3e .mobile-nav-plus-btn {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 20px !important;
+  background: var(--md-sys-color-primary-container) !important;
+  color: var(--md-sys-color-on-primary-container) !important;
+  border: none !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28) !important;
+  transition:
+    transform 0.38s var(--md-sys-motion-spring-fast-spatial),
+    border-radius 0.32s var(--md-sys-motion-spring-fast-spatial),
+    background-color 0.2s var(--md-sys-motion-spring-fast-effects) !important;
+}
+
+body.android-m3e .mobile-nav-plus-btn svg {
+  color: var(--md-sys-color-on-primary-container) !important;
+  stroke: var(--md-sys-color-on-primary-container) !important;
+}
+
+body.android-m3e .mobile-nav-plus-btn:active {
+  transform: translateY(-10px) scale(0.9) !important;
+  border-radius: 14px !important;
+}
+
+/* 7. M3 Expressive Bottom Sheets & Action Menus (m3.material.io/components/bottom-sheets) */
+body.android-m3e .mobile-action-group {
+  background: var(--md-sys-color-surface-container-high) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-radius: 28px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.android-m3e .mobile-action-button {
+  color: var(--md-sys-color-primary) !important;
+  border-radius: 16px !important;
+  transition: transform 0.28s var(--md-sys-motion-spring-fast-spatial) !important;
+}
+
+body.android-m3e .mobile-action-button:active {
+  background: var(--md-sys-color-secondary-container) !important;
+  transform: scale(0.97) !important;
+}
+
+body.android-m3e .mobile-action-cancel-card {
+  background: var(--md-sys-color-secondary-container) !important;
+  color: var(--md-sys-color-on-secondary-container) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+/* 8. M3 Expressive Search Bars & Form Inputs (Surface Container High Pill) */
+body.android-m3e input[type="text"],
+body.android-m3e input[type="search"],
+body.android-m3e input[type="password"],
+body.android-m3e input[type="email"],
+body.android-m3e input[type="number"],
+body.android-m3e select,
+body.android-m3e textarea {
+  background: var(--md-sys-color-surface-container-high) !important;
+  color: var(--md-sys-color-on-surface) !important;
+  border: 1px solid transparent !important;
+}
+
+body.android-m3e input[type="text"]:focus,
+body.android-m3e input[type="search"]:focus,
+body.android-m3e textarea:focus,
+body.android-m3e select:focus {
+  background: var(--md-sys-color-surface-container-highest) !important;
+  box-shadow: 0 0 0 2px var(--md-sys-color-primary) !important;
+}
+
+

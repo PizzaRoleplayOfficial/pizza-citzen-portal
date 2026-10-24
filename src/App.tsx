@@ -282,6 +282,12 @@ export default function App() {
   }, []);
 
   const isDesktop = typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop;
+  const isAndroidApp = isNative && Capacitor.getPlatform() === 'android';
+
+  useEffect(() => {
+    document.body.classList.toggle('android-m3e', isAndroidApp);
+    document.documentElement.setAttribute('data-ui-mode', isAndroidApp ? 'android-m3e' : 'liquid-glass');
+  }, [isAndroidApp]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     (isNative || isDesktop) ? localStorage.getItem('gvvr_sidebar_collapsed') === 'true' : false
   );
@@ -3935,7 +3941,7 @@ export default function App() {
             </div>
           )}
 
-          <div style={{
+          <div className={isAndroidApp ? 'm3e-top-appbar' : undefined} style={{
             background: theme === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(10, 15, 25, 0.6)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
@@ -4845,7 +4851,7 @@ export default function App() {
       </main>
 
       {isMobile && (
-        <nav style={{ 
+        <nav className={isAndroidApp ? 'm3e-bottom-nav' : undefined} style={{ 
           position: 'fixed', 
           bottom: 0, 
           left: 0, 
@@ -4863,15 +4869,19 @@ export default function App() {
           boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.04)'
         }}>
           {/* Tab 1: Home */}
-          <button onClick={() => { triggerHaptic('light'); setView('home'); }} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
-            <Home size={22} fill={(view === 'home' || view === 'intro') ? 'currentColor' : 'none'} strokeWidth={(view === 'home' || view === 'intro') ? 2.4 : 1.8} />
-            <span style={{ fontSize: '0.65rem', fontWeight: (view === 'home' || view === 'intro') ? 700 : 500, whiteSpace: 'nowrap' }}>ホーム</span>
+          <button className={`m3e-nav-item ${(view === 'home' || view === 'intro') ? 'active' : ''}`} onClick={() => { triggerHaptic('light'); setView('home'); }} style={{ background: 'none', border: 'none', color: (view === 'home' || view === 'intro') ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <span className="m3e-nav-icon-pill">
+              <Home size={22} fill={(view === 'home' || view === 'intro') ? 'currentColor' : 'none'} strokeWidth={(view === 'home' || view === 'intro') ? 2.4 : 1.8} />
+            </span>
+            <span className="m3e-nav-label" style={{ fontSize: '0.65rem', fontWeight: (view === 'home' || view === 'intro') ? 700 : 500, whiteSpace: 'nowrap' }}>ホーム</span>
           </button>
           
           {/* Tab 2: Garage */}
-          <button onClick={() => { triggerHaptic('light'); setView('garage'); }} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
-            <Car size={22} fill={view === 'garage' ? 'currentColor' : 'none'} strokeWidth={view === 'garage' ? 2.4 : 1.8} />
-            <span style={{ fontSize: '0.65rem', fontWeight: view === 'garage' ? 700 : 500, whiteSpace: 'nowrap' }}>ガレージ</span>
+          <button className={`m3e-nav-item ${view === 'garage' ? 'active' : ''}`} onClick={() => { triggerHaptic('light'); setView('garage'); }} style={{ background: 'none', border: 'none', color: view === 'garage' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <span className="m3e-nav-icon-pill">
+              <Car size={22} fill={view === 'garage' ? 'currentColor' : 'none'} strokeWidth={view === 'garage' ? 2.4 : 1.8} />
+            </span>
+            <span className="m3e-nav-label" style={{ fontSize: '0.65rem', fontWeight: view === 'garage' ? 700 : 500, whiteSpace: 'nowrap' }}>ガレージ</span>
           </button>
           
           {/* Tab 3: Center Plus Action Button */}
@@ -4882,14 +4892,16 @@ export default function App() {
           </div>
           
           {/* Tab 4: Timeline */}
-          <button onClick={() => { triggerHaptic('light'); setView('timeline'); }} style={{ background: 'none', border: 'none', color: view === 'timeline' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
-            <Flame size={22} fill={view === 'timeline' ? 'currentColor' : 'none'} strokeWidth={view === 'timeline' ? 2.4 : 1.8} />
-            <span style={{ fontSize: '0.65rem', fontWeight: view === 'timeline' ? 700 : 500, whiteSpace: 'nowrap' }}>タイムライン</span>
+          <button className={`m3e-nav-item ${view === 'timeline' ? 'active' : ''}`} onClick={() => { triggerHaptic('light'); setView('timeline'); }} style={{ background: 'none', border: 'none', color: view === 'timeline' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer' }}>
+            <span className="m3e-nav-icon-pill">
+              <Flame size={22} fill={view === 'timeline' ? 'currentColor' : 'none'} strokeWidth={view === 'timeline' ? 2.4 : 1.8} />
+            </span>
+            <span className="m3e-nav-label" style={{ fontSize: '0.65rem', fontWeight: view === 'timeline' ? 700 : 500, whiteSpace: 'nowrap' }}>タイムライン</span>
           </button>
 
           {/* Tab 5: Messages */}
-          <button onClick={() => { triggerHaptic('light'); setView('messages'); }} style={{ background: 'none', border: 'none', color: view === 'messages' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer', position: 'relative' }}>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button className={`m3e-nav-item ${view === 'messages' ? 'active' : ''}`} onClick={() => { triggerHaptic('light'); setView('messages'); }} style={{ background: 'none', border: 'none', color: view === 'messages' ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, padding: '4px 0', cursor: 'pointer', position: 'relative' }}>
+            <span className="m3e-nav-icon-pill" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <MessageCircle size={22} fill={view === 'messages' ? 'currentColor' : 'none'} strokeWidth={view === 'messages' ? 2.4 : 1.8} />
               {unreadDmCount > 0 && (
                 <span style={{
@@ -4912,8 +4924,8 @@ export default function App() {
                   {unreadDmCount > 9 ? '9+' : unreadDmCount}
                 </span>
               )}
-            </div>
-            <span style={{ fontSize: '0.65rem', fontWeight: view === 'messages' ? 700 : 500, whiteSpace: 'nowrap' }}>メッセージ</span>
+            </span>
+            <span className="m3e-nav-label" style={{ fontSize: '0.65rem', fontWeight: view === 'messages' ? 700 : 500, whiteSpace: 'nowrap' }}>メッセージ</span>
           </button>
         </nav>
       )}
