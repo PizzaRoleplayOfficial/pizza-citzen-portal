@@ -125,7 +125,7 @@ export const onRequestPost = async ({ env, request }: { env: any; request: Reque
     `).bind(id, session.id, roblox_username, discord_username, JSON.stringify(answers), score, max, now).run();
 
     // Discord Webhook: new citizen application notification
-    const citizenWebhookUrl = env.DISCORD_WEBHOOK_CITIZEN_APPLICATIONS || env.DISCORD_WEBHOOK_APPLICATIONS || 'https://discord.com/api/webhooks/1555782067109761125/VhT5pkmitj99Kz3_EevJ4giX2kgHpaA-g4Y_Kdk7rqzsudWpAj5_mUCdLXbfN7WqxW8w';
+    const citizenWebhookUrl = env.DISCORD_WEBHOOK_CITIZEN_APPLICATIONS || env.DISCORD_WEBHOOK_APPLICATIONS;
     if (citizenWebhookUrl) {
       const scoreText = max > 0 ? `${score}/${max} 点（記述式は別途確認）` : '自動採点対象なし';
       await sendWebhook(citizenWebhookUrl, {
