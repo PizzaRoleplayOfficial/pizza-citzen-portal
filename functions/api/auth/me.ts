@@ -1,5 +1,6 @@
 // functions/api/auth/me.ts
-// functions/api/auth/me.ts
+import { getAuthenticatedUser } from '../../utils/auth';
+
 const ensureUserTable = async (db: any) => {
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
@@ -37,20 +38,14 @@ const ensurePasskeysTable = async (db: any) => {
 };
 
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => {
-    const [k, ...v] = c.trim().split('=');
-    return [k, v.join('=')];
-  })) : {};
-  const userCookie = cookies['gv_user'];
+  const sessionUser = await getAuthenticatedUser(request, env);
 
-  if (userCookie) {
+  if (sessionUser && sessionUser.id) {
     try {
       await ensureUserTable(env.D1_DB);
       await ensurePasskeysTable(env.D1_DB);
-      const sessionUser = JSON.parse(decodeURIComponent(userCookie));
       
-      // Fetch latest info from DB to get roblox_username and current role/username
+      // Fetch latest info from DB to get roblox_username and current verified role
       const dbUser = await env.D1_DB.prepare("SELECT * FROM users WHERE id = ?").bind(sessionUser.id).first() as any;
       
       // Check if user has registered any passkeys
@@ -60,7 +55,7 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
         id: sessionUser.id,
         username: dbUser?.username || sessionUser.username,
         avatar: dbUser?.avatar || sessionUser.avatar,
-        role: dbUser?.role || sessionUser.role,
+        role: dbUser?.role || sessionUser.role || 'user',
         roblox_username: dbUser?.roblox_username || '',
         hasPasskey: !!passkey
       };
@@ -80,18 +75,17 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 };
 
 export const onRequestPatch = async ({ env, request }: { env: any, request: Request }) => {
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split(';').map(c => {
-    const [k, ...v] = c.trim().split('=');
-    return [k, v.join('=')];
-  })) : {};
-  const userCookie = cookies['gv_user'];
+  const sessionUser = await getAuthenticatedUser(request, env);
 
-  if (!userCookie) return new Response("Unauthorized", { status: 401 });
+  if (!sessionUser || !sessionUser.id) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { 
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
   try {
     await ensureUserTable(env.D1_DB);
-    const sessionUser = JSON.parse(decodeURIComponent(userCookie));
     const body = await request.json() as any;
     const { roblox_username } = body;
 
@@ -102,6 +96,9 @@ export const onRequestPatch = async ({ env, request }: { env: any, request: Requ
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (e: any) {
-    return new Response(e.message, { status: 500 });
+    return new Response(JSON.stringify({ error: e.message }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 };

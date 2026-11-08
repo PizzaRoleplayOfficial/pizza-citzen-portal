@@ -1,3 +1,4 @@
+import { getAuthenticatedUser, isAdminUser } from '../utils/auth';
 // API for Timeline (Twitter-like SNS) Management
 // Path: functions/api/timeline.ts
 import { sendFcmNotificationToUser } from '../utils/fcm';
@@ -367,10 +368,22 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
     await ensureAllD1Indexes(env.D1_DB);
-    const body = await request.json() as any;
-    const { userId, content, image_data, video_path, repostId, poll, isAnnouncement, announcementExpiresAt } = body;
+    const authUser = await getAuthenticatedUser(request, env);
+    if (!authUser || !authUser.id) {
+      return new Response(JSON.stringify({ error: '投稿するにはログインが必要です。' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-    if (!userId || (!content && !repostId)) {
+    const body = await request.json() as any;
+    // Force authentic user ID from verified session
+    const userId = authUser.id;
+    const { content, image_data, video_path, repostId, poll, announcementExpiresAt } = body;
+    // Only verified administrators can publish system announcements
+    const isAnnouncement = body.isAnnouncement && isAdminUser(authUser, env);
+
+    if (!content && !repostId) {
       return new Response(JSON.stringify({ error: 'ユーザーIDと投稿内容、またはリポスト対象IDが必要です。' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -454,43 +467,49 @@ export const onRequestPost = async ({ env, request }: { env: any, request: Reque
 };
 
 export const onRequestDelete = async ({ env, request }: { env: any, request: Request }) => {
+  const authUser = await getAuthenticatedUser(request, env);
+  if (!authUser || !authUser.id) {
+    return new Response(JSON.stringify({ error: "投稿を削除するにはログインが必要です。" }), { 
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
   const url = new URL(request.url);
   const id = url.searchParams.get('id');
-  const userId = url.searchParams.get('userId');
-
   const repostId = url.searchParams.get('repostId');
-  if (repostId && userId) {
-    // ensureTimelineTables skipped on GET for performance
+
+  if (repostId) {
+    // Delete repost belonging to the authenticated user
     await env.D1_DB.prepare(
       "DELETE FROM timeline_posts WHERE user_id = ? AND repost_id = ?"
-    ).bind(userId, repostId).run();
+    ).bind(authUser.id, repostId).run();
     return new Response(JSON.stringify({ success: true, action: 'unreposted' }), {
       headers: { 'Content-Type': 'application/json' }
     });
   }
 
-  if (!id || !userId) {
-    return new Response(JSON.stringify({ error: "Missing ID or user ID" }), { status: 400 });
+  if (!id) {
+    return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
   }
 
   try {
-    // ensureTimelineTables skipped on GET for performance
-
     // Authorization check: Must be the post author or an administrator
     const post = await env.D1_DB.prepare("SELECT user_id FROM timeline_posts WHERE id = ?").bind(id).first() as any;
     if (!post) {
       return new Response(JSON.stringify({ error: "Post not found" }), { status: 404 });
     }
 
-    const user = await env.D1_DB.prepare("SELECT role FROM users WHERE id = ?").bind(userId).first() as any;
-    const isAdmin = user && user.role === 'admin';
-    const isAuthor = post.user_id === userId;
+    const isAuthor = post.user_id === authUser.id;
+    const isAdmin = isAdminUser(authUser, env);
 
     if (!isAuthor && !isAdmin) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+      return new Response(JSON.stringify({ error: "Forbidden: You are not authorized to delete this post" }), { 
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // Delete post, its likes and its comments cascade-style (since we manage it manually)
     await env.D1_DB.prepare("DELETE FROM timeline_posts WHERE id = ?").bind(id).run();
     await env.D1_DB.prepare("DELETE FROM timeline_likes WHERE post_id = ?").bind(id).run();
     await env.D1_DB.prepare("DELETE FROM timeline_comments WHERE post_id = ?").bind(id).run();

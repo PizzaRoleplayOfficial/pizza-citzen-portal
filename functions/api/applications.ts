@@ -1,23 +1,9 @@
+import { getAuthenticatedUser, isAdminUser } from '../utils/auth';
 // functions/api/applications.ts
 // Citizen application submission, auto-scoring and Discord webhook notifications
 import { sendFcmNotificationToUser, sendFcmNotificationToAdmins } from '../utils/fcm';
 
-const getUserSession = (request: Request) => {
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = cookieHeader
-    ? Object.fromEntries(cookieHeader.split(';').map(c => {
-        const [k, ...v] = c.trim().split('=');
-        return [k, v.join('=')];
-      }))
-    : {};
-  const userCookie = cookies['gv_user'];
-  if (!userCookie) return null;
-  try {
-    return JSON.parse(decodeURIComponent(userCookie));
-  } catch {
-    return null;
-  }
-};
+// Authenticated session is now verified cryptographically via getAuthenticatedUser
 
 const NO_CACHE = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store, no-cache' };
 
@@ -58,12 +44,11 @@ const autoGrade = (questions: any[], answers: Record<string, any>) => {
 // - Regular user: returns own application
 // - Admin: returns all applications
 export const onRequestGet = async ({ env, request }: { env: any; request: Request }) => {
-  const session = getUserSession(request);
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  const session = await getAuthenticatedUser(request, env);
+  if (!session) return new Response('Unauthorized', { status: 401, headers: NO_CACHE });
 
   try {
-    const dbUser = await env.D1_DB.prepare('SELECT role FROM users WHERE id = ?').bind(session.id).first() as any;
-    const isAdmin = dbUser?.role === 'admin';
+    const isAdmin = isAdminUser(session, env);
     const url = new URL(request.url);
     const requireAll = url.searchParams.get('admin') === 'true';
 
@@ -85,8 +70,8 @@ export const onRequestGet = async ({ env, request }: { env: any; request: Reques
 
 // POST /api/applications - submit new application
 export const onRequestPost = async ({ env, request }: { env: any; request: Request }) => {
-  const session = getUserSession(request);
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  const session = await getAuthenticatedUser(request, env);
+  if (!session) return new Response('Unauthorized', { status: 401, headers: NO_CACHE });
 
   try {
     const body = await request.json() as any;
@@ -159,11 +144,11 @@ export const onRequestPost = async ({ env, request }: { env: any; request: Reque
 
 // PATCH /api/applications - approve or reject (admin only)
 export const onRequestPatch = async ({ env, request }: { env: any; request: Request }) => {
-  const session = getUserSession(request);
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  const session = await getAuthenticatedUser(request, env);
+  if (!session) return new Response('Unauthorized', { status: 401, headers: NO_CACHE });
 
-  const dbUser = await env.D1_DB.prepare('SELECT role, username FROM users WHERE id = ?').bind(session.id).first() as any;
-  if (!dbUser || dbUser.role !== 'admin') return new Response('Forbidden', { status: 403 });
+  if (!isAdminUser(session, env)) return new Response('Forbidden: Admin access required', { status: 403, headers: NO_CACHE });
+  const dbUser = session;
 
   try {
     const body = await request.json() as any;

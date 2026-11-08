@@ -1,3 +1,4 @@
+import { getAuthenticatedUser, isAdminUser } from '../utils/auth';
 // Path: functions/api/system-status.ts
 // Handles system status, including Maintenance Mode for large updates
 import { ensureAllD1Indexes, getEdgeCachedJson, invalidateEdgeCache } from '../utils/d1Optimizer';
@@ -27,29 +28,8 @@ const ensureSettingsTable = async (db: any) => {
 };
 
 const getAdminStatus = async (env: any, request: Request, adminIdFallback?: string) => {
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = cookieHeader
-    ? Object.fromEntries(cookieHeader.split(';').map(c => {
-        const [k, ...v] = c.trim().split('=');
-        return [k, v.join('=')];
-      }))
-    : {};
-  const userCookie = cookies['gv_user'];
-  let userId = '';
-  if (userCookie) {
-    try {
-      const parsed = JSON.parse(decodeURIComponent(userCookie));
-      if (parsed.role === 'admin') return true;
-      userId = parsed.id;
-    } catch {}
-  }
-  if (!userId && adminIdFallback) {
-    userId = adminIdFallback;
-  }
-  if (userId) {
-    const user = await env.D1_DB.prepare("SELECT role FROM users WHERE id = ?").bind(userId).first() as any;
-    return user?.role === 'admin';
-  }
+  const user = await getAuthenticatedUser(request, env);
+  if (isAdminUser(user, env)) return true;
   return false;
 };
 

@@ -1,3 +1,4 @@
+import { getAuthenticatedUser } from '../utils/auth';
 import { sendFcmNotificationToUser } from '../utils/fcm';
 import { ensureAllD1Indexes, getEdgeCachedJson, invalidateUserDmCache } from '../utils/d1Optimizer';
 
@@ -612,16 +613,19 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
 
 export const onRequestPost = async ({ env, request }: { env: any, request: Request }) => {
   try {
-    const body = await request.json() as any;
-    const { action = 'send', senderId, content, imageData } = body;
-    let { conversationId } = body;
-
-    if (!senderId) {
-      return new Response(JSON.stringify({ error: 'Missing senderId' }), {
-        status: 400,
+    const authUser = await getAuthenticatedUser(request, env);
+    if (!authUser || !authUser.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Please log in to send messages' }), {
+        status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    const body = await request.json() as any;
+    const { action = 'send', content, imageData } = body;
+    // Enforce authentic senderId from verified session to completely prevent sender spoofing
+    const senderId = authUser.id;
+    let { conversationId } = body;
 
     // Action 0: Toggle emoji reaction on a message
     if (action === 'toggle_reaction') {

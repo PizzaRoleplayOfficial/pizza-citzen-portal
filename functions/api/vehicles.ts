@@ -1,3 +1,4 @@
+import { getAuthenticatedUser, isAdminUser } from '../utils/auth';
 // API for user and vehicle management
 import { sendFcmNotificationToUser, sendFcmNotificationToAdmins } from '../utils/fcm';
 
@@ -160,7 +161,9 @@ const normalizeMakerAndModel = (rawMaker?: string, rawModel?: string): { maker: 
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const url = new URL(request.url);
   const userId = url.searchParams.get('userId') || '12345';
-  const isAdmin = url.searchParams.get('admin') === 'true';
+  const authUser = await getAuthenticatedUser(request, env);
+  // Admin list is strictly restricted to verified administrators
+  const isAdmin = (url.searchParams.get('admin') === 'true') && isAdminUser(authUser, env);
 
   // Support explicit on-demand schema migration trigger for upgrades
   if (isAdmin && url.searchParams.get('migrate') === 'true') {
@@ -618,8 +621,31 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
     return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
   }
 
+  const authUser = await getAuthenticatedUser(request, env);
+  if (!authUser) {
+    return new Response(JSON.stringify({ error: "Unauthorized: Please log in" }), { 
+      status: 401, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
+  }
+
   try {
-    const existingVehicle = await env.D1_DB.prepare("SELECT plate FROM vehicles WHERE id = ?").bind(id).first() as any;
+    const existingVehicle = await env.D1_DB.prepare("SELECT owner_id, plate FROM vehicles WHERE id = ?").bind(id).first() as any;
+    if (!existingVehicle) {
+      return new Response(JSON.stringify({ error: "Vehicle not found" }), { 
+        status: 404, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // Authorization: Must be the vehicle owner or an administrator
+    if (existingVehicle.owner_id !== authUser.id && !isAdminUser(authUser, env)) {
+      return new Response(JSON.stringify({ error: "Forbidden: You are not authorized to delete this vehicle" }), { 
+        status: 403, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
+    }
+
     await env.D1_DB.prepare("DELETE FROM vehicles WHERE id = ?").bind(id).run();
 
     // Auto-mark admin notifications for deleted vehicle as read (対応済み自動既読化)
@@ -668,6 +694,14 @@ export const onRequestDelete = async ({ env, request }: { env: any, request: Req
 };
 
 export const onRequestPatch = async ({ env, request }: { env: any, request: Request }) => {
+  const authUser = await getAuthenticatedUser(request, env);
+  if (!isAdminUser(authUser, env)) {
+    return new Response(JSON.stringify({ error: "Forbidden: Admin privileges required to review vehicles" }), { 
+      status: 403, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
+  }
+
   const body = await request.json() as any;
   const { id, status, expected_status, reject_reason } = body;
 

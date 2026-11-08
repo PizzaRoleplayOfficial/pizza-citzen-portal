@@ -1,4 +1,6 @@
 // functions/api/auth/callback.ts
+import { createSignedSessionCookie, KNOWN_ADMIN_DISCORD_IDS } from '../../utils/auth';
+
 export const onRequestGet = async ({ env, request }: { env: any, request: Request }) => {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
@@ -72,20 +74,27 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       avatar = `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`;
     }
     
-    // FIRST ADMIN: wasimon
+    // Strict Admin check by immutable Discord Snowflake ID (prevents spoofing via username change)
     let role = 'user';
-    if (username.toLowerCase() === 'wasimon') {
+    if (KNOWN_ADMIN_DISCORD_IDS.includes(userData.id)) {
       role = 'admin';
+    } else if (env.ADMIN_DISCORD_IDS) {
+      const customAdminIds = env.ADMIN_DISCORD_IDS.split(',').map((id: string) => id.trim());
+      if (customAdminIds.includes(userData.id)) {
+        role = 'admin';
+      }
     }
 
     if (!dbUser) {
       await env.D1_DB.prepare("INSERT INTO users (id, username, avatar, role) VALUES (?, ?, ?, ?)")
         .bind(userData.id, username, avatar, role).run();
     } else {
-      // Keep existing role but update metadata
-      role = dbUser.role;
-      // Re-force admin if wasimon (in case they were changed)
-      if (username.toLowerCase() === 'wasimon') role = 'admin';
+      // Keep existing role if already set in DB, or grant if matches immutable admin ID
+      if (KNOWN_ADMIN_DISCORD_IDS.includes(userData.id)) {
+        role = 'admin';
+      } else {
+        role = dbUser.role || 'user';
+      }
       
       await env.D1_DB.prepare("UPDATE users SET username = ?, avatar = ?, role = ? WHERE id = ?")
         .bind(username, avatar, role, userData.id).run();
@@ -99,28 +108,27 @@ export const onRequestGet = async ({ env, request }: { env: any, request: Reques
       role
     };
 
-    // 4. Set Cookie and Redirect to Garage
-    // For simplicity, we are storing user info directly in cookie. 
-    // In a real app, use a session token or JWT.
-    const cookie = `gv_user=${encodeURIComponent(JSON.stringify(user))}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax`;
-    
+    // 5. Generate Cryptographically Signed Session Cookie (HMAC-SHA256)
+    const signedCookie = await createSignedSessionCookie(user, env.SESSION_SECRET);
+    const legacyCookie = `gv_user=${encodeURIComponent(JSON.stringify(user))}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax; Secure`;
+
+    const headers = new Headers();
+    headers.append('Set-Cookie', signedCookie);
+    headers.append('Set-Cookie', legacyCookie);
+
     if (state === 'app') {
       const appRedirectUrl = `pizzaportal://auth-callback?user=${encodeURIComponent(JSON.stringify(user))}`;
+      headers.set('Location', appRedirectUrl);
       return new Response(null, {
         status: 302,
-        headers: {
-          'Location': appRedirectUrl,
-          'Set-Cookie': cookie
-        }
+        headers
       });
     }
 
+    headers.set('Location', '/');
     return new Response(null, {
       status: 302,
-      headers: {
-        'Location': '/',
-        'Set-Cookie': cookie
-      }
+      headers
     });
 
   } catch (e: any) {
