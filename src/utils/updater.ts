@@ -2,7 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // 現在のアプリバージョン
-export const CURRENT_VERSION = '2.9.0'; // 2.5.2 (Fix: restore main view rendering for messages, garage, profile, timeline)
+export const CURRENT_VERSION = '2.9.1'; // 2.5.2 (Fix: restore main view rendering for messages, garage, profile, timeline)
 
 // GitHub リポジトリ設定 (必要に応じて変更可能)
 export const GITHUB_REPO_OWNER = 'PizzaRoleplayOfficial';
@@ -24,6 +24,8 @@ export interface GitHubRelease {
   version: string;
   notes: string;
   apkUrl: string;
+  exeUrl?: string;
+  downloadUrl?: string;
 }
 
 /**
@@ -54,20 +56,45 @@ export function isNewerVersion(current: string, latest: string): boolean {
 
 /**
  * GitHub APIから最新のリリース情報を取得します
+ * 1) クライアントから直接 GitHub Releases API を参照（レートリミット回避）
+ * 2) CSP / ネットワーク / キャリアIPレート制限等で失敗した場合は同一オリジンの /api/latest-release へ自動フォールバック
  */
 export async function checkLatestRelease(): Promise<GitHubRelease | null> {
-  try {
-    // プレリリース(Pre-release)も含めて最新リリースを取得するため、全リリース一覧の先頭を取得します
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases`);
-    if (!res.ok) {
-      throw new Error(`GitHub API returned status ${res.status}`);
-    }
-    const releases = await res.json();
-    if (!Array.isArray(releases) || releases.length === 0) {
-      console.warn('No releases found.');
-      return null;
-    }
+  const directUrl = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases?per_page=5`;
+  const fallbackUrl =
+    typeof window !== 'undefined' && window.location?.origin?.startsWith('http')
+      ? '/api/latest-release'
+      : 'https://pizza-citzen-portal.pages.dev/api/latest-release';
 
+  let releases: any = null;
+
+  for (const url of [directUrl, fallbackUrl]) {
+    try {
+      const res = await fetch(url, {
+        headers: url.startsWith('https://api.github.com')
+          ? { Accept: 'application/vnd.github+json' }
+          : undefined,
+      });
+      if (!res.ok) {
+        console.warn(`Release check returned status ${res.status} from ${url}`);
+        continue;
+      }
+      const parsed = await res.json();
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        releases = parsed;
+        break;
+      }
+    } catch (err) {
+      console.warn(`Release check fetch failed for ${url}:`, err);
+    }
+  }
+
+  if (!Array.isArray(releases) || releases.length === 0) {
+    console.warn('No releases found.');
+    return null;
+  }
+
+  try {
     const data = releases[0];
 
     const isDesktop = typeof window !== 'undefined' && !!(window as any).electronAPI?.isDesktop;
@@ -81,10 +108,10 @@ export async function checkLatestRelease(): Promise<GitHubRelease | null> {
       notes: data.body || '',
       apkUrl: targetAsset?.browser_download_url || apkAsset?.browser_download_url || '',
       exeUrl: exeAsset?.browser_download_url || '',
-      downloadUrl: targetAsset?.browser_download_url || ''
+      downloadUrl: targetAsset?.browser_download_url || '',
     };
   } catch (err) {
-    console.error('Failed to check latest release:', err);
+    console.error('Failed to parse latest release:', err);
     return null;
   }
 }
