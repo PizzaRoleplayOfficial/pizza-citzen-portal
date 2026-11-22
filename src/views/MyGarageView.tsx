@@ -1,92 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lock, ClipboardList, RotateCcw, LayoutGrid, List, Plus, Trash2, Edit3, Search as SearchIcon, Loader2, SlidersHorizontal, Filter, X, Car, ChevronDown } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
+import { SpotlightGlareCard, AnimatedTabs } from '../components/AceternityUI';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
 import { formatDate, parseUTCDate, normalizeMakerAndModel } from '../utils/helpers';
 import { triggerHaptic } from '../utils/native';
 
 export const GarageTiltCard = ({ children, className }: { children: React.ReactNode, className?: string }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [canHover, setCanHover] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
-      setCanHover(mq.matches);
-      const listener = (e: MediaQueryListEvent) => setCanHover(e.matches);
-      if (mq.addEventListener) {
-        mq.addEventListener('change', listener);
-        return () => mq.removeEventListener('change', listener);
-      } else if ((mq as any).addListener) {
-        (mq as any).addListener(listener);
-        return () => (mq as any).removeListener(listener);
-      }
-    }
-  }, []);
-
-  const [tiltStyle, setTiltStyle] = useState<React.CSSProperties>({
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
-  });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canHover) return;
-    const card = cardRef.current;
-    if (!card) return;
-
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rotateX = ((centerY - y) / centerY) * 10; // Max 10 degrees
-    const rotateY = ((x - centerX) / centerX) * 10;
-
-    setTiltStyle({
-      transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
-      transition: 'transform 0.1s ease-out, box-shadow 0.1s ease-out',
-      boxShadow: '0 20px 45px rgba(0, 0, 0, 0.55), 0 0 20px rgba(0, 193, 102, 0.08)',
-      zIndex: 10
-    });
-  };
-
-  const handleMouseLeave = () => {
-    if (!canHover) return;
-    setTiltStyle({
-      transform: 'none',
-      transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.5s ease',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
-    });
-  };
-
-  if (!canHover) {
-    return (
-      <div 
-        ref={cardRef}
-        className={className}
-        style={{
-          position: 'relative'
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
-
   return (
-    <div 
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+    <SpotlightGlareCard
+      variant="vehicle"
+      enableTilt={true}
+      maxTilt={4.5}
       className={className}
-      style={{
-        ...tiltStyle,
-        position: 'relative'
-      }}
     >
       {children}
-    </div>
+    </SpotlightGlareCard>
   );
 };
 
@@ -433,24 +362,20 @@ export const MyGarageView = ({
             </button>
           </div>
 
-          {/* Segmented Control for Greenville / Rensselaer (iOS Capsule Style) */}
+          {/* Segmented Control for Greenville / Rensselaer (Animated Tabs) */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-            <div className="segmented-control">
-              <button
-                type="button"
-                onClick={() => { triggerHaptic('light'); setActiveGame('gv'); }}
-                className={`segmented-control-btn ${activeGame === 'gv' ? 'active' : ''}`}
-              >
-                <span>🎮 Greenville (Gv)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { triggerHaptic('light'); setActiveGame('rc'); }}
-                className={`segmented-control-btn ${activeGame === 'rc' ? 'active' : ''}`}
-              >
-                <span>🎮 Rensselaer (RC)</span>
-              </button>
-            </div>
+            <AnimatedTabs
+              tabs={[
+                { id: 'gv', label: '🎮 Greenville (Gv)' },
+                { id: 'rc', label: '🎮 Rensselaer (RC)' },
+              ]}
+              activeId={activeGame}
+              onChange={(id) => {
+                triggerHaptic('light');
+                setActiveGame(id as 'gv' | 'rc');
+              }}
+              variant="segmented"
+            />
 
             {/* Quick Active Filter Badges */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -499,24 +424,19 @@ export const MyGarageView = ({
                     <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
                       車両カテゴリ
                     </label>
-                    <div className="segmented-control" style={{ width: '100%', display: 'flex' }}>
-                      <button
-                        type="button"
-                        onClick={() => { triggerHaptic('light'); setGarageTab('car'); }}
-                        className={`segmented-control-btn ${garageTab === 'car' ? 'active' : ''}`}
-                        style={{ flex: 1, justifyContent: 'center' }}
-                      >
-                        🚗 マイカー
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { triggerHaptic('light'); setGarageTab('trailer'); }}
-                        className={`segmented-control-btn ${garageTab === 'trailer' ? 'active' : ''}`}
-                        style={{ flex: 1, justifyContent: 'center' }}
-                      >
-                        🚛 トレーラー
-                      </button>
-                    </div>
+                    <AnimatedTabs
+                      tabs={[
+                        { id: 'car', label: '🚗 マイカー' },
+                        { id: 'trailer', label: '🚛 トレーラー' },
+                      ]}
+                      activeId={garageTab}
+                      onChange={(id) => {
+                        triggerHaptic('light');
+                        setGarageTab(id as 'car' | 'trailer');
+                      }}
+                      variant="segmented"
+                      fullWidth
+                    />
                   </div>
 
                   {/* 2. ステータス絞り込み */}

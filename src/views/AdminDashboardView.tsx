@@ -27,6 +27,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { StatusBadge, CustomSortDropdown } from '../components/UIBase';
+import { SpotlightGlareCard, AnimatedTabs } from '../components/AceternityUI';
 import { VehicleImageGallery } from '../components/VehicleImageGallery';
 import { formatDate, parseUTCDate } from '../utils/helpers';
 import { DashboardCharts } from '../components/DashboardCharts';
@@ -555,48 +556,30 @@ export const AdminDashboardView = ({
         {/* ゲームフィルター (dashboard, vehicles, lookup タブでのみ表示) */}
         {(adminTab === 'dashboard' || adminTab === 'vehicles' || adminTab === 'lookup') && (
           <div style={{ marginBottom: isMobile ? '16px' : '24px' }}>
-            <div style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.02)', padding: '5px', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-              {[
-                { id: 'all', label: '🎮 すべて', activeColor: 'var(--text-main)', bg: 'rgba(255,255,255,0.08)' },
-                { id: 'gv', label: '🟢 Greenville', activeColor: 'var(--primary)', bg: 'rgba(0, 193, 102, 0.12)' },
-                { id: 'rc', label: '🔵 RC', activeColor: 'var(--secondary)', bg: 'rgba(0, 160, 204, 0.12)' }
-              ].map(opt => {
-                const active = adminGameFilter === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => setAdminGameFilter(opt.id as any)}
-                    style={{
-                      flex: 1,
-                      padding: isMobile ? '8px 12px' : '12px 24px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                      background: active ? opt.bg : 'transparent',
-                      color: active ? opt.activeColor : 'var(--text-muted)',
-                      fontSize: isMobile ? '0.85rem' : '1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+            <AnimatedTabs
+              tabs={[
+                { id: 'all', label: '🎮 すべて', tone: 'primary' },
+                { id: 'gv', label: '🟢 Greenville', tone: 'success' },
+                { id: 'rc', label: '🔵 RC', tone: 'info' },
+              ]}
+              activeId={adminGameFilter}
+              onChange={(id) => setAdminGameFilter(id as 'all' | 'gv' | 'rc')}
+              variant="pill"
+              size={isMobile ? 'sm' : 'md'}
+              fullWidth
+            />
           </div>
         )}
 
         {adminTab === 'dashboard' && (
           <div className="animate-fade">
             {/* Quick Maintenance Status Banner Widget */}
-            <div 
-              className="glass card" 
-              onClick={() => setAdminTabPersist('maintenance')} 
+            <SpotlightGlareCard
+              variant="spotlight"
+              enableTilt={false}
+              spotlightColor={maintEnabled ? 'rgba(239, 68, 68, 0.18)' : 'rgba(16, 185, 129, 0.16)'}
+              className="glass card"
+              onClick={() => setAdminTabPersist('maintenance')}
               style={{
                 padding: isMobile ? '14px 16px' : '20px 28px',
                 borderRadius: '20px',
@@ -647,13 +630,17 @@ export const AdminDashboardView = ({
               >
                 設定変更 →
               </button>
-            </div>
+            </SpotlightGlareCard>
 
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '12px' : '24px' }}>
+            <div className="admin-bento-stats">
               {isLoading && allUsers.length === 0 && allSearchVehicles.length === 0 ? (
-                [1, 2, 3].map(i => (
-                  <div key={i} className="glass card" style={{ 
-                    padding: isMobile ? '12px 14px' : '32px', 
+                [
+                  { i: 1, cls: 'admin-bento-stat-primary' },
+                  { i: 2, cls: 'admin-bento-stat-secondary' },
+                  { i: 3, cls: 'admin-bento-stat-tertiary' }
+                ].map(({ i, cls }) => (
+                  <div key={i} className={`glass card ${cls}`} style={{ 
+                    padding: isMobile ? '12px 14px' : '28px', 
                     borderRadius: isMobile ? '16px' : '20px', 
                     display: 'flex', 
                     flexDirection: isMobile ? 'row' : 'column', 
@@ -661,7 +648,7 @@ export const AdminDashboardView = ({
                     justifyContent: isMobile ? 'space-between' : 'flex-start',
                     gap: isMobile ? '8px' : '16px', 
                     background: 'var(--panel-bg)', 
-                    height: isMobile ? 'auto' : '180px' 
+                    height: isMobile ? 'auto' : '170px' 
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flex: 1 }}>
                       <div className="skeleton skeleton-circle" style={{ width: isMobile ? '20px' : '24px', height: isMobile ? '20px' : '24px', flexShrink: 0 }} />
@@ -672,8 +659,8 @@ export const AdminDashboardView = ({
                 ))
               ) : (
                 <>
-                  <div className="glass card" onClick={() => setAdminTabPersist('vehicles')} style={{ 
-                    padding: isMobile ? '12px 14px' : '32px', 
+                  <SpotlightGlareCard variant="spotlight" enableTilt={false} spotlightColor="rgba(59, 130, 246, 0.20)" className="glass card admin-bento-stat-primary" onClick={() => setAdminTabPersist('vehicles')} style={{ 
+                    padding: isMobile ? '12px 14px' : '28px', 
                     borderRadius: isMobile ? '16px' : '20px', 
                     display: 'flex', 
                     flexDirection: isMobile ? 'row' : 'column', 
@@ -685,22 +672,22 @@ export const AdminDashboardView = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)', flexShrink: 0 }}>
                       <Car size={isMobile ? 20 : 24} />
-                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>保留中の車両承認</h2>
+                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.15rem', margin: 0, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>保留中の車両承認</h2>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0' }}>
-                      <div style={{ fontSize: isMobile ? '1.4rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
-                        {vehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter).length} <span style={{ fontSize: isMobile ? '0.75rem' : '1.2rem', fontWeight: 500 }}>件</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0', marginTop: isMobile ? 0 : 'auto', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: isMobile ? '1.4rem' : '2.8rem', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                        {vehicles.filter(v => adminGameFilter === 'all' || v.game_type === adminGameFilter).length} <span style={{ fontSize: isMobile ? '0.75rem' : '1.1rem', fontWeight: 500 }}>件</span>
                       </div>
                       {isMobile ? (
                         <ChevronRight size={16} style={{ color: 'var(--primary)', opacity: 0.8 }} />
                       ) : (
-                        <div style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 'auto' }}>審査する <ChevronRight size={16} /></div>
+                        <div style={{ color: 'var(--primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>審査する <ChevronRight size={16} /></div>
                       )}
                     </div>
-                  </div>
+                  </SpotlightGlareCard>
 
-                  <div className="glass card" onClick={() => setAdminTabPersist('applications')} style={{ 
-                    padding: isMobile ? '12px 14px' : '32px', 
+                  <SpotlightGlareCard variant="spotlight" enableTilt={false} spotlightColor="rgba(245, 158, 11, 0.18)" className="glass card admin-bento-stat-secondary" onClick={() => setAdminTabPersist('applications')} style={{ 
+                    padding: isMobile ? '12px 14px' : '28px', 
                     borderRadius: isMobile ? '16px' : '20px', 
                     display: 'flex', 
                     flexDirection: isMobile ? 'row' : 'column', 
@@ -712,22 +699,22 @@ export const AdminDashboardView = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)', flexShrink: 0 }}>
                       <ClipboardList size={isMobile ? 20 : 24} />
-                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>未審査の市民申請</h2>
+                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.15rem', margin: 0, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>未審査の市民申請</h2>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0' }}>
-                      <div style={{ fontSize: isMobile ? '1.4rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
-                        {allApplications.filter(a => a.status === 'pending').length} <span style={{ fontSize: isMobile ? '0.75rem' : '1.2rem', fontWeight: 500 }}>件</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0', marginTop: isMobile ? 0 : 'auto', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: isMobile ? '1.4rem' : '2.8rem', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                        {allApplications.filter(a => a.status === 'pending').length} <span style={{ fontSize: isMobile ? '0.75rem' : '1.1rem', fontWeight: 500 }}>件</span>
                       </div>
                       {isMobile ? (
                         <ChevronRight size={16} style={{ color: 'var(--primary)', opacity: 0.8 }} />
                       ) : (
-                        <div style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 'auto' }}>審査する <ChevronRight size={16} /></div>
+                        <div style={{ color: 'var(--primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>審査する <ChevronRight size={16} /></div>
                       )}
                     </div>
-                  </div>
+                  </SpotlightGlareCard>
 
-                  <div className="glass card" onClick={() => setAdminTabPersist('users')} style={{ 
-                    padding: isMobile ? '12px 14px' : '32px', 
+                  <SpotlightGlareCard variant="spotlight" enableTilt={false} spotlightColor="rgba(16, 185, 129, 0.18)" className="glass card admin-bento-stat-tertiary" onClick={() => setAdminTabPersist('users')} style={{ 
+                    padding: isMobile ? '12px 14px' : '28px', 
                     borderRadius: isMobile ? '16px' : '20px', 
                     display: 'flex', 
                     flexDirection: isMobile ? 'row' : 'column', 
@@ -739,19 +726,19 @@ export const AdminDashboardView = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', color: 'var(--text-muted)', flexShrink: 0 }}>
                       <UserIcon size={isMobile ? 20 : 24} />
-                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.2rem', margin: 0, fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>登録ユーザー数</h2>
+                      <h2 style={{ fontSize: isMobile ? '0.82rem' : '1.15rem', margin: 0, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>登録ユーザー数</h2>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0' }}>
-                      <div style={{ fontSize: isMobile ? '1.4rem' : '3rem', fontWeight: 800, lineHeight: 1 }}>
-                        {allUsers.length} <span style={{ fontSize: isMobile ? '0.75rem' : '1.2rem', fontWeight: 500 }}>人</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', marginLeft: isMobile ? 'auto' : '0', marginTop: isMobile ? 0 : 'auto', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: isMobile ? '1.4rem' : '2.8rem', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                        {allUsers.length} <span style={{ fontSize: isMobile ? '0.75rem' : '1.1rem', fontWeight: 500 }}>人</span>
                       </div>
                       {isMobile ? (
                         <ChevronRight size={16} style={{ color: 'var(--primary)', opacity: 0.8 }} />
                       ) : (
-                        <div style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 'auto' }}>管理する <ChevronRight size={16} /></div>
+                        <div style={{ color: 'var(--primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>管理する <ChevronRight size={16} /></div>
                       )}
                     </div>
-                  </div>
+                  </SpotlightGlareCard>
                 </>
               )}
             </div>

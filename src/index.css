@@ -222,26 +222,48 @@ body::after {
   background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, rgba(37, 99, 235, 0.12) 55%, transparent 75%);
 }
 
-/* Liquid Glass Utility */
+/* Liquid Glass Utility (Aceternity-inspired Optical Rim + Chromatic Edge Nuance) */
 .glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.01) 100%), rgba(15, 20, 34, 0.52);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.035) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 34, 0.56);
+  backdrop-filter: blur(26px) saturate(190%) brightness(1.04);
+  -webkit-backdrop-filter: blur(26px) saturate(190%) brightness(1.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.6),
-    inset 0 1px 1px rgba(255, 255, 255, 0.35),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.05);
+    0 22px 46px -14px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.06),
+    inset 1px 0 0.5px rgba(96, 165, 250, 0.16),
+    inset -1px 0 0.5px rgba(192, 132, 252, 0.12);
   border-radius: 20px;
 }
 
 :root[data-theme='light'] .glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.62) 50%, rgba(255, 255, 255, 0.48) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.78);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.64) 50%, rgba(255, 255, 255, 0.50) 100%);
+  backdrop-filter: blur(26px) saturate(185%) brightness(1.02);
+  -webkit-backdrop-filter: blur(26px) saturate(185%) brightness(1.02);
+  border: 1px solid rgba(255, 255, 255, 0.82);
   box-shadow:
-    0 16px 36px rgba(15, 23, 42, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.95),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.45);
+    0 18px 40px -14px rgba(15, 23, 42, 0.10),
+    0 2px 8px rgba(15, 23, 42, 0.04),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.96),
+    inset 0 -1px 0.5px rgba(15, 23, 42, 0.04),
+    inset 1px 0 0.5px rgba(56, 189, 248, 0.22),
+    inset -1px 0 0.5px rgba(167, 139, 250, 0.16);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .liquid-glass,
+  .liquid-glass-strong,
+  .liquid-glass-dock {
+    background: rgba(15, 20, 34, 0.94) !important;
+  }
+  :root[data-theme='light'] .glass,
+  :root[data-theme='light'] .liquid-glass,
+  :root[data-theme='light'] .liquid-glass-strong,
+  :root[data-theme='light'] .liquid-glass-dock {
+    background: rgba(255, 255, 255, 0.96) !important;
+  }
 }
 
 .container {
@@ -2082,6 +2104,37 @@ body.lite-mode .wiki-fallback-badge {
   background: rgba(10, 12, 16, 0.95) !important;
 }
 
+/* 5. Aceternity Liquid Glass & Spotlight/Glare Lite Mode Fallback */
+:root[data-theme] body.lite-mode .liquid-glass,
+:root[data-theme] body.lite-mode .liquid-glass-strong,
+:root[data-theme] body.lite-mode .liquid-glass-dock,
+body.lite-mode .liquid-glass,
+body.lite-mode .liquid-glass-strong,
+body.lite-mode .liquid-glass-dock {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(16, 20, 30, 0.96) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+:root[data-theme='light'] body.lite-mode .liquid-glass,
+:root[data-theme='light'] body.lite-mode .liquid-glass-strong,
+:root[data-theme='light'] body.lite-mode .liquid-glass-dock {
+  background: rgba(248, 250, 252, 0.98) !important;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+body.lite-mode .ag-card-spotlight,
+body.lite-mode .ag-card-glare,
+body.lite-mode .liquid-glass-strong::before,
+body.lite-mode .liquid-glass-dock::before {
+  display: none !important;
+}
+
+body.lite-mode .ag-card {
+  transform: none !important;
+}
+
 /* Mobile Navigation Central Floating Button */
 .mobile-nav-plus-wrapper {
   position: relative;
@@ -2477,15 +2530,17 @@ textarea.dm-textarea::-webkit-scrollbar,
 
 /* Bottom Action Sheet Liquid Glass */
 .mobile-action-group {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.68) 50%, rgba(255, 255, 255, 0.56) 100%) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.70) 50%, rgba(255, 255, 255, 0.58) 100%) !important;
+  backdrop-filter: blur(28px) saturate(195%) brightness(1.02) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(195%) brightness(1.02) !important;
   border-radius: 22px !important;
-  border: 1px solid rgba(255, 255, 255, 0.82) !important;
+  border: 1px solid rgba(255, 255, 255, 0.86) !important;
   box-shadow:
-    0 18px 40px rgba(15, 23, 42, 0.14),
-    inset 0 1px 1px rgba(255, 255, 255, 0.95),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.45) !important;
+    0 20px 44px rgba(15, 23, 42, 0.14),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.96),
+    inset 0 -1px 0.5px rgba(15, 23, 42, 0.04),
+    inset 1px 0 0.5px rgba(56, 189, 248, 0.24),
+    inset -1px 0 0.5px rgba(167, 139, 250, 0.18) !important;
 }
 
 .mobile-action-button {
@@ -2495,17 +2550,19 @@ textarea.dm-textarea::-webkit-scrollbar,
 }
 
 .mobile-action-cancel-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 100%) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.78) 100%) !important;
+  backdrop-filter: blur(28px) saturate(195%) brightness(1.02) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(195%) brightness(1.02) !important;
   border-radius: 20px !important;
-  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.88) !important;
   color: #007aff !important;
   font-weight: 700 !important;
   font-size: 1.05rem !important;
   box-shadow:
-    0 10px 28px rgba(15, 23, 42, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+    0 12px 30px rgba(15, 23, 42, 0.10),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+    inset 1px 0 0.5px rgba(56, 189, 248, 0.22),
+    inset -1px 0 0.5px rgba(167, 139, 250, 0.16) !important;
 }
 
 :root[data-theme='dark'] .thin-material {
@@ -2535,24 +2592,28 @@ textarea.dm-textarea::-webkit-scrollbar,
 }
 
 :root[data-theme='dark'] .mobile-action-group {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 32, 0.74) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.045) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 32, 0.76) !important;
+  backdrop-filter: blur(28px) saturate(195%) brightness(1.04) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(195%) brightness(1.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
   box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.65),
-    inset 0 1px 1px rgba(255, 255, 255, 0.35),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.05) !important;
+    0 22px 46px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.06),
+    inset 1px 0 0.5px rgba(96, 165, 250, 0.22),
+    inset -1px 0 0.5px rgba(192, 132, 252, 0.16) !important;
 }
 
 :root[data-theme='dark'] .mobile-action-cancel-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%), rgba(16, 21, 35, 0.78) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%), rgba(16, 21, 35, 0.80) !important;
+  backdrop-filter: blur(28px) saturate(195%) brightness(1.04) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(195%) brightness(1.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
   box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.55),
-    inset 0 1px 1px rgba(255, 255, 255, 0.35) !important;
+    0 14px 36px rgba(0, 0, 0, 0.58),
+    inset 0 1px 1px rgba(255, 255, 255, 0.38),
+    inset 1px 0 0.5px rgba(96, 165, 250, 0.20),
+    inset -1px 0 0.5px rgba(192, 132, 252, 0.14) !important;
   color: #38bdf8 !important;
 }
 
@@ -3170,16 +3231,18 @@ body.is-desktop .desktop-titlebar * {
 }
 
 .desktop-popover-menu {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 32, 0.72) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.045) 50%, rgba(255, 255, 255, 0.018) 100%), rgba(14, 19, 32, 0.74) !important;
+  backdrop-filter: blur(28px) saturate(195%) brightness(1.04) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(195%) brightness(1.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
   border-radius: 18px !important;
   padding: 8px !important;
   box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.65),
-    inset 0 1px 1px rgba(255, 255, 255, 0.38),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.06) !important;
+    0 22px 46px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.06),
+    inset 1px 0 0.5px rgba(96, 165, 250, 0.22),
+    inset -1px 0 0.5px rgba(192, 132, 252, 0.16) !important;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -3188,12 +3251,14 @@ body.is-desktop .desktop-titlebar * {
 }
 
 :root[data-theme='light'] .desktop-popover-menu {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.72) 50%, rgba(255, 255, 255, 0.60) 100%), rgba(248, 250, 252, 0.78) !important;
-  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.74) 50%, rgba(248, 250, 252, 0.64) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.88) !important;
   box-shadow:
-    0 20px 40px rgba(15, 23, 42, 0.16),
-    inset 0 1px 1px rgba(255, 255, 255, 0.98),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.45) !important;
+    0 22px 46px rgba(15, 23, 42, 0.16),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+    inset 0 -1px 0.5px rgba(15, 23, 42, 0.04),
+    inset 1px 0 0.5px rgba(56, 189, 248, 0.26),
+    inset -1px 0 0.5px rgba(167, 139, 250, 0.20) !important;
 }
 
 .desktop-popover-item {
@@ -3302,6 +3367,611 @@ body.is-desktop .desktop-titlebar * {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ==========================================================================
+   Aceternity-Inspired Design System (Liquid Glass, Spotlight/Glare,
+   Floating Dock, Animated Tabs, Bento Grid)
+   ========================================================================== */
+
+/* 1. Enhanced Liquid Glass Materials */
+.liquid-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.035) 50%, rgba(255, 255, 255, 0.015) 100%), rgba(14, 19, 34, 0.56);
+  backdrop-filter: blur(26px) saturate(190%) brightness(1.04);
+  -webkit-backdrop-filter: blur(26px) saturate(190%) brightness(1.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 22px 46px -14px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.06),
+    inset 1px 0 0.5px rgba(96, 165, 250, 0.16),
+    inset -1px 0 0.5px rgba(192, 132, 252, 0.12);
+}
+
+:root[data-theme='light'] .liquid-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.64) 50%, rgba(255, 255, 255, 0.50) 100%);
+  backdrop-filter: blur(26px) saturate(185%) brightness(1.02);
+  -webkit-backdrop-filter: blur(26px) saturate(185%) brightness(1.02);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 18px 40px -14px rgba(15, 23, 42, 0.10),
+    0 2px 8px rgba(15, 23, 42, 0.04),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.96),
+    inset 0 -1px 0.5px rgba(15, 23, 42, 0.04),
+    inset 1px 0 0.5px rgba(56, 189, 248, 0.22),
+    inset -1px 0 0.5px rgba(167, 139, 250, 0.16);
+}
+
+.liquid-glass-strong {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.045) 50%, rgba(255, 255, 255, 0.018) 100%), rgba(12, 17, 30, 0.72) !important;
+  backdrop-filter: blur(30px) saturate(200%) brightness(1.05) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(200%) brightness(1.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow:
+    0 26px 56px -12px rgba(0, 0, 0, 0.68),
+    inset 0 1px 1px rgba(255, 255, 255, 0.44),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.08),
+    inset 1px 0 0.5px rgba(96, 165, 250, 0.22),
+    inset -1px 0 0.5px rgba(192, 132, 252, 0.16) !important;
+}
+
+:root[data-theme='light'] .liquid-glass-strong {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 52%, rgba(248, 250, 252, 0.68) 100%) !important;
+  backdrop-filter: blur(30px) saturate(195%) brightness(1.02) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(195%) brightness(1.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.90) !important;
+  box-shadow:
+    0 24px 52px -12px rgba(15, 23, 42, 0.16),
+    0 4px 12px rgba(15, 23, 42, 0.05),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+    inset 0 -1px 0.5px rgba(15, 23, 42, 0.05),
+    inset 1px 0 0.5px rgba(56, 189, 248, 0.28),
+    inset -1px 0 0.5px rgba(167, 139, 250, 0.22) !important;
+}
+
+/* 2. Spotlight & Glare Interactive Card */
+.ag-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+  will-change: transform;
+}
+
+.ag-card.ag-card--tilt:hover,
+.card-grid .garage-card.ag-card.ag-card--tilt:hover,
+.list-view .garage-card.ag-card.ag-card--tilt:hover {
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-2px);
+  border-color: rgba(96, 165, 250, 0.42);
+}
+
+.ag-card:not(.ag-card--tilt):hover {
+  transform: translateY(-2px);
+  border-color: rgba(96, 165, 250, 0.38);
+}
+
+:root[data-theme='light'] .ag-card.ag-card--tilt:hover,
+:root[data-theme='light'] .ag-card:not(.ag-card--tilt):hover {
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.ag-card-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 2;
+  opacity: var(--glare-o, 0);
+  transition: opacity 0.28s ease;
+  background: radial-gradient(
+    360px circle at var(--mx, 50%) var(--my, 50%),
+    var(--spotlight-color, rgba(59, 130, 246, 0.16)),
+    transparent 70%
+  );
+}
+
+:root[data-theme='light'] .ag-card-spotlight {
+  background: radial-gradient(
+    360px circle at var(--mx, 50%) var(--my, 50%),
+    var(--spotlight-color, rgba(37, 99, 235, 0.09)),
+    transparent 72%
+  );
+}
+
+.ag-card-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 3;
+  opacity: calc(var(--glare-o, 0) * 0.65);
+  transition: opacity 0.28s ease;
+  background: radial-gradient(
+    280px circle at var(--mx-pct, 50%) var(--my-pct, 50%),
+    rgba(255, 255, 255, 0.20),
+    rgba(147, 197, 253, 0.06) 45%,
+    transparent 72%
+  );
+}
+
+:root[data-theme='light'] .ag-card-glare {
+  background: radial-gradient(
+    280px circle at var(--mx-pct, 50%) var(--my-pct, 50%),
+    rgba(255, 255, 255, 0.46),
+    rgba(186, 230, 253, 0.14) 45%,
+    transparent 72%
+  );
+}
+
+.citizen-id-holo-bar {
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(56, 189, 248, 0.85) 0%,
+    rgba(99, 102, 241, 0.78) 38%,
+    rgba(168, 85, 247, 0.72) 70%,
+    rgba(16, 185, 129, 0.78) 100%
+  );
+  opacity: 0.88;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ag-card,
+  .ag-card:hover,
+  .ag-card.ag-card--tilt:hover {
+    transform: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  }
+  .ag-card-spotlight,
+  .ag-card-glare {
+    display: none !important;
+  }
+}
+
+/* 3. Floating Dock (Mobile Web Pill Navigation) */
+.ag-floating-dock {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(14px + var(--safe-bottom));
+  width: min(calc(100% - 28px), 440px);
+  padding: 7px 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.liquid-glass-dock {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0.02) 100%), rgba(12, 16, 28, 0.76);
+  backdrop-filter: blur(28px) saturate(200%) brightness(1.06);
+  -webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.06);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.36),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.06),
+    inset 1px 0 0.5px rgba(96, 165, 250, 0.24),
+    inset -1px 0 0.5px rgba(192, 132, 252, 0.18);
+}
+
+:root[data-theme='light'] .liquid-glass-dock {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.72) 55%, rgba(248, 250, 252, 0.65) 100%);
+  backdrop-filter: blur(28px) saturate(195%) brightness(1.02);
+  -webkit-backdrop-filter: blur(28px) saturate(195%) brightness(1.02);
+  border: 1px solid rgba(255, 255, 255, 0.90);
+  box-shadow:
+    0 14px 36px rgba(15, 23, 42, 0.14),
+    0 2px 8px rgba(15, 23, 42, 0.06),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+    inset 1px 0 0.5px rgba(56, 189, 248, 0.26),
+    inset -1px 0 0.5px rgba(167, 139, 250, 0.20);
+}
+
+.liquid-glass-dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ag-dock-active-pill {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.26) 0%, rgba(59, 130, 246, 0.12) 100%);
+  border: 1px solid rgba(96, 165, 250, 0.34);
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.35), 0 4px 12px rgba(37, 99, 235, 0.20);
+  transition:
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease;
+}
+
+:root[data-theme='light'] .ag-dock-active-pill {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.16) 0%, rgba(59, 130, 246, 0.08) 100%);
+  border: 1px solid rgba(0, 122, 255, 0.22);
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.85), 0 4px 12px rgba(0, 122, 255, 0.10);
+}
+
+.ag-dock-item {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 2px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.ag-dock-item.active {
+  color: var(--primary);
+}
+
+.ag-dock-item-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ag-dock-item.active .ag-dock-item-icon {
+  transform: translateY(-1px) scale(1.06);
+}
+
+.ag-dock-item-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.ag-dock-item.active .ag-dock-item-label {
+  font-weight: 800;
+}
+
+.ag-dock-badge {
+  position: absolute;
+  top: -5px;
+  right: -9px;
+  background: var(--primary);
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  min-width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.45);
+}
+
+.ag-dock-plus-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.ag-dock-plus-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(145deg, #3b82f6 0%, var(--primary) 60%, #1d4ed8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  box-shadow:
+    0 6px 18px rgba(0, 122, 255, 0.40),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.55);
+}
+
+.ag-dock-plus-btn:active {
+  transform: scale(0.92);
+}
+
+/* 4. Animated Tabs (Timeline Feed, Composer Mode, Garage / Admin Filters) */
+.ag-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  gap: 2px;
+  user-select: none;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12), 0 4px 16px rgba(0, 0, 0, 0.16);
+}
+
+:root[data-theme='light'] .ag-tabs {
+  background: rgba(15, 23, 42, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.ag-tabs--pill {
+  border-radius: 16px;
+}
+
+.ag-tabs--segmented {
+  border-radius: 999px;
+}
+
+.ag-tabs--full {
+  display: flex;
+  width: 100%;
+}
+
+.ag-tabs-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.04) 100%), var(--primary);
+  box-shadow: 0 4px 14px var(--primary-glow), inset 0 1px 0.5px rgba(255, 255, 255, 0.45);
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.ag-tabs-indicator[data-tone='announcement'] {
+  background: linear-gradient(135deg, #2563eb 0%, #6366f1 58%, #f59e0b 100%);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.38), inset 0 1px 0.5px rgba(255, 255, 255, 0.48);
+}
+
+.ag-tabs-indicator[data-tone='success'] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.32), inset 0 1px 0.5px rgba(255, 255, 255, 0.42);
+}
+
+.ag-tabs-indicator[data-tone='info'] {
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.32), inset 0 1px 0.5px rgba(255, 255, 255, 0.42);
+}
+
+.ag-tabs--segmented .ag-tabs-indicator {
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32), inset 0 1px 0.5px rgba(255, 255, 255, 0.34);
+}
+
+:root[data-theme='light'] .ag-tabs--segmented .ag-tabs-indicator {
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+}
+
+.ag-tab-btn {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  border: none;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ag-tabs--sm .ag-tab-btn {
+  padding: 7px 12px;
+  font-size: 0.84rem;
+}
+
+.ag-tabs--segmented .ag-tab-btn {
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 0.88rem;
+}
+
+.ag-tabs--full .ag-tab-btn {
+  flex: 1;
+}
+
+.ag-tab-btn:hover:not(.active) {
+  color: var(--text-main);
+}
+
+.ag-tabs--pill .ag-tab-btn.active {
+  color: #ffffff !important;
+}
+
+.ag-tabs--segmented .ag-tab-btn.active {
+  color: var(--text-main) !important;
+}
+
+.ag-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ag-tab-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* 5. Bento Grids (Home, Admin Dashboard, Landing) */
+.home-bento-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  text-align: left;
+}
+
+.home-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.bento-cell-id {
+  grid-column: span 7;
+}
+
+.bento-cell-registry {
+  grid-column: span 5;
+}
+
+.bento-cell-feed {
+  grid-column: span 8;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bento-cell-utility {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bento-feed-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  flex: 1;
+}
+
+.bento-feed-featured {
+  grid-column: span 2;
+}
+
+.admin-bento-stats {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.admin-bento-stat-primary {
+  grid-column: span 5;
+}
+
+.admin-bento-stat-secondary {
+  grid-column: span 4;
+}
+
+.admin-bento-stat-tertiary {
+  grid-column: span 3;
+}
+
+.landing-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px;
+  text-align: left;
+}
+
+.landing-bento-featured {
+  grid-column: span 6;
+}
+
+.landing-bento-sub {
+  grid-column: span 3;
+}
+
+@media (max-width: 1023px) {
+  .home-bento-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .bento-cell-id,
+  .bento-cell-registry,
+  .bento-cell-feed,
+  .bento-cell-utility {
+    grid-column: span 6;
+  }
+  .admin-bento-stats {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .admin-bento-stat-primary,
+  .admin-bento-stat-secondary,
+  .admin-bento-stat-tertiary {
+    grid-column: auto;
+  }
+  .landing-bento-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .landing-bento-featured,
+  .landing-bento-sub {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-bento-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .bento-cell-id,
+  .bento-cell-registry,
+  .bento-cell-feed,
+  .bento-cell-utility {
+    grid-column: auto;
+  }
+  .bento-feed-grid {
+    grid-template-columns: 1fr;
+  }
+  .bento-feed-featured {
+    grid-column: auto;
+  }
+  .admin-bento-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 
 /* ==========================================================================
@@ -3696,4 +4366,50 @@ body.android-m3e .app-layout::after {
   border-color: var(--md-sys-color-primary) !important;
   border-radius: 16px !important;
   font-weight: 800 !important;
+}
+
+/* 10. M3 Expressive Overrides for Aceternity UI Primitives (No Glass Blur / Tonal Surface) */
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .liquid-glass,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .liquid-glass-strong,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .ag-card,
+:root[data-ui-mode='android-m3e'] body.android-m3e .liquid-glass,
+:root[data-ui-mode='android-m3e'] body.android-m3e .liquid-glass-strong,
+:root[data-ui-mode='android-m3e'] body.android-m3e .ag-card {
+  background: var(--md-sys-color-surface-container) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-radius: var(--md-sys-shape-corner-extra-large, 28px) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+  transform: none !important;
+}
+
+body.android-m3e .ag-card-spotlight,
+body.android-m3e .ag-card-glare {
+  display: none !important;
+}
+
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .ag-tabs,
+:root[data-ui-mode='android-m3e'] body.android-m3e .ag-tabs {
+  background: var(--md-sys-color-surface-container-high) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: var(--md-sys-shape-corner-full, 9999px) !important;
+}
+
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .ag-tabs-indicator,
+:root[data-ui-mode='android-m3e'] body.android-m3e .ag-tabs-indicator {
+  background: var(--md-sys-color-secondary-container) !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: var(--md-sys-shape-corner-full, 9999px) !important;
+}
+
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .ag-tabs--pill .ag-tab-btn.active,
+:root[data-ui-mode='android-m3e'] body.android-m3e .ag-tabs--pill .ag-tab-btn.active,
+:root[data-ui-mode='android-m3e'][data-theme] body.android-m3e .ag-tabs--segmented .ag-tab-btn.active,
+:root[data-ui-mode='android-m3e'] body.android-m3e .ag-tabs--segmented .ag-tab-btn.active {
+  color: var(--md-sys-color-on-secondary-container) !important;
 }

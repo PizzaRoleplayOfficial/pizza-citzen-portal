@@ -109,13 +109,13 @@ export const CustomSortDropdown = ({
       {isOpen && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setIsOpen(false)} />
-          <div className="glass animate-fade" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', borderRadius: '12px', overflow: 'hidden', zIndex: 100, minWidth: '100%', whiteSpace: 'nowrap', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+          <div className="glass liquid-glass-strong animate-fade" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', borderRadius: '16px', overflow: 'hidden', zIndex: 100, minWidth: '100%', padding: '4px', whiteSpace: 'nowrap', boxShadow: '0 12px 36px rgba(0,0,0,0.45)' }}>
             {options.map(opt => (
               <button
                 key={opt.id}
                 onClick={() => { onChange(opt.id); setIsOpen(false); }}
-                style={{ display: 'block', width: '100%', padding: '12px 16px', border: 'none', background: value === opt.id ? 'var(--primary)' : 'transparent', color: value === opt.id ? '#000' : 'var(--text-main)', textAlign: 'left', fontWeight: value === opt.id ? 700 : 500, fontSize: '0.9rem', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-                onMouseOver={(e) => { if(value !== opt.id) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                style={{ display: 'block', width: '100%', padding: '10px 14px', borderRadius: '11px', border: 'none', background: value === opt.id ? 'var(--primary)' : 'transparent', color: value === opt.id ? '#fff' : 'var(--text-main)', textAlign: 'left', fontWeight: value === opt.id ? 700 : 500, fontSize: '0.88rem', cursor: 'pointer', transition: 'background 0.15s ease' }}
+                onMouseOver={(e) => { if(value !== opt.id) e.currentTarget.style.background = 'rgba(148,163,184,0.14)'; }}
                 onMouseOut={(e) => { if(value !== opt.id) e.currentTarget.style.background = 'transparent'; }}
               >
                 {opt.label}

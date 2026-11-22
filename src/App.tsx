@@ -45,8 +45,10 @@ import {
   Heart,
   AlertTriangle,
   Flame,
-  MessageCircle
+  MessageCircle,
+  ArrowUpRight
 } from 'lucide-react';
+import { LiquidGlassSvgFilters, SpotlightGlareCard, FloatingDock } from './components/AceternityUI';
 import { isNative, pickImagesNative, pickImageFilesNative } from './utils/native';
 import { 
   checkLatestRelease, 
@@ -814,7 +816,6 @@ export default function App() {
   const isMobile = useIsMobile();
 
   const [holoPos, setHoloPos] = useState({ x: 50, y: 50, active: false });
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [inAppToast, setInAppToast] = useState<{ title: string; desc: string; type?: 'success' | 'warning' | 'error' | 'info'; action?: () => void } | null>(null);
 
   // Auto close toast after 4.5 seconds
@@ -3508,6 +3509,7 @@ export default function App() {
       minHeight: '100vh',
       position: 'relative'
     }}>
+      <LiquidGlassSvgFilters />
       {/* Discord-style custom window drag bar for Windows Desktop */}
       {window.electronAPI?.isDesktop && (
         <div className="desktop-titlebar" style={{
@@ -4197,9 +4199,9 @@ export default function App() {
                 }}
               />
               {showProfileMenu && (
-                <div className="glass" style={{
+                <div className="glass liquid-glass-strong" style={{
                   position: 'absolute',
-                  top: '40px',
+                  top: '44px',
                   right: 0,
                   background: 'var(--nav-bg)',
                   border: '1px solid var(--glass-border)',
@@ -4286,50 +4288,78 @@ export default function App() {
         }}
       >
         {view === 'home' ? (
-          <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            
-            {/* Top row: Official State ID Card + Garage Registry Summary */}
-            <div style={{
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              flexWrap: 'wrap',
-              gap: '20px',
-              alignItems: 'stretch',
-              width: '100%'
-            }}>
-              {/* デジタル市民証カード (Official State ID) */}
-              <div 
-                className="glass"
-                onMouseMove={(e) => {
-                  if (isMobile) return;
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const cardX = e.clientX - rect.left - rect.width / 2;
-                  const cardY = e.clientY - rect.top - rect.height / 2;
-                  const rotateX = -(cardY / (rect.height / 2)) * 4;
-                  const rotateY = (cardX / (rect.width / 2)) * 4;
-                  setTilt({ x: rotateX, y: rotateY });
-                }}
-                onMouseLeave={() => {
-                  setTilt({ x: 0, y: 0 });
-                }}
+          <div className="animate-fade" style={{ maxWidth: '100%', width: '100%', margin: isMobile ? '0 auto' : '0', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Editorial Left-Aligned Header Strip */}
+            <div className="home-bento-header">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--primary)' }}>
+                    GREENVIEW / RENSSELAER PORTAL
+                  </span>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 9px',
+                    borderRadius: '999px',
+                    background: myApplication?.status === 'approved'
+                      ? (theme === 'dark' ? 'rgba(52, 211, 153, 0.16)' : 'rgba(45, 106, 79, 0.10)')
+                      : myApplication?.status === 'pending'
+                      ? (theme === 'dark' ? 'rgba(251, 191, 36, 0.16)' : 'rgba(180, 83, 9, 0.10)')
+                      : (theme === 'dark' ? 'rgba(148, 163, 184, 0.16)' : 'rgba(100, 116, 139, 0.10)'),
+                    color: myApplication?.status === 'approved'
+                      ? (theme === 'dark' ? '#34d399' : '#2d6a4f')
+                      : myApplication?.status === 'pending'
+                      ? (theme === 'dark' ? '#fbbf24' : '#b45309')
+                      : 'var(--text-muted)',
+                    letterSpacing: '0.04em'
+                  }}>
+                    {myApplication?.status === 'approved' ? 'VERIFIED CITIZEN' : myApplication?.status === 'pending' ? 'PENDING REVIEW' : 'UNVERIFIED'}
+                  </span>
+                </div>
+                <h2 style={{ fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                  ようこそ、{currentUser.roblox_username || currentUser.username} さん
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { triggerHaptic('light'); setView('intro'); }}
+                className="btn-secondary"
                 style={{
-                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '8px 14px',
+                  borderRadius: '999px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <BookOpen size={15} style={{ color: 'var(--primary)' }} />
+                <span>公式ルールブック</span>
+                <ChevronRight size={14} style={{ opacity: 0.7 }} />
+              </button>
+            </div>
+
+            {/* Asymmetric Bento Grid */}
+            <div className="home-bento-grid">
+              {/* Cell 1: デジタル市民証 (Official State ID) — 7 cols */}
+              <SpotlightGlareCard
+                variant="citizen-id"
+                enableTilt={!isMobile && !isAndroidApp}
+                className="glass bento-cell-id liquid-glass-strong"
+                style={{
                   borderRadius: '24px',
-                  overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
-                  flex: '1.2 1 340px',
-                  minWidth: 'min(100%, 300px)',
-                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
-                  transform: isMobile ? 'none' : `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-                  transition: 'transform 0.15s ease-out, box-shadow 0.2s ease',
-                  backfaceVisibility: 'hidden'
+                  minWidth: 0
                 }}
               >
                 {/* Official State Header Bar */}
                 <div style={{
-                  background: isAndroidApp ? 'var(--md-sys-color-primary-container)' : 'linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%)',
-                  padding: isAndroidApp ? '14px 20px' : '12px 18px',
+                  background: isAndroidApp ? 'var(--md-sys-color-primary-container)' : 'linear-gradient(95deg, #172554 0%, #1e3a8a 52%, #1d4ed8 100%)',
+                  padding: isAndroidApp ? '14px 20px' : '13px 20px',
                   flexWrap: 'wrap',
                   gap: '8px',
                   display: 'flex',
@@ -4343,33 +4373,34 @@ export default function App() {
                       STATE OF GREENVIEW • OFFICIAL CITIZEN ID
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-primary-container)' : 'rgba(255, 255, 255, 0.75)', opacity: isAndroidApp ? 0.8 : 1, letterSpacing: '0.05em' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-primary-container)' : 'rgba(255, 255, 255, 0.78)', opacity: isAndroidApp ? 0.8 : 1, letterSpacing: '0.06em' }}>
                     DMV REGISTRY
                   </span>
                 </div>
+                <div className="citizen-id-holo-bar" aria-hidden="true" />
 
-                <div style={{ padding: isMobile ? '20px' : '20px 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap', gap: '20px', alignItems: 'center', flex: 1 }}>
-                  {/* Left: Avatar & Official Badge */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                    <div style={{ position: 'relative' }}>
+                <div style={{ padding: isMobile ? '18px' : '22px 24px', display: 'flex', flexDirection: 'column', gap: '18px', flex: 1, justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '14px' : '20px', flexWrap: 'wrap' }}>
+                    {/* Left: Avatar & Verified Badge */}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
                       <img
                         src={currentUser.avatar}
                         alt="Avatar"
                         onError={(e) => handleAvatarError(e, currentUser.username)}
                         style={{
-                          width: '84px',
-                          height: '84px',
+                          width: isMobile ? '68px' : '82px',
+                          height: isMobile ? '68px' : '82px',
                           borderRadius: '50%',
-                          border: theme === 'dark' ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid #ffffff',
+                          border: theme === 'dark' ? '2px solid rgba(255, 255, 255, 0.24)' : '2.5px solid #ffffff',
                           objectFit: 'cover',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+                          boxShadow: '0 6px 18px rgba(0, 0, 0, 0.14)'
                         }}
                       />
                       {myApplication?.status === 'approved' && (
                         <span style={{
                           position: 'absolute',
-                          bottom: '-4px',
-                          right: '-4px',
+                          bottom: '-2px',
+                          right: '-2px',
                           background: theme === 'dark' ? '#16a34a' : '#2d6a4f',
                           color: '#ffffff',
                           borderRadius: '50%',
@@ -4379,112 +4410,104 @@ export default function App() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 'bold',
-                          fontSize: '0.75rem',
+                          fontSize: '0.72rem',
+                          border: '2px solid rgba(255,255,255,0.85)',
                           boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                         }}>✓</span>
                       )}
                     </div>
 
-                    <div style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      padding: '5px 12px',
-                      borderRadius: '20px',
-                      background: myApplication?.status === 'approved'
-                        ? (theme === 'dark' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(45, 106, 79, 0.12)')
-                        : myApplication?.status === 'pending'
-                        ? (theme === 'dark' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(180, 83, 9, 0.12)')
-                        : (theme === 'dark' ? 'rgba(156, 163, 175, 0.15)' : 'rgba(107, 114, 128, 0.12)'),
-                      color: myApplication?.status === 'approved'
-                        ? (theme === 'dark' ? '#4ade80' : '#2d6a4f')
-                        : myApplication?.status === 'pending'
-                        ? (theme === 'dark' ? '#fbbf24' : '#b45309')
-                        : (theme === 'dark' ? '#9ca3af' : '#4b5563'),
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase'
-                    }}>
-                      {myApplication?.status === 'approved' ? (
-                        <><span>✓</span> VERIFIED CITIZEN</>
-                      ) : myApplication?.status === 'pending' ? (
-                        <><span>⏳</span> PENDING REVIEW</>
-                      ) : (
-                        <><span>ℹ️</span> UNVERIFIED</>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: Citizen Details & Bebas Neue ID */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1 1 180px', minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
-                    <div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {/* Citizen Primary Identity (Always Left-Aligned) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 170px', minWidth: 0, textAlign: 'left' }}>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                         NAME / 市民名
                       </div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: theme === 'dark' ? '#f4f4f5' : '#111827', lineHeight: 1.2, fontFamily: 'var(--font-heading)' }}>
+                      <div style={{ fontSize: isMobile ? '1.25rem' : '1.45rem', fontWeight: 800, color: theme === 'dark' ? '#f4f4f5' : '#111827', lineHeight: 1.18, fontFamily: 'var(--font-heading)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {currentUser.roblox_username || currentUser.username}
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                         @{currentUser.username}
                       </div>
                     </div>
+                  </div>
 
-                    <div style={{ marginTop: '4px' }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {/* Bebas Neue Credential Strip + Metadata Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.3fr) minmax(0, 1fr)',
+                    gap: '12px',
+                    alignItems: 'center',
+                    paddingTop: '14px',
+                    borderTop: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.10)' : '1px solid rgba(15, 23, 42, 0.07)',
+                    textAlign: 'left'
+                  }}>
+                    <div style={{
+                      padding: '10px 14px',
+                      borderRadius: '14px',
+                      background: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.035)',
+                      border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.10)' : '1px solid rgba(15, 23, 42, 0.06)'
+                    }}>
+                      <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>
                         CITIZEN IDENTIFIER / 市民識別番号
                       </div>
-                      <div style={{ 
-                        fontSize: 'clamp(1.15rem, 2vw, 1.45rem)',
-                        fontWeight: 700, 
-                        color: isAndroidApp ? 'var(--md-sys-color-primary)' : (theme === 'dark' ? '#60a5fa' : '#1e3a8a'), 
-                        fontFamily: 'var(--font-plate)', 
-                        letterSpacing: '0.12em',
-                        lineHeight: 1.2
+                      <div style={{
+                        fontSize: 'clamp(1.2rem, 2.1vw, 1.5rem)',
+                        fontWeight: 700,
+                        color: isAndroidApp ? 'var(--md-sys-color-primary)' : (theme === 'dark' ? '#60a5fa' : '#1e3a8a'),
+                        fontFamily: 'var(--font-plate)',
+                        letterSpacing: '0.13em',
+                        lineHeight: 1.15
                       }}>
                         GV-{(currentUser.roblox_id || currentUser.id || '2026').toString().padStart(7, '0')}-RP
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', justifyContent: isMobile ? 'center' : 'flex-start', flexWrap: 'wrap' }}>
-                      <div>管轄: <strong style={{ color: theme === 'dark' ? '#f4f4f5' : '#1f2937' }}>Greenview / Rensselaer</strong></div>
-                      <div>種別: <strong style={{ color: theme === 'dark' ? '#f4f4f5' : '#1f2937' }}>一般市民権 (Class R)</strong></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                        <span>管轄</span>
+                        <strong style={{ color: 'var(--text-main)' }}>Greenview / Rensselaer</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                        <span>種別</span>
+                        <strong style={{ color: 'var(--text-main)' }}>一般市民権 (Class R)</strong>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </SpotlightGlareCard>
 
-              {/* ガレージ登録状況カード (Registry Summary Card) */}
-              <div 
-                className="glass card"
+              {/* Cell 2: ガレージ登録状況カード (Vehicle Registry Summary) — 5 cols */}
+              <SpotlightGlareCard
+                variant="spotlight"
+                enableTilt={false}
+                className="glass card bento-cell-registry"
                 style={{
                   borderRadius: '24px',
-                  padding: isMobile ? '20px' : '20px 24px',
+                  padding: isMobile ? '18px' : '22px 24px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',
-                  flex: '1 1 300px',
-                  minWidth: 'min(100%, 280px)'
+                  minWidth: 0
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <h3 style={{ fontSize: '1.1rem', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ fontSize: '1.08rem', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Car size={18} style={{ color: 'var(--primary)' }} />
                     車両登録簿
                   </h3>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0, flexWrap: 'nowrap' }}>
-                    <button 
+                    <button
                       onClick={() => handleOpenVehicleModal('gv')}
                       className={isAndroidApp ? 'btn-primary' : undefined}
-                      style={{ background: isAndroidApp ? 'var(--md-sys-color-primary-container)' : 'rgba(30, 58, 138, 0.08)', border: isAndroidApp ? 'none' : '1px solid rgba(30, 58, 138, 0.15)', padding: '7px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-primary-container)' : 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      style={{ background: isAndroidApp ? 'var(--md-sys-color-primary-container)' : 'rgba(37, 99, 235, 0.12)', border: isAndroidApp ? 'none' : '1px solid rgba(37, 99, 235, 0.22)', padding: '7px 14px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-primary-container)' : 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
                       title="車両登録"
                     >
                       <Plus size={14} strokeWidth={2.5} /> 登録申請
                     </button>
-                    <button 
-                      onClick={() => { triggerHaptic('light'); setView('garage'); }} 
+                    <button
+                      onClick={() => { triggerHaptic('light'); setView('garage'); }}
                       className={isAndroidApp ? 'btn-secondary' : undefined}
-                      style={{ background: isAndroidApp ? 'var(--md-sys-color-secondary-container)' : 'var(--btn-secondary-bg)', border: isAndroidApp ? 'none' : '1px solid var(--border)', padding: '7px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-secondary-container)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
+                      style={{ background: isAndroidApp ? 'var(--md-sys-color-secondary-container)' : 'var(--btn-secondary-bg)', border: isAndroidApp ? 'none' : '1px solid var(--border)', padding: '7px 14px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, color: isAndroidApp ? 'var(--md-sys-color-on-secondary-container)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: '0.2s' }}
                       onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-main)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                     >
@@ -4493,46 +4516,102 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Status counts pills */}
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ flex: 1, background: theme === 'dark' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(45, 106, 79, 0.08)', border: theme === 'dark' ? '1px solid rgba(74, 222, 128, 0.25)' : '1px solid rgba(45, 106, 79, 0.15)', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.72rem', color: theme === 'dark' ? '#4ade80' : '#2d6a4f', fontWeight: 600, marginBottom: '2px' }}>有効・承認済</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: theme === 'dark' ? '#4ade80' : '#2d6a4f', fontFamily: 'var(--font-heading)' }}>
-                      {vehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length}
+                {/* Asymmetric KPI Bento Strip */}
+                {(() => {
+                  const approvedCount = vehicles.filter(v => v.status === 'approved' || v.status === 'approved_warning').length;
+                  const pendingCount = vehicles.filter(v => v.status === 'pending').length;
+                  const ratio = vehicles.length > 0 ? Math.round((approvedCount / vehicles.length) * 100) : 0;
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: '10px', textAlign: 'left' }}>
+                      <div style={{
+                        background: theme === 'dark' ? 'rgba(52, 211, 153, 0.10)' : 'rgba(45, 106, 79, 0.08)',
+                        border: theme === 'dark' ? '1px solid rgba(52, 211, 153, 0.24)' : '1px solid rgba(45, 106, 79, 0.16)',
+                        borderRadius: '16px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '8px'
+                      }}>
+                        <div style={{ fontSize: '0.72rem', color: theme === 'dark' ? '#4ade80' : '#2d6a4f', fontWeight: 700 }}>有効・承認済</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '6px' }}>
+                          <span style={{ fontSize: '1.75rem', fontWeight: 800, lineHeight: 1, color: theme === 'dark' ? '#4ade80' : '#2d6a4f', fontFamily: 'var(--font-heading)', fontVariantNumeric: 'tabular-nums' }}>
+                            {approvedCount}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                            {ratio}% 承認
+                          </span>
+                        </div>
+                        <div style={{ width: '100%', height: '4px', borderRadius: '999px', background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)', overflow: 'hidden' }}>
+                          <div style={{ width: `${ratio}%`, height: '100%', background: theme === 'dark' ? '#34d399' : '#2d6a4f', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{
+                          flex: 1,
+                          background: theme === 'dark' ? 'rgba(251, 191, 36, 0.10)' : 'rgba(180, 83, 9, 0.08)',
+                          border: theme === 'dark' ? '1px solid rgba(251, 191, 36, 0.24)' : '1px solid rgba(180, 83, 9, 0.15)',
+                          borderRadius: '12px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <span style={{ fontSize: '0.72rem', color: theme === 'dark' ? '#fbbf24' : '#b45309', fontWeight: 700 }}>審査中</span>
+                          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: theme === 'dark' ? '#fbbf24' : '#b45309', fontFamily: 'var(--font-heading)', fontVariantNumeric: 'tabular-nums' }}>
+                            {pendingCount}
+                          </span>
+                        </div>
+                        <div style={{
+                          flex: 1,
+                          background: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.04)',
+                          border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.10)' : '1px solid rgba(15, 23, 42, 0.07)',
+                          borderRadius: '12px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>総登録</span>
+                          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', fontFamily: 'var(--font-heading)', fontVariantNumeric: 'tabular-nums' }}>
+                            {vehicles.length}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ flex: 1, background: theme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(180, 83, 9, 0.08)', border: theme === 'dark' ? '1px solid rgba(251, 191, 36, 0.25)' : '1px solid rgba(180, 83, 9, 0.15)', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.72rem', color: theme === 'dark' ? '#fbbf24' : '#b45309', fontWeight: 600, marginBottom: '2px' }}>審査・審査中</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: theme === 'dark' ? '#fbbf24' : '#b45309', fontFamily: 'var(--font-heading)' }}>
-                      {vehicles.filter(v => v.status === 'pending').length}
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* List of latest vehicles */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflowY: 'auto', maxHeight: '150px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflowY: 'auto', maxHeight: '155px' }}>
                   {vehicles.length === 0 ? (
-                    <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', border: '1px dashed var(--border)', borderRadius: '14px', justifyContent: 'center', flex: 1 }}>
+                    <div style={{ padding: '18px 16px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', border: '1px dashed var(--border)', borderRadius: '16px', flex: 1 }}>
                       <span>登録されている車両はありません</span>
-                      <button 
+                      <button
                         onClick={() => { triggerHaptic('medium'); setView('garage'); setShowAddModal(true); }}
-                        style={{ background: 'var(--primary)', border: 'none', color: '#ffffff', padding: '6px 14px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}
+                        style={{ background: 'var(--primary)', border: 'none', color: '#ffffff', padding: '7px 14px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: '0.2s', whiteSpace: 'nowrap' }}
                       >
                         🚗 最初の車両を申請する
                       </button>
                     </div>
                   ) : (
                     vehicles.slice(0, 2).map(v => (
-                      <div key={v.id} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '13px 18px',
-                        background: isAndroidApp ? 'var(--md-sys-color-surface-container-high)' : (theme === 'dark' ? '#2c2c2e' : '#f8fafc'),
-                        borderRadius: isAndroidApp ? '20px' : '16px',
-                        border: 'none',
-                        gap: '10px'
-                      }}>
+                      <div
+                        key={v.id}
+                        onClick={() => { triggerHaptic('light'); setView('garage'); }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 15px',
+                          background: isAndroidApp ? 'var(--md-sys-color-surface-container-high)' : (theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.55)'),
+                          borderRadius: isAndroidApp ? '20px' : '15px',
+                          border: isAndroidApp ? 'none' : (theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.06)'),
+                          gap: '10px',
+                          cursor: 'pointer'
+                        }}
+                      >
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontWeight: 700, fontSize: '0.85rem', color: theme === 'dark' ? '#ffffff' : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {v.year} {v.maker} {v.model}
@@ -4557,175 +4636,301 @@ export default function App() {
                     ))
                   )}
                 </div>
-              </div>
-            </div>
+              </SpotlightGlareCard>
 
-{/* ぴっざぁ公式Discord バナー */}
-            <div 
-              className={isAndroidApp ? 'card' : undefined}
-              style={{
-                borderRadius: isAndroidApp ? '28px' : '20px',
-                padding: isMobile ? '18px 20px' : '20px 28px',
-                background: isAndroidApp ? 'var(--md-sys-color-surface-container)' : 'linear-gradient(135deg, rgba(88, 101, 242, 0.08) 0%, rgba(88, 101, 242, 0.02) 100%)',
-                border: isAndroidApp ? 'none' : '1px solid rgba(88, 101, 242, 0.2)',
-                boxShadow: isAndroidApp ? '0 2px 10px rgba(0, 0, 0, 0.08)' : '0 4px 20px rgba(88, 101, 242, 0.06)',
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '16px',
-                width: '100%'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, textAlign: isMobile ? 'center' : 'left', flexDirection: isMobile ? 'column' : 'row' }}>
-                <div style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '14px', 
-                  background: 'rgba(88, 101, 242, 0.15)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <svg width="24" height="24" viewBox="0 0 127.14 96.36" fill="#5865F2">
-                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
-                  </svg>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    ぴっざぁ公式 Discord コミュニティ
-                  </h3>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
-                    市民の交流、公式告知、ロールプレイのサポートチケット窓口はこちらから。
-                  </p>
-                </div>
-              </div>
-
-              <a 
-                href="https://discord.gg/RruM8Gqc4m" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn"
-                style={{
-                  padding: '10px 22px',
-                  borderRadius: '12px',
-                  background: '#5865F2',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  border: 'none',
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 12px rgba(88, 101, 242, 0.3)',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  flexShrink: 0
-                }}
-              >
-                参加する
-              </a>
-            </div>
-
-            {/* 下段: 街の動向・タイムライン最新アクティビティ (重複メニューグリッドを排除し生きたコミュニティを表示) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '4px', height: '18px', background: 'var(--primary)', borderRadius: '2px' }} />
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    街の動向・タイムライン
-                  </h3>
-                </div>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <button
-                    onClick={() => { triggerHaptic('light'); setView('timeline'); setTimeout(() => setTriggerTimelineComposer(true), 150); }}
-                    style={{ background: 'rgba(30, 58, 138, 0.08)', border: '1px solid rgba(30, 58, 138, 0.15)', color: 'var(--primary)', padding: '6px 14px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    <Plus size={14} strokeWidth={2.5} /> 投稿する
-                  </button>
-                  <button
-                    onClick={() => { triggerHaptic('light'); setView('timeline'); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    すべて見る <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Feed cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
-                {recentTimelinePosts.length === 0 ? (
-                  <div style={{ padding: '24px 16px', textAlign: 'center', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.88rem', gridColumn: '1 / -1' }}>
-                    <p style={{ margin: 0, fontWeight: 600 }}>タイムラインの投稿がまだありません。</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.75 }}>街の様子や愛車の写真を投稿してみましょう！</p>
+              {/* Cell 3: 街の動向・タイムライン (Asymmetric Bento Feed) — 8 cols */}
+              <div className="bento-cell-feed" style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ width: '4px', height: '18px', background: 'var(--primary)', borderRadius: '2px' }} />
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                      街の動向・タイムライン
+                    </h3>
                   </div>
-                ) : (
-                  recentTimelinePosts.map(post => (
-                    <div 
-                      key={post.id}
-                      onClick={() => {
-                        triggerHaptic('light');
-                        setTargetTimelinePostId(post.id);
-                        setView('timeline');
-                      }}
-                      className={isAndroidApp ? 'feed-card' : undefined}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => { triggerHaptic('light'); setView('timeline'); setTimeout(() => setTriggerTimelineComposer('post'), 150); }}
+                      style={{ background: 'rgba(37, 99, 235, 0.10)', border: '1px solid rgba(37, 99, 235, 0.20)', color: 'var(--primary)', padding: '6px 14px', borderRadius: '999px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Plus size={14} strokeWidth={2.5} /> 投稿する
+                    </button>
+                    <button
+                      onClick={() => { triggerHaptic('light'); setView('timeline'); }}
+                      style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                    >
+                      すべて見る <ChevronRight size={15} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bento-feed-grid">
+                  {recentTimelinePosts.length === 0 ? (
+                    <SpotlightGlareCard
+                      variant="spotlight"
+                      enableTilt={false}
+                      className="glass card"
+                      style={{ gridColumn: '1 / -1', padding: '28px 24px', borderRadius: '22px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}
+                    >
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>タイムラインの投稿がまだありません。</p>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.8 }}>街の様子や愛車の写真を投稿してみましょう！</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => { triggerHaptic('light'); setView('timeline'); setTimeout(() => setTriggerTimelineComposer('post'), 150); }}
+                        style={{ padding: '8px 16px', borderRadius: '999px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <Plus size={14} /> 初投稿する
+                      </button>
+                    </SpotlightGlareCard>
+                  ) : (
+                    recentTimelinePosts.map((post, idx) => {
+                      const isFeatured = idx === 0 && recentTimelinePosts.length > 1;
+                      return (
+                        <SpotlightGlareCard
+                          key={post.id}
+                          variant="spotlight"
+                          enableTilt={false}
+                          onClick={() => {
+                            triggerHaptic('light');
+                            setTargetTimelinePostId(post.id);
+                            setView('timeline');
+                          }}
+                          className={`glass feed-card ${isFeatured ? 'bento-feed-featured' : ''}`}
+                          style={{
+                            borderRadius: isAndroidApp ? '28px' : '22px',
+                            padding: isFeatured ? '22px 24px' : '18px 20px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img
+                              src={`https://www.roblox.com/headshot-thumbnail/image?userId=${post.user_id}&width=150&height=150&format=png`}
+                              alt="avatar"
+                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                              style={{ width: isFeatured ? '36px' : '30px', height: isFeatured ? '36px' : '30px', borderRadius: '50%', objectFit: 'cover', background: theme === 'dark' ? '#2c2c2e' : '#f1f5f9', flexShrink: 0 }}
+                            />
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {post.author_name || '市民'}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                {new Date(post.created_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                            {isFeatured && (
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                padding: '3px 9px',
+                                borderRadius: '999px',
+                                background: 'rgba(37, 99, 235, 0.12)',
+                                color: 'var(--primary)',
+                                letterSpacing: '0.04em',
+                                flexShrink: 0
+                              }}>
+                                LATEST
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{
+                            fontSize: isFeatured ? '0.94rem' : '0.86rem',
+                            color: 'var(--text-main)',
+                            lineHeight: 1.5,
+                            overflow: 'hidden',
+                            display: '-webkit-box',
+                            WebkitLineClamp: isFeatured ? 4 : 3,
+                            WebkitBoxOrient: 'vertical'
+                          }}>
+                            {post.content}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: 'auto', paddingTop: '8px', borderTop: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.06)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Heart size={13} /> {post.likes_count || 0}
+                            </span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <MessageSquare size={13} /> {post.comments_count || 0}
+                            </span>
+                          </div>
+                        </SpotlightGlareCard>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Cell 4: コミュニティ & クイック導線 — 4 cols */}
+              <div className="bento-cell-utility" style={{ minWidth: 0 }}>
+                {/* Card A: Official Discord Banner */}
+                <SpotlightGlareCard
+                  variant="spotlight"
+                  enableTilt={false}
+                  spotlightColor="rgba(88, 101, 242, 0.22)"
+                  className={isAndroidApp ? 'card' : 'glass card'}
+                  style={{
+                    borderRadius: isAndroidApp ? '28px' : '22px',
+                    padding: '20px 22px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '14px',
+                      background: 'rgba(88, 101, 242, 0.16)',
+                      border: '1px solid rgba(88, 101, 242, 0.24)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <svg width="22" height="22" viewBox="0 0 127.14 96.36" fill="#5865F2">
+                        <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.87-.64,1.71-1.34,2.51-2a75.58,75.58,0,0,0,73,0c.8.71,1.64,1.41,2.51,2a68.43,68.43,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,50.22,123.6,27.31,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
+                      </svg>
+                    </div>
+                    <a
+                      href="https://discord.gg/RruM8Gqc4m"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn"
                       style={{
-                        background: isAndroidApp ? 'var(--md-sys-color-surface-container)' : (theme === 'dark' ? '#1c1c1e' : '#ffffff'),
-                        borderRadius: isAndroidApp ? '28px' : '24px',
+                        padding: '8px 16px',
+                        borderRadius: '999px',
+                        background: '#5865F2',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
                         border: 'none',
-                        padding: '20px 24px',
-                        boxShadow: theme === 'dark' ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.04)',
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px'
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.borderColor = 'rgba(30, 58, 138, 0.25)';
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.06)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'none';
-                        e.currentTarget.style.borderColor = 'var(--border)';
-                        e.currentTarget.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.03)';
+                        textDecoration: 'none',
+                        boxShadow: '0 4px 14px rgba(88, 101, 242, 0.34)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        cursor: 'pointer'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img 
-                          src={`https://www.roblox.com/headshot-thumbnail/image?userId=${post.user_id}&width=150&height=150&format=png`} 
-                          alt="avatar" 
-                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                          style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', background: theme === 'dark' ? '#2c2c2e' : '#f1f5f9' }}
-                        />
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {post.author_name || '市民'}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            {new Date(post.created_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
+                      <span>参加する</span>
+                      <ArrowUpRight size={14} />
+                    </a>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                      公式 Discord コミュニティ
+                    </h3>
+                    <p style={{ fontSize: '0.81rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                      市民の交流、公式告知、ロールプレイのサポートチケット窓口はこちらから。
+                    </p>
+                  </div>
+                </SpotlightGlareCard>
 
-                      <div style={{ fontSize: '0.88rem', color: 'var(--text-main)', lineHeight: 1.45, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                        {post.content}
-                      </div>
+                {/* Card B: Portal Guide & Quick Access */}
+                <SpotlightGlareCard
+                  variant="spotlight"
+                  enableTilt={false}
+                  className={isAndroidApp ? 'card' : 'glass card'}
+                  style={{
+                    borderRadius: isAndroidApp ? '28px' : '22px',
+                    padding: '20px 22px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    textAlign: 'left',
+                    flex: 1
+                  }}
+                >
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                    ポータルガイド・クイックアクセス
+                  </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: 'auto', paddingTop: '6px', borderTop: '1px solid rgba(0, 0, 0, 0.04)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Heart size={13} /> {post.likes_count || 0}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <MessageSquare size={13} /> {post.comments_count || 0}
-                        </span>
+                  <button
+                    type="button"
+                    onClick={() => { triggerHaptic('light'); setView('intro'); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '14px',
+                      background: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.04)',
+                      border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.06)',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <BookOpen size={17} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 700 }}>公式ルールブックを読む</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>車両・RPガイドライン</div>
                       </div>
                     </div>
-                  ))
-                )}
+                    <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { triggerHaptic('light'); setView('apply'); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '14px',
+                      background: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.04)',
+                      border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.06)',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <ClipboardList size={17} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 700 }}>
+                          {myApplication?.status === 'approved' ? '市民申請ステータスを確認' : '市民申請を行う'}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          状態: {myApplication?.status === 'approved' ? '承認済' : myApplication?.status === 'pending' ? '審査中' : '未申請'}
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '999px',
+                      background: myApplication?.status === 'approved'
+                        ? (theme === 'dark' ? 'rgba(52, 211, 153, 0.16)' : 'rgba(45, 106, 79, 0.10)')
+                        : myApplication?.status === 'pending'
+                        ? (theme === 'dark' ? 'rgba(251, 191, 36, 0.16)' : 'rgba(180, 83, 9, 0.10)')
+                        : 'rgba(37, 99, 235, 0.10)',
+                      color: myApplication?.status === 'approved'
+                        ? (theme === 'dark' ? '#34d399' : '#2d6a4f')
+                        : myApplication?.status === 'pending'
+                        ? (theme === 'dark' ? '#fbbf24' : '#b45309')
+                        : 'var(--primary)',
+                      flexShrink: 0
+                    }}>
+                      {myApplication?.status === 'approved' ? '承認済' : myApplication?.status === 'pending' ? '審査中' : '未申請'}
+                    </span>
+                  </button>
+                </SpotlightGlareCard>
               </div>
             </div>
           </div>
@@ -4995,8 +5200,8 @@ export default function App() {
         )}
       </main>
 
-      {isMobile && (
-        <nav className={isAndroidApp ? 'm3e-bottom-nav' : undefined} style={{ 
+      {isMobile && isAndroidApp && (
+        <nav className="m3e-bottom-nav" style={{ 
           position: 'fixed', 
           bottom: 0, 
           left: 0, 
@@ -5075,6 +5280,16 @@ export default function App() {
         </nav>
       )}
 
+      {isMobile && !isAndroidApp && (
+        <FloatingDock
+          activeView={view}
+          onSelectView={(nextView) => setView(nextView)}
+          onPlusClick={handleMobilePlusClick}
+          unreadDmCount={unreadDmCount}
+          onHaptic={() => triggerHaptic('light')}
+        />
+      )}
+
       {showAddModal && (
         <div style={{ 
           position: 'fixed', 
@@ -5094,7 +5309,7 @@ export default function App() {
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
           <div 
-            className="glass card animate-fade" 
+            className="glass card liquid-glass-strong animate-fade" 
             style={{ 
               width: '100%', 
               maxWidth: '680px', 
@@ -5487,7 +5702,7 @@ export default function App() {
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
           <div 
-            className="glass card animate-fade" 
+            className="glass card liquid-glass-strong animate-fade" 
             style={{ 
               width: '100%', 
               maxWidth: '560px', 
@@ -5853,7 +6068,7 @@ export default function App() {
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
           <div 
-            className="glass card animate-fade" 
+            className="glass card liquid-glass-strong animate-fade" 
             style={{ 
               width: '100%', 
               maxWidth: isMobile ? 'calc(100% - 32px)' : '480px', 
@@ -6016,7 +6231,7 @@ export default function App() {
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
           <div 
-            className="glass card animate-fade" 
+            className="glass card liquid-glass-strong animate-fade" 
             style={{ 
               width: '100%', 
               maxWidth: '520px', 
@@ -6157,7 +6372,7 @@ export default function App() {
           transition: isBackSwiping ? 'none' : 'opacity 0.3s ease, backdrop-filter 0.3s ease'
         }}>
           <div 
-            className="glass card animate-fade" 
+            className="glass card liquid-glass-strong animate-fade" 
             style={{ 
               width: '100%', 
               maxWidth: '480px', 
@@ -6266,7 +6481,7 @@ export default function App() {
           onClick={() => { setInfoModal(prev => ({ ...prev, isOpen: false })); triggerHaptic('light'); }}
         >
           <div
-            className="glass card animate-fade"
+            className="glass card liquid-glass-strong animate-fade"
             style={{ width: '100%', maxWidth: '360px', padding: '32px 28px', borderRadius: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', textAlign: 'center' }}
             onClick={e => e.stopPropagation()}
           >
@@ -6333,7 +6548,7 @@ export default function App() {
           }}
         >
           <div
-            className="glass card animate-fade"
+            className="glass card liquid-glass-strong animate-fade"
             style={{
               width: '100%',
               maxWidth: '400px',
@@ -6398,7 +6613,7 @@ export default function App() {
           />
           
           <div 
-            className="glass animate-fade"
+            className="glass liquid-glass-strong animate-fade"
             style={{
               position: 'fixed',
               top: isMobile ? 'calc(max(env(safe-area-inset-top, 0px), 16px) + 55px)' : 'auto',

@@ -1,4 +1,5 @@
 import React from 'react';
+import { SpotlightGlareCard } from '../components/AceternityUI';
 import { LayoutDashboard, ShieldCheck, Search as SearchIcon, Compass, Key, RefreshCw } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
@@ -470,31 +471,49 @@ export const LandingView = ({ onLoginSuccess }: LandingViewProps) => {
           </a>
         </div>
 
-        {/* プレミアムフィーチャーグリッド */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px', textAlign: 'left' }}>
-          <div className="glass card" style={{ padding: '32px', borderRadius: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', backdropFilter: 'blur(12px)' }}>
-            <div style={{ width: '48px', height: '48px', background: 'rgba(0,193,102,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+        {/* プレミアムフィーチャーグリッド (Asymmetric Bento Grid + Spotlight) */}
+        <div className="landing-bento-grid">
+          <SpotlightGlareCard
+            variant="spotlight"
+            enableTilt={false}
+            spotlightColor="rgba(0, 193, 102, 0.22)"
+            className="glass card landing-bento-featured"
+            style={{ padding: '32px', borderRadius: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}
+          >
+            <div style={{ width: '48px', height: '48px', background: 'rgba(0,193,102,0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
               <LayoutDashboard size={28} color="var(--primary)" style={{ filter: 'drop-shadow(0 0 8px rgba(0, 193, 102, 0.4))' }} />
             </div>
-            <h3 style={{ marginBottom: '12px', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>スマートガレージ</h3>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>所有車両を一覧で一括管理。リアルタイムでステータス（承認/却下）をキャッチ。</p>
-          </div>
+            <h3 style={{ marginBottom: '12px', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>スマートガレージ</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.65 }}>所有車両を一覧で一括管理。リアルタイムでステータス（承認/却下）やナンバー登録状況をスマートに追跡。</p>
+          </SpotlightGlareCard>
           
-          <div className="glass card" style={{ padding: '32px', borderRadius: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', backdropFilter: 'blur(12px)' }}>
-            <div style={{ width: '48px', height: '48px', background: 'rgba(0,160,204,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+          <SpotlightGlareCard
+            variant="spotlight"
+            enableTilt={false}
+            spotlightColor="rgba(0, 160, 204, 0.22)"
+            className="glass card landing-bento-sub"
+            style={{ padding: '28px', borderRadius: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}
+          >
+            <div style={{ width: '48px', height: '48px', background: 'rgba(0,160,204,0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
               <ShieldCheck size={28} color="var(--secondary)" style={{ filter: 'drop-shadow(0 0 8px rgba(0, 160, 204, 0.4))' }} />
             </div>
-            <h3 style={{ marginBottom: '12px', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>デジタル証明書</h3>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>ナンバープレートOCR自動解析を搭載。ゲーム内の警察検問や車両登録もペーパーレスに。</p>
-          </div>
+            <h3 style={{ marginBottom: '10px', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>デジタル証明書</h3>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>ナンバープレートOCR自動解析を搭載。ゲーム内の警察検問や車両登録もペーパーレスに。</p>
+          </SpotlightGlareCard>
 
-          <div className="glass card" style={{ padding: '32px', borderRadius: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)', backdropFilter: 'blur(12px)' }}>
-            <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+          <SpotlightGlareCard
+            variant="spotlight"
+            enableTilt={false}
+            spotlightColor="rgba(59, 130, 246, 0.20)"
+            className="glass card landing-bento-sub"
+            style={{ padding: '28px', borderRadius: '24px', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}
+          >
+            <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.06)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
               <SearchIcon size={28} color="var(--text-main)" />
             </div>
-            <h3 style={{ marginBottom: '12px', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>運営向けの高度ツール</h3>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>ナンバー検索、申請のワンタップ承認/却下、Wiki自動同期カタログ管理など満載。</p>
-          </div>
+            <h3 style={{ marginBottom: '10px', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>運営向けの高度ツール</h3>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>ナンバー検索、申請のワンタップ承認/却下、Wiki自動同期カタログ管理など満載。</p>
+          </SpotlightGlareCard>
         </div>
       </div>
     </div>

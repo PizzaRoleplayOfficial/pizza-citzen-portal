@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { SpotlightGlareCard } from './AceternityUI';
 
 interface Vehicle {
   id: string;
@@ -138,9 +139,9 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({
 
   if (vehicles.length === 0) {
     return (
-      <div className="glass" style={{ padding: isMobile ? '20px' : '32px', borderRadius: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <SpotlightGlareCard variant="spotlight" enableTilt={false} className="glass" style={{ padding: isMobile ? '20px' : '32px', borderRadius: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
         集計対象の車両データがないため、統計グラフを表示できません。
-      </div>
+      </SpotlightGlareCard>
     );
   }
 
@@ -153,7 +154,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({
     }}>
       
       {/* 1. ステータス内訳 ドーナツチャート */}
-      <div className="glass card" style={{ padding: isMobile ? '16px' : '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+      <SpotlightGlareCard variant="spotlight" enableTilt={false} className="glass card" style={{ padding: isMobile ? '16px' : '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
         <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 700, marginBottom: isMobile ? '12px' : '20px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }}></span>
           承認申請のステータス割合
@@ -289,10 +290,10 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({
             })}
           </div>
         </div>
-      </div>
+      </SpotlightGlareCard>
 
       {/* 2. メーカー別シェア 横棒グラフ */}
-      <div className="glass card" style={{ padding: isMobile ? '16px' : '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
+      <SpotlightGlareCard variant="spotlight" enableTilt={false} className="glass card" style={{ padding: isMobile ? '16px' : '24px', borderRadius: '20px', display: 'flex', flexDirection: 'column', background: 'var(--panel-bg)', border: '1px solid var(--glass-border)' }}>
         <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 700, marginBottom: isMobile ? '12px' : '20px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }}></span>
           人気自動車メーカーシェア
@@ -347,7 +348,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({
             );
           })}
         </div>
-      </div>
+      </SpotlightGlareCard>
 
     </div>
   );

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { compressImage, compressVideo, isSlowConnection, compressDualImage } from '../utils/helpers';
 import { parseImages, getImageUrl } from '../components/UIBase';
+import { AnimatedTabs } from '../components/AceternityUI';
 import { ProgressiveImage } from '../components/ProgressiveImage';
 import { triggerHaptic, getLiveProgress, isNative } from '../utils/native';
 import { Capacitor } from '@capacitor/core';
@@ -3407,168 +3408,21 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         </div>
       </div>
 
-      {/* Recommended vs Following Feed Tab Bar (X style) */}
-      <div 
-        className="glass"
-        style={{
-          display: 'flex',
-          width: '100%',
-          borderBottom: '1px solid var(--glass-border)',
-          background: 'var(--panel-bg)',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          padding: '2px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+      {/* Recommended vs Following Feed Tab Bar (Animated Tabs) */}
+      <AnimatedTabs
+        tabs={[
+          { id: 'all', label: 'おすすめ' },
+          { id: 'following', label: 'フォロー中' },
+          { id: 'bookmarks', label: 'ブックマーク' },
+        ]}
+        activeId={activeFeedTab}
+        onChange={(id) => {
+          triggerHaptic('light');
+          setActiveFeedTab(id as 'all' | 'following' | 'bookmarks');
         }}
-      >
-        <button
-          type="button"
-          onClick={() => { triggerHaptic('light'); setActiveFeedTab('all'); }}
-          style={{
-            flex: 1,
-            background: activeFeedTab === 'all' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-            border: 'none',
-            padding: '14px 0',
-            color: activeFeedTab === 'all' ? 'var(--text-main)' : 'var(--text-muted)',
-            fontWeight: 700,
-            fontSize: '1rem',
-            cursor: 'pointer',
-            position: 'relative',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-          onMouseEnter={e => {
-            if (activeFeedTab !== 'all') {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-              e.currentTarget.style.color = 'var(--text-main)';
-            }
-          }}
-          onMouseLeave={e => {
-            if (activeFeedTab !== 'all') {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
-            }
-          }}
-        >
-          <span>おすすめ</span>
-          {activeFeedTab === 'all' && (
-            <div 
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '40px',
-                height: '4px',
-                background: 'var(--primary)',
-                borderRadius: '2px 2px 0 0',
-                boxShadow: '0 -2px 10px var(--primary-glow)'
-              }}
-            />
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => { triggerHaptic('light'); setActiveFeedTab('following'); }}
-          style={{
-            flex: 1,
-            background: activeFeedTab === 'following' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-            border: 'none',
-            padding: '14px 0',
-            color: activeFeedTab === 'following' ? 'var(--text-main)' : 'var(--text-muted)',
-            fontWeight: 700,
-            fontSize: '1rem',
-            cursor: 'pointer',
-            position: 'relative',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-          onMouseEnter={e => {
-            if (activeFeedTab !== 'following') {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-              e.currentTarget.style.color = 'var(--text-main)';
-            }
-          }}
-          onMouseLeave={e => {
-            if (activeFeedTab !== 'following') {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
-            }
-          }}
-        >
-          <span>フォロー中</span>
-          {activeFeedTab === 'following' && (
-            <div 
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '40px',
-                height: '4px',
-                background: 'var(--primary)',
-                borderRadius: '2px 2px 0 0',
-                boxShadow: '0 -2px 10px var(--primary-glow)'
-              }}
-            />
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => { triggerHaptic('light'); setActiveFeedTab('bookmarks'); }}
-          style={{
-            flex: 1,
-            background: activeFeedTab === 'bookmarks' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-            border: 'none',
-            padding: '14px 0',
-            color: activeFeedTab === 'bookmarks' ? 'var(--text-main)' : 'var(--text-muted)',
-            fontWeight: 700,
-            fontSize: '1rem',
-            cursor: 'pointer',
-            position: 'relative',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-          onMouseEnter={e => {
-            if (activeFeedTab !== 'bookmarks') {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-              e.currentTarget.style.color = 'var(--text-main)';
-            }
-          }}
-          onMouseLeave={e => {
-            if (activeFeedTab !== 'bookmarks') {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
-            }
-          }}
-        >
-          <span>ブックマーク</span>
-          {activeFeedTab === 'bookmarks' && (
-            <div 
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '40px',
-                height: '4px',
-                background: 'var(--primary)',
-                borderRadius: '2px 2px 0 0',
-                boxShadow: '0 -2px 10px var(--primary-glow)'
-              }}
-            />
-          )}
-        </button>
-      </div>
+        variant="pill"
+        fullWidth
+      />
 
       {/* Sleek Glassmorphic Search Bar with suggestions */}
       <div ref={searchContainerRef} style={{ position: 'relative', width: '100%', zIndex: 100 }}>
@@ -3645,7 +3499,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
         {/* Suggestion Dropdown List (X-style) */}
         {isSearchFocused && searchQuery.trim().length >= 1 && (
           <div
-            className="glass"
+            className="glass liquid-glass-strong"
             style={{
               position: 'absolute',
               top: 'calc(100% + 8px)',
@@ -3807,7 +3661,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
           >
             <form
               onSubmit={handleCreatePost}
-              className="glass card"
+              className="glass card liquid-glass-strong"
               style={{
                 padding: isMobile ? '18px 18px 20px' : '28px',
                 borderRadius: '26px',
@@ -3845,7 +3699,7 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 </div>
               )}
 
-              {/* Top Bar: Mode Switcher Tabs (Admin) + Close Button */}
+              {/* Top Bar: Animated Mode Switcher Tabs (Admin) + Close Button */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -3853,99 +3707,47 @@ export const TimelineView = ({ currentUser, isMobile, theme, targetPostId, onCle
                 gap: '10px'
               }}>
                 {currentUser.role === 'admin' ? (
-                  <div style={{
-                    flex: 1,
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '6px',
-                    padding: '4px',
-                    borderRadius: '16px',
-                    background: theme === 'dark' ? 'rgba(0, 0, 0, 0.32)' : 'rgba(15, 23, 42, 0.06)',
-                    border: '1px solid var(--glass-border)'
-                  }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('light');
-                        setComposerMode('post');
-                        setIsAnnouncement(false);
-                      }}
-                      className="composer-interactive-btn"
-                      style={{
-                        padding: isMobile ? '9px 10px' : '10px 14px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 800,
-                        fontSize: isMobile ? '0.84rem' : '0.88rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        whiteSpace: 'nowrap',
-                        background: composerMode === 'post'
-                          ? 'var(--primary)'
-                          : 'transparent',
-                        color: composerMode === 'post' ? '#ffffff' : 'var(--text-muted)',
-                        boxShadow: composerMode === 'post' ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none',
-                        transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)'
-                      }}
-                    >
-                      <MessageSquare
-                        size={15}
-                        style={{
-                          flexShrink: 0,
-                          color: composerMode === 'post' ? '#ffffff' : 'currentColor',
-                          stroke: composerMode === 'post' ? '#ffffff' : 'currentColor'
-                        }}
-                      />
-                      <span style={{ color: composerMode === 'post' ? '#ffffff' : 'inherit' }}>通常ポスト</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('medium');
-                        setComposerMode('announcement');
-                        setIsAnnouncement(true);
-                      }}
-                      className="composer-interactive-btn"
-                      style={{
-                        padding: isMobile ? '9px 10px' : '10px 14px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 800,
-                        fontSize: isMobile ? '0.84rem' : '0.88rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        whiteSpace: 'nowrap',
-                        background: composerMode === 'announcement'
-                          ? 'var(--primary)'
-                          : 'transparent',
-                        color: composerMode === 'announcement' ? '#ffffff' : 'var(--text-muted)',
-                        boxShadow: composerMode === 'announcement' ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none',
-                        transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)'
-                      }}
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke={composerMode === 'announcement' ? '#ffffff' : 'currentColor'}
-                        strokeWidth="2.3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{ flexShrink: 0 }}
-                      >
-                        <path d="m3 11 18-5v12L3 14v-3z" />
-                        <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-                      </svg>
-                      <span style={{ color: composerMode === 'announcement' ? '#ffffff' : 'inherit' }}>告知を作成</span>
-                    </button>
-                  </div>
+                  <AnimatedTabs
+                    tabs={[
+                      {
+                        id: 'post',
+                        label: '通常ポスト',
+                        icon: <MessageSquare size={15} />,
+                        tone: 'primary',
+                      },
+                      {
+                        id: 'announcement',
+                        label: '告知を作成',
+                        icon: (
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="m3 11 18-5v12L3 14v-3z" />
+                            <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                          </svg>
+                        ),
+                        tone: 'announcement',
+                      },
+                    ]}
+                    activeId={composerMode}
+                    onChange={(id) => {
+                      const nextMode = id as 'post' | 'announcement';
+                      triggerHaptic(nextMode === 'announcement' ? 'medium' : 'light');
+                      setComposerMode(nextMode);
+                      setIsAnnouncement(nextMode === 'announcement');
+                    }}
+                    variant="pill"
+                    size={isMobile ? 'sm' : 'md'}
+                    fullWidth
+                    style={{ flex: 1 }}
+                  />
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
                     <MessageSquare size={17} style={{ color: 'var(--primary)' }} />
